@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  images: {
+    domains: ['img.daisyui.com','reqres.in'],
+  },
 };
 
 export default nextConfig;
