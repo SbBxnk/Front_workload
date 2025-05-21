@@ -3,13 +3,20 @@
 import type React from "react"
 import { useState, useEffect, useRef } from "react"
 import { useDropzone } from "react-dropzone"
-import { X, Link, Upload, CalendarClock, ImageIcon, FileText } from "lucide-react"
+import { X, Link, Upload, CalendarClock, ImageIcon, FileText, Plus } from "lucide-react"
 
 interface FileData {
   file_name: string
   size: number
   form_id: number
-  flieinfo_id?: number // แก้ไขชื่อฟิลด์ให้ตรงกับฐานข้อมูล
+  fileinfo_id?: number // แก้ไขชื่อฟิลด์ให้ตรงกับฐานข้อมูล
+}
+
+interface LinkData {
+  link_id?: number
+  link_path: string
+  link_name: string
+  form_id?: number
 }
 
 interface FormData {
@@ -21,6 +28,7 @@ interface FormData {
   file_type: "link" | "external file" | "file in system"
   link?: string
   link_name?: string
+  links?: LinkData[]
   files?: FileData[]
 }
 
@@ -31,7 +39,7 @@ interface EditModalProps {
     form_id: number,
     event: React.FormEvent<HTMLFormElement>,
     uploadedFiles: File[],
-    link?: string,
+    links?: { link_path: string; link_name: string; link_id?: number }[],
     fileInSystem?: string,
     fileName?: string,
     existingFiles?: FileData[],
@@ -58,7 +66,10 @@ export default function EditModal({ form_id, formDetail, onSubmit }: EditModalPr
   const [filePreviews, setFilePreviews] = useState<FilePreview[]>([])
   const [existingFiles, setExistingFiles] = useState<FileData[]>([])
   const [filesToDelete, setFilesToDelete] = useState<number[]>([])
-  const [link, setLink] = useState<string>("")
+  // เปลี่ยนจาก string เป็น array ของ links
+  const [links, setLinks] = useState<LinkData[]>([])
+  // เพิ่ม state สำหรับเก็บลิงก์ที่ต้องการลบ
+  const [linksToDelete, setLinksToDelete] = useState<number[]>([])
   const [fileInSystem, setFileInSystem] = useState<string>("")
   const [fileName, setFileName] = useState<string>("")
   const modalCheckboxRef = useRef<HTMLInputElement | null>(null)
@@ -122,7 +133,8 @@ export default function EditModal({ form_id, formDetail, onSubmit }: EditModalPr
     setFilePreviews([])
     setExistingFiles([])
     setFilesToDelete([])
-    setLink("")
+    setLinks([])
+    setLinksToDelete([])
     setFileInSystem("")
     setFileName("")
     setEvidenceType("link")
@@ -142,11 +154,11 @@ export default function EditModal({ form_id, formDetail, onSubmit }: EditModalPr
 
     console.log(`Removing file with ID: ${fileId}`)
 
-    // Update existingFiles state by removing the file with matching flieinfo_id
+    // Update existingFiles state by removing the file with matching fileinfo_id
     setExistingFiles((prevFiles) => {
       const newFiles = prevFiles.filter((file) => {
-        // Check for flieinfo_id (the correct property name from your database)
-        return file.flieinfo_id !== fileId
+        // Check for fileinfo_id (the correct property name from your database)
+        return file.fileinfo_id !== fileId
       })
       console.log("Files after removal:", newFiles)
       return newFiles
@@ -187,7 +199,31 @@ export default function EditModal({ form_id, formDetail, onSubmit }: EditModalPr
     })
   }
 
-  // แก้ไขฟังก์ชัน handleFormSubmit เพื่อไม่ส่ง existingFiles ไปให้ onSubmit
+  // เพิ่มฟังก์ชันสำหรับจัดการลิงก์
+  const handleAddLink = () => {
+    setLinks([...links, { link_path: "", link_name: "" }])
+  }
+
+  const handleRemoveLink = (index: number) => {
+    const linkToRemove = links[index]
+
+    // ถ้าลิงก์มี link_id (เป็นลิงก์ที่มีอยู่ในฐานข้อมูล) ให้เพิ่มเข้าไปใน linksToDelete
+    if (linkToRemove.link_id) {
+      setLinksToDelete((prev) => [...prev, linkToRemove.link_id as number])
+      console.log(`Marking link with ID ${linkToRemove.link_id} for deletion`)
+    }
+
+    // ลบลิงก์ออกจาก state
+    setLinks(links.filter((_, i) => i !== index))
+  }
+
+  const handleLinkChange = (index: number, field: "link_path" | "link_name", value: string) => {
+    const newLinks = [...links]
+    newLinks[index][field] = value
+    setLinks(newLinks)
+  }
+
+  // แก้ไขฟังก์ชัน handleFormSubmit เพื่อส่ง links ไปให้ onSubmit
   const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!form_id || !formDetail) return
@@ -201,20 +237,93 @@ export default function EditModal({ form_id, formDetail, onSubmit }: EditModalPr
       }
     }
 
+    // กรองลิงก์ที่ว่างออกก่อนส่งข้อมูล
+    const nonEmptyLinks = links.filter((link) => link.link_path.trim() !== "")
+
     // Log files that will be deleted from the database
     if (filesToDelete.length > 0) {
       console.log("Files to be deleted from database:", filesToDelete)
     }
 
+    // Log links that will be deleted from the database
+    if (linksToDelete.length > 0) {
+      console.log("Links to be deleted from database:", linksToDelete)
+    }
+
+    // Log existing files that will be kept
+    console.log("Existing files to keep:", existingFiles)
+
+    // แปลง existingFiles เป็น array ของ IDs
+    const existingFileIds = existingFiles.map((file) => file.fileinfo_id).filter(Boolean)
+    console.log("Existing file IDs to keep:", existingFileIds)
+
+    // Log links that will be kept or added
+    console.log("Links to keep or add:", nonEmptyLinks)
+
+    // เพิ่ม field linksToDelete ใน FormData ที่ส่งไปยัง API
+    const formData = new FormData(event.currentTarget)
+
+    // เพิ่ม links_to_delete เข้าไปใน formData
+    if (linksToDelete.length > 0) {
+      linksToDelete.forEach((linkId) => {
+        formData.append("links_to_delete", String(linkId))
+      })
+    }
+
+    // เพิ่ม existing_links เข้าไปใน formData สำหรับลิงก์ที่มีอยู่แล้ว
+    if (evidenceType === "link") {
+      const existingLinkIds = nonEmptyLinks
+        .filter((link) => link.link_id)
+        .map((link) => link.link_id)
+        .filter(Boolean)
+
+      console.log("Existing link IDs to keep:", existingLinkIds)
+
+      if (existingLinkIds.length > 0) {
+        existingLinkIds.forEach((linkId) => {
+          formData.append("existing_links", String(linkId))
+        })
+      }
+    }
+
+    // เพิ่ม hidden input fields สำหรับ IDs ของไฟล์ที่ต้องการเก็บไว้
+    if (evidenceType === "external file" && existingFiles.length > 0) {
+      existingFiles.forEach((file) => {
+        if (file.fileinfo_id) {
+          formData.append("existing_files", String(file.fileinfo_id))
+        }
+      })
+    }
+
+    // เพิ่ม files_to_delete เข้าไปใน formData
+    if (filesToDelete.length > 0) {
+      filesToDelete.forEach((fileId) => {
+        formData.append("files_to_delete", String(fileId))
+      })
+    }
+
+    // แสดงข้อมูลที่จะส่งไปยัง backend
+    console.log("Sending to backend:", {
+      form_id,
+      uploadedFiles: uploadedFiles.map((f) => f.name),
+      links: evidenceType === "link" ? nonEmptyLinks : undefined,
+      fileInSystem: evidenceType === "file in system" ? fileInSystem : undefined,
+      fileName: evidenceType === "file in system" ? fileName : undefined,
+      existingFiles: evidenceType === "external file" ? existingFiles : [],
+      filesToDelete,
+      linksToDelete,
+      formDataEntries: Array.from(formData.entries()),
+    })
+
     onSubmit(
       form_id,
       event,
       uploadedFiles,
-      evidenceType === "link" ? link : undefined,
+      evidenceType === "link" ? nonEmptyLinks : undefined,
       evidenceType === "file in system" ? fileInSystem : undefined,
-      evidenceType === "link" || evidenceType === "file in system" ? fileName : undefined,
-      existingFiles, // ส่ง existingFiles ไปให้ onSubmit
-      filesToDelete, // ส่ง filesToDelete ไปด้วย
+      evidenceType === "file in system" ? fileName : undefined,
+      evidenceType === "external file" ? existingFiles : [],
+      filesToDelete,
     )
 
     // Close modal immediately
@@ -225,6 +334,7 @@ export default function EditModal({ form_id, formDetail, onSubmit }: EditModalPr
   // ฟังก์ชันสำหรับการยกเลิกการแก้ไข
   const handleCancel = () => {
     if (form_id) {
+      // ไม่ต้องทำอะไรเพิ่มเติม
     }
   }
 
@@ -232,9 +342,31 @@ export default function EditModal({ form_id, formDetail, onSubmit }: EditModalPr
     if (formDetail) {
       setEvidenceType(formDetail.file_type)
 
-      if (formDetail.file_type === "link" && formDetail.link) {
-        setLink(formDetail.link)
-        setFileName(formDetail.link_name || formDetail.link)
+      if (formDetail.file_type === "link") {
+        // ตรวจสอบว่ามี links array หรือไม่
+        if (formDetail.links && formDetail.links.length > 0) {
+          console.log("Loading existing links:", formDetail.links)
+          setLinks(formDetail.links)
+        }
+        // ถ้าไม่มี links array แต่มี link เดี่ยว (รูปแบบเก่า)
+        else if (formDetail.link && formDetail.link !== "-") {
+          console.log("Loading single link:", formDetail.link)
+          setLinks([
+            {
+              link_path: formDetail.link,
+              link_name: formDetail.link_name || formDetail.link,
+            },
+          ])
+        }
+        // ถ้าไม่มีลิงก์เลย ให้เริ่มต้นด้วยลิงก์เปล่า 3 ลิงก์
+        else {
+          console.log("No links found, initializing with empty links")
+          setLinks([
+            { link_path: "", link_name: "" },
+            { link_path: "", link_name: "" },
+            { link_path: "", link_name: "" },
+          ])
+        }
       } else if (formDetail.files && formDetail.files.length > 0) {
         setExistingFiles(formDetail.files)
         console.log("existingFiles loaded:", formDetail.files)
@@ -243,6 +375,7 @@ export default function EditModal({ form_id, formDetail, onSubmit }: EditModalPr
       setUploadedFiles([])
       setFilePreviews([])
       setFilesToDelete([])
+      setLinksToDelete([])
     } else {
       resetForm()
     }
@@ -363,26 +496,54 @@ export default function EditModal({ form_id, formDetail, onSubmit }: EditModalPr
                       <label className="block text-sm font-regular text-gray-600 dark:text-gray-400 mb-2">
                         ไฟล์หลักฐาน
                       </label>
-                      {(evidenceType === "link" || evidenceType === "file in system") && (
-                        <div className="mb-4">
-                          <input
-                            type="text"
-                            placeholder="ชื่อที่ต้องการแสดง"
-                            value={fileName}
-                            onChange={(e) => setFileName(e.target.value)}
-                            className="w-full px-4 py-2 font-light rounded-md text-sm border-2 border-gray-300 dark:border-zinc-600 text-gray-600 dark:bg-zinc-800 dark:text-gray-400 focus:outline-none focus:border-blue-500 transition-colors transition-all duration-300 ease-in-out"
-                          />
-                        </div>
-                      )}
+                      {/* แสดงส่วนของลิงก์หลายลิงก์ */}
                       {evidenceType === "link" && (
-                        <input
-                          name="workload_file"
-                          type="url"
-                          placeholder="https://example.com"
-                          value={link}
-                          onChange={(e) => setLink(e.target.value)}
-                          className="w-full px-4 py-2 font-light rounded-md text-sm border-2 border-gray-300 dark:border-zinc-600 text-gray-600 dark:bg-zinc-800 dark:text-gray-400 focus:outline-none focus:border-blue-500 transition-colors transition-all duration-300 ease-in-out"
-                        />
+                        <div className="space-y-4">
+                          <div className="space-y-4">
+                            {links.map((link, index) => (
+                              <div
+                                key={link.link_id || `new-link-${index}`}
+                                className="flex flex-col space-y-2 p-3 border border-gray-200 dark:border-zinc-700 rounded-md"
+                              >
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                                    ลิงก์ #{index + 1} {link.link_id ? `(ID: ${link.link_id})` : "(ใหม่)"}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveLink(index)}
+                                    className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                                  >
+                                    <X className="w-5 h-5" />
+                                  </button>
+                                </div>
+                                <input
+                                  type="text"
+                                  placeholder="ชื่อที่ต้องการแสดง"
+                                  value={link.link_name}
+                                  onChange={(e) => handleLinkChange(index, "link_name", e.target.value)}
+                                  className="w-full px-4 py-2 font-light rounded-md text-sm border-2 border-gray-300 dark:border-zinc-600 text-gray-600 dark:bg-zinc-800 dark:text-gray-400 focus:outline-none focus:border-blue-500 transition-colors transition-all duration-300 ease-in-out"
+                                />
+                                <input
+                                  type="url"
+                                  placeholder="https://example.com"
+                                  value={link.link_path}
+                                  onChange={(e) => handleLinkChange(index, "link_path", e.target.value)}
+                                  className="w-full px-4 py-2 font-light rounded-md text-sm border-2 border-gray-300 dark:border-zinc-600 text-gray-600 dark:bg-zinc-800 dark:text-gray-400 focus:outline-none focus:border-blue-500 transition-colors transition-all duration-300 ease-in-out"
+                                />
+                                {link.link_id && <input type="hidden" name={`link_ids[]`} value={link.link_id} />}
+                              </div>
+                            ))}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleAddLink}
+                            className="flex items-center justify-center w-full py-2 text-sm font-medium text-blue-600 hover:text-blue-700 border border-blue-300 hover:border-blue-400 rounded-lg cursor-pointer transition-colors duration-150 dark:text-blue-400 dark:border-blue-800 dark:hover:border-blue-700"
+                          >
+                            <Plus className="mr-2 h-4 w-4" />
+                            เพิ่มลิงก์
+                          </button>
+                        </div>
                       )}
                       {evidenceType === "external file" && (
                         <div className="space-y-4">
@@ -393,7 +554,7 @@ export default function EditModal({ form_id, formDetail, onSubmit }: EditModalPr
                               <ul className="space-y-2">
                                 {existingFiles.map((file) => (
                                   <li
-                                    key={file.flieinfo_id || `file-${file.form_id}-${file.file_name}`}
+                                    key={file.fileinfo_id || `file-${file.form_id}-${file.file_name}`}
                                     className="flex items-center justify-between p-2 bg-gray-100 dark:bg-zinc-700 rounded-md text-sm text-gray-600 dark:text-gray-400"
                                   >
                                     <div className="flex items-center">
@@ -411,11 +572,11 @@ export default function EditModal({ form_id, formDetail, onSubmit }: EditModalPr
                                       <button
                                         type="button"
                                         onClick={() => {
-                                          if (file.flieinfo_id) {
+                                          if (file.fileinfo_id) {
                                             console.log(
-                                              `Attempting to remove file: ${file.file_name} with ID: ${file.flieinfo_id}`,
+                                              `Attempting to remove file: ${file.file_name} with ID: ${file.fileinfo_id}`,
                                             )
-                                            handleRemoveExistingFile(file.flieinfo_id)
+                                            handleRemoveExistingFile(file.fileinfo_id)
                                           }
                                         }}
                                         className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
@@ -483,14 +644,25 @@ export default function EditModal({ form_id, formDetail, onSubmit }: EditModalPr
                         </div>
                       )}
                       {evidenceType === "file in system" && (
-                        <input
-                          name="workload_file"
-                          type="text"
-                          placeholder="Enter file path or ID"
-                          value={fileInSystem}
-                          onChange={(e) => setFileInSystem(e.target.value)}
-                          className="w-full px-4 py-2 font-light rounded-md text-sm border-2 border-gray-300 dark:border-zinc-600 text-gray-600 dark:bg-zinc-800 dark:text-gray-400 focus:outline-none focus:border-blue-500 transition-colors transition-all duration-300 ease-in-out"
-                        />
+                        <>
+                          <div className="mb-4">
+                            <input
+                              type="text"
+                              placeholder="ชื่อที่ต้องการแสดง"
+                              value={fileName}
+                              onChange={(e) => setFileName(e.target.value)}
+                              className="w-full px-4 py-2 font-light rounded-md text-sm border-2 border-gray-300 dark:border-zinc-600 text-gray-600 dark:bg-zinc-800 dark:text-gray-400 focus:outline-none focus:border-blue-500 transition-colors transition-all duration-300 ease-in-out"
+                            />
+                          </div>
+                          <input
+                            name="workload_file"
+                            type="text"
+                            placeholder="Enter file path or ID"
+                            value={fileInSystem}
+                            onChange={(e) => setFileInSystem(e.target.value)}
+                            className="w-full px-4 py-2 font-light rounded-md text-sm border-2 border-gray-300 dark:border-zinc-600 text-gray-600 dark:bg-zinc-800 dark:text-gray-400 focus:outline-none focus:border-blue-500 transition-colors transition-all duration-300 ease-in-out"
+                          />
+                        </>
                       )}
                     </div>
                   </div>

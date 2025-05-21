@@ -30,6 +30,11 @@ interface ApiFormData {
   ex_score: number
   form_id: number
   files: FileData[]
+  links?: {
+    link_id: number
+    link_path: string
+    link_name: string
+  }[]
 }
 
 interface FileData {
@@ -40,7 +45,8 @@ interface FileData {
 }
 
 interface LinkData {
-  link: string
+  link_id?: number
+  link_path: string
   link_name: string
   form_id: number
 }
@@ -82,7 +88,9 @@ interface FormInfo {
 }
 
 // เพิ่มฟังก์ชันสำหรับตรวจสอบประเภทไฟล์
-const isImageFile = (fileName: string): boolean => {
+const isImageFile = (fileName: string | null | undefined): boolean => {
+  if (!fileName) return false // ถ้า fileName เป็น null หรือ undefined ให้คืนค่า false
+
   const imageExtensions = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"]
   const ext = fileName.substring(fileName.lastIndexOf(".")).toLowerCase()
   return imageExtensions.includes(ext)
@@ -100,7 +108,7 @@ function WorkloadSubtaskInfo() {
   const [formList, setFormList] = useState<(FormInfo & { total_score: number })[]>([])
   const [fileInfos, setFileInfos] = useState<{ [form_id: number]: FileInfo[] }>({})
   const [formFiles, setFormFiles] = useState<{ [form_id: number]: FileData[] }>({})
-  const [formLinks, setFormLinks] = useState<{ [form_id: number]: LinkData }>({})
+  const [formLinks, setFormLinks] = useState<{ [form_id: number]: LinkData[] }>({})
   const [formSystemFiles, setFormSystemFiles] = useState<{ [form_id: number]: FileData }>({})
   const [, setFormFileNames] = useState<{ [form_id: number]: string }>({})
   const [dropdownOpen, setDropdownOpen] = useState<{ [index: number]: boolean }>({})
@@ -236,13 +244,31 @@ function WorkloadSubtaskInfo() {
             }
           })
 
-          const newFormLinks: { [form_id: number]: LinkData } = {}
+          // Update to handle multiple links per form
+          const newFormLinks: { [form_id: number]: LinkData[] } = {}
           apiForms.forEach((apiForm) => {
-            if (apiForm.file_type === "link" && apiForm.link !== "-") {
-              newFormLinks[apiForm.form_id] = {
-                link: apiForm.link,
-                link_name: apiForm.link_name || apiForm.link,
-                form_id: apiForm.form_id,
+            if (apiForm.file_type === "link") {
+              // Check if the API response has links in a specific format
+              if (apiForm.links && Array.isArray(apiForm.links)) {
+                newFormLinks[apiForm.form_id] = apiForm.links.map((link) => ({
+                  link_id: link.link_id,
+                  link_path: link.link_path,
+                  link_name: link.link_name || link.link_path,
+                  form_id: apiForm.form_id,
+                }))
+              }
+              // Fallback to the old format if needed
+              else if (apiForm.link && apiForm.link !== "-") {
+                newFormLinks[apiForm.form_id] = [
+                  {
+                    link_path: apiForm.link,
+                    link_name: apiForm.link_name || apiForm.link,
+                    form_id: apiForm.form_id,
+                  },
+                ]
+              } else {
+                // Initialize with empty array if no links
+                newFormLinks[apiForm.form_id] = []
               }
             }
           })
@@ -272,6 +298,24 @@ function WorkloadSubtaskInfo() {
     // eslint-disable-next-line
   }, [workloadGroupInfo?.formlist_id, subtask_id])
 
+  // เพิ่มฟังก์ชันนี้เพื่อตรวจสอบข้อมูล
+  useEffect(() => {
+    // ตรวจสอบข้อมูลเมื่อโหลดเสร็จ
+    if (!loading && formList.length > 0) {
+      console.log("Form List:", formList)
+      formList.forEach((form) => {
+        console.log(`Form ID ${form.form_id}:`, {
+          title: form.form_title,
+          file_type: form.file_type,
+          has_links: formLinks[form.form_id]?.length > 0,
+          has_files: formFiles[form.form_id]?.length > 0,
+          links: formLinks[form.form_id],
+          files: formFiles[form.form_id],
+        })
+      })
+    }
+  }, [loading, formList, formLinks, formFiles])
+
   const fetchFilesForForm = async (formlist_id: number) => {
     try {
       const response = await axios.get(
@@ -292,7 +336,7 @@ function WorkloadSubtaskInfo() {
   const handleAddDisplayForm = async (
     event: React.FormEvent<HTMLFormElement>,
     uploadedFiles: File[],
-    link?: string,
+    links?: { link_path: string; link_name: string }[],
     fileInSystem?: string,
     fileName?: string,
   ) => {
@@ -313,9 +357,9 @@ function WorkloadSubtaskInfo() {
     apiFormData.append("file_type", evidenceType)
     apiFormData.append("ex_score", "0")
 
-    if (evidenceType === "link" && link) {
-      apiFormData.append("link", link)
-      apiFormData.append("link_name", fileName || link)
+    if (evidenceType === "link" && links && links.length > 0) {
+      // Add links as JSON string
+      apiFormData.append("links", JSON.stringify(links))
     } else if (evidenceType === "file in system" && fileInSystem) {
       apiFormData.append("link", fileInSystem)
       apiFormData.append("link_name", fileName || fileInSystem)
@@ -360,14 +404,28 @@ function WorkloadSubtaskInfo() {
 
       if (apiForm.file_type === "external file" && apiForm.files.length > 0) {
         setFormFiles((prev) => ({ ...prev, [apiForm.form_id]: apiForm.files }))
-      } else if (apiForm.file_type === "link" && apiForm.link !== "-") {
+      } else if (apiForm.file_type === "link" && apiForm.links && apiForm.links.length > 0) {
+        // Handle multiple links
         setFormLinks((prev) => ({
           ...prev,
-          [apiForm.form_id]: {
-            link: apiForm.link,
-            link_name: apiForm.link_name || apiForm.link,
-            form_id: apiForm.form_id,
-          },
+          [apiForm.form_id]:
+            apiForm.links?.map((link) => ({
+              link_id: link.link_id,
+              link_path: link.link_path,
+              link_name: link.link_name || link.link_path,
+              form_id: apiForm.form_id,
+            })) || [],
+        }))
+      } else if (apiForm.file_type === "link" && apiForm.link && apiForm.link !== "-") {
+        setFormLinks((prev) => ({
+          ...prev,
+          [apiForm.form_id]: [
+            {
+              link_path: apiForm.link,
+              link_name: apiForm.link_name || apiForm.link,
+              form_id: apiForm.form_id,
+            },
+          ],
         }))
       } else if (apiForm.file_type === "file in system" && apiForm.files.length > 0) {
         setFormSystemFiles((prev) => ({
@@ -421,7 +479,7 @@ function WorkloadSubtaskInfo() {
     form_id: number,
     event: React.FormEvent<HTMLFormElement>,
     uploadedFiles: File[],
-    link?: string,
+    links?: { link_path: string; link_name: string; link_id?: number }[],
     fileInSystem?: string,
     fileName?: string,
     existingFiles?: FileData[],
@@ -442,9 +500,33 @@ function WorkloadSubtaskInfo() {
     apiFormData.append("workload", formData.get("workload") as string)
     apiFormData.append("file_type", evidenceType)
 
-    if (evidenceType === "link" && link) {
-      apiFormData.append("link", link)
-      apiFormData.append("link_name", fileName || link)
+    // แสดงข้อมูลที่จะส่งไปยัง backend
+    console.log("Preparing to send form data:", {
+      form_id,
+      form_title: formData.get("form_title"),
+      description: formData.get("description"),
+      quality: formData.get("quality"),
+      workload: formData.get("workload"),
+      file_type: evidenceType,
+    })
+
+    if (evidenceType === "link" && links && links.length > 0) {
+      // Add links as JSON string
+      apiFormData.append("links", JSON.stringify(links))
+      console.log("Links to send:", links)
+
+      // เพิ่ม existing_links สำหรับลิงก์ที่มีอยู่แล้ว
+      const existingLinkIds = links
+        .filter((link) => link.link_id)
+        .map((link) => link.link_id)
+        .filter(Boolean)
+
+      if (existingLinkIds.length > 0) {
+        existingLinkIds.forEach((linkId) => {
+          apiFormData.append("existing_links", String(linkId))
+        })
+        console.log("Existing link IDs:", existingLinkIds)
+      }
     } else if (evidenceType === "file in system" && fileInSystem) {
       apiFormData.append("link", fileInSystem)
       apiFormData.append("link_name", fileName || fileInSystem)
@@ -461,10 +543,6 @@ function WorkloadSubtaskInfo() {
           console.log(`Keeping file: ${file.file_name} (ID: ${file.fileinfo_id})`)
         }
       })
-    } else {
-      // If no files are selected to keep, send an empty value
-      apiFormData.append("existing_files", "")
-      console.log("No existing files to keep")
     }
 
     // Add files to delete
@@ -473,6 +551,18 @@ function WorkloadSubtaskInfo() {
         apiFormData.append("files_to_delete", String(fileId))
         console.log(`Marking file ID ${fileId} for deletion`)
       })
+    }
+
+    // Add links to delete
+    const formLinksToDelete = Array.from(document.querySelectorAll('input[name="links_to_delete"]')).map(
+      (input) => (input as HTMLInputElement).value,
+    )
+
+    if (formLinksToDelete.length > 0) {
+      formLinksToDelete.forEach((linkId) => {
+        apiFormData.append("links_to_delete", linkId)
+      })
+      console.log("Links to delete:", formLinksToDelete)
     }
 
     // Add new files
@@ -500,6 +590,11 @@ function WorkloadSubtaskInfo() {
         console.log("Files deleted from database:", response.data.deletedFiles)
       }
 
+      // Log which links were deleted
+      if (response.data.deletedLinks && response.data.deletedLinks.length > 0) {
+        console.log("Links deleted from database:", response.data.deletedLinks)
+      }
+
       // Update form in state
       setFormList((prev) =>
         prev.map((form) =>
@@ -520,14 +615,28 @@ function WorkloadSubtaskInfo() {
       // Update files in state
       if (updatedForm.file_type === "external file" && updatedForm.files && updatedForm.files.length > 0) {
         setFormFiles((prev) => ({ ...prev, [form_id]: updatedForm.files }))
-      } else if (updatedForm.file_type === "link" && updatedForm.link && updatedForm.link !== "-") {
+      } else if (updatedForm.file_type === "link" && updatedForm.links && updatedForm.links.length > 0) {
+        // Handle multiple links
         setFormLinks((prev) => ({
           ...prev,
-          [form_id]: {
-            link: updatedForm.link,
-            link_name: updatedForm.link_name || updatedForm.link,
+          [form_id]: updatedForm.links.map((link: { link_id: number; link_path: string; link_name: string }) => ({
+            link_id: link.link_id,
+            link_path: link.link_path,
+            link_name: link.link_name || link.link_path,
             form_id: form_id,
-          },
+          })),
+        }))
+      } else if (updatedForm.file_type === "link" && updatedForm.link && updatedForm.link !== "-") {
+        // Fallback for single link
+        setFormLinks((prev) => ({
+          ...prev,
+          [form_id]: [
+            {
+              link_path: updatedForm.link,
+              link_name: updatedForm.link_name || updatedForm.link,
+              form_id: form_id,
+            },
+          ],
         }))
         // Remove from formFiles if it was previously a file
         setFormFiles((prev) => {
@@ -733,8 +842,12 @@ function WorkloadSubtaskInfo() {
     <>
       <CreateModal onSubmit={handleAddDisplayForm} />
       <EditModal form_id={editFormId} formDetail={formDetail} onSubmit={handleEditForm} />
-      {formList.map((form) => (
-        <DeleteModal key={form.form_id} comfirmDelete={comfirmDelete} form_id={form.form_id} />
+      {formList.map((form, index) => (
+        <DeleteModal
+          key={`delete-modal-${form.form_id}-${index}`}
+          comfirmDelete={comfirmDelete}
+          form_id={form.form_id}
+        />
       ))}
 
       <div className="">
@@ -823,15 +936,31 @@ function WorkloadSubtaskInfo() {
                         </p>
                       </div>
                     </div>
+                    {/* แก้ไขส่วนการแสดงผลไฟล์หลักฐาน */}
                     <div className="h-full">
                       {(formFiles[form.form_id]?.length > 0 ||
-                        formLinks[form.form_id] ||
+                        formLinks[form.form_id]?.length > 0 ||
                         formSystemFiles[form.form_id] ||
                         fileInfos[form.form_id]?.length > 0) && (
                         <div className="bg-white dark:bg-gray-900 p-4 rounded-lg transition-all duration-200 h-full">
                           <p className="text-sm font-medium text-gray-500 dark:text-gray-400">ไฟล์หลักฐาน:</p>
                           <ul className="mt-2 space-y-2">
-                            {form.file_type === "external file" && formFiles[form.form_id]?.length > 0 ? (
+                            {/* ตรวจสอบประเภทของฟอร์มและแสดงผลตามประเภท */}
+                            {form.file_type === "link" && formLinks[form.form_id]?.length > 0 ? (
+                              // แสดงลิงก์ก่อน (สลับลำดับการตรวจสอบ)
+                              formLinks[form.form_id].map((link: LinkData, index: number) => (
+                                <li key={index}>
+                                  <button
+                                    onClick={() => window.open(link.link_path, "_blank")}
+                                    className="inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline transition-colors duration-150 text-sm"
+                                  >
+                                    <LinkIcon className="h-5 w-5 mr-2 text-blue-500 dark:text-blue-400" />
+                                    <span className="truncate max-w-[150px] md:max-w-[400px]">{link.link_name}</span>
+                                  </button>
+                                </li>
+                              ))
+                            ) : form.file_type === "external file" && formFiles[form.form_id]?.length > 0 ? (
+                              // แสดงไฟล์
                               formFiles[form.form_id].map((file: FileData, index: number) => (
                                 <li key={index}>
                                   <button
@@ -850,18 +979,6 @@ function WorkloadSubtaskInfo() {
                                   </button>
                                 </li>
                               ))
-                            ) : form.file_type === "link" && formLinks[form.form_id] ? (
-                              <li>
-                                <button
-                                  onClick={() => window.open(formLinks[form.form_id].link, "_blank")}
-                                  className="inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline transition-colors duration-150 text-sm"
-                                >
-                                  <LinkIcon className="h-5 w-5 mr-2 text-blue-500 dark:text-blue-400" />
-                                  <span className="truncate max-w-[150px] md:max-w-[400px]">
-                                    {formLinks[form.form_id].link_name}
-                                  </span>
-                                </button>
-                              </li>
                             ) : form.file_type === "file in system" && formSystemFiles[form.form_id] ? (
                               <li>
                                 <button
