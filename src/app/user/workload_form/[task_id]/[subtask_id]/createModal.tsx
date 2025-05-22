@@ -52,20 +52,25 @@ export default function CreateModal({ onSubmit }: CreateModalProps) {
     }
   }, [])
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop: (acceptedFiles) => {
-      setUploadedFiles((prevFiles) => [...prevFiles, ...acceptedFiles])
-    },
-    multiple: true,
-    accept: {
-      "application/pdf": [".pdf"],
-      "application/msword": [".doc"],
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
-      "application/vnd.ms-excel": [".xls"],
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
-      "text/plain": [".txt"],
-    },
-  })
+const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  onDrop: (acceptedFiles) => {
+    setUploadedFiles((prevFiles) => [...prevFiles, ...acceptedFiles])
+  },
+  multiple: true,
+  accept: {
+    "application/pdf": [".pdf"],
+    "application/msword": [".doc"],
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
+    "application/vnd.ms-excel": [".xls"],
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
+    "text/plain": [".txt"],
+    "image/jpeg": [".jpg", ".jpeg"],
+    "image/png": [".png"],
+    "image/gif": [".gif"],
+    "image/bmp": [".bmp"],
+    "image/webp": [".webp"],
+  },
+})
 
   const handleRemoveFile = (fileToRemove: File) => {
     setUploadedFiles((prevFiles) => prevFiles.filter((file) => file !== fileToRemove))
@@ -191,11 +196,10 @@ export default function CreateModal({ onSubmit }: CreateModalProps) {
                     </label>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                       <label
-                        className={`flex items-center justify-center px-4 py-2 rounded-md border-2 cursor-pointer transition-all duration-300 ease-in-out text-sm font-light text-gray-600 dark:text-gray-400 dark:bg-zinc-800 ${
-                          evidenceType === "link"
+                        className={`flex items-center justify-center px-4 py-2 rounded-md border-2 cursor-pointer transition-all duration-300 ease-in-out text-sm font-light text-gray-600 dark:text-gray-400 dark:bg-zinc-800 ${evidenceType === "link"
                             ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
                             : "border-gray-300 dark:border-zinc-600 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30"
-                        }`}
+                          }`}
                       >
                         <input
                           type="checkbox"
@@ -209,11 +213,10 @@ export default function CreateModal({ onSubmit }: CreateModalProps) {
                         ลิ้งก์
                       </label>
                       <label
-                        className={`flex items-center justify-center px-4 py-2 rounded-md border-2 cursor-pointer transition-all duration-300 ease-in-out text-sm font-light text-gray-600 dark:text-gray-400 dark:bg-zinc-800 ${
-                          evidenceType === "external file"
+                        className={`flex items-center justify-center px-4 py-2 rounded-md border-2 cursor-pointer transition-all duration-300 ease-in-out text-sm font-light text-gray-600 dark:text-gray-400 dark:bg-zinc-800 ${evidenceType === "external file"
                             ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
                             : "border-gray-300 dark:border-zinc-600 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30"
-                        }`}
+                          }`}
                       >
                         <input
                           type="checkbox"
@@ -285,11 +288,10 @@ export default function CreateModal({ onSubmit }: CreateModalProps) {
                       <div className="space-y-4">
                         <div
                           {...getRootProps()}
-                          className={`w-full py-2 flex flex-col items-center justify-center border-2 border-dashed rounded-md transition-all duration-300 ease-in-out ${
-                            isDragActive
+                          className={`w-full py-2 flex flex-col items-center justify-center border-2 border-dashed rounded-md transition-all duration-300 ease-in-out ${isDragActive
                               ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30"
                               : "border-gray-300 dark:border-zinc-600 dark:bg-zinc-800"
-                          } hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 cursor-pointer`}
+                            } hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 cursor-pointer`}
                         >
                           <input {...getInputProps()} name="workload_file" />
                           <p className="text-sm text-gray-600 dark:text-gray-400">

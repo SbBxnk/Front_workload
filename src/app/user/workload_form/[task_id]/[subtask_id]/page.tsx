@@ -335,147 +335,194 @@ useEffect(() => {
   }
 
   const handleAddDisplayForm = async (
-    event: React.FormEvent<HTMLFormElement>,
-    uploadedFiles: File[],
-    links?: { link_path: string; link_name: string }[],
-    fileInSystem?: string,
-    fileName?: string,
-  ) => {
-    event.preventDefault()
-    const formData = new FormData(event.currentTarget)
+  event: React.FormEvent<HTMLFormElement>,
+  uploadedFiles: File[],
+  links?: { link_path: string; link_name: string }[],
+  fileInSystem?: string,
+  fileName?: string,
+) => {
+  event.preventDefault()
+  const formData = new FormData(event.currentTarget)
 
-    const evidenceType = formData.get("file_type") as "link" | "external file" | "file in system"
+  const evidenceType = formData.get("file_type") as "link" | "external file" | "file in system"
 
-    // Prepare FormData for API
-    const apiFormData = new FormData()
-    apiFormData.append("as_u_id", String(userId || 0))
-    apiFormData.append("formlist_id", String(workloadGroupInfo?.formlist_id || 0))
-    apiFormData.append("subtask_id", String(subtask_id || 0))
-    apiFormData.append("form_title", formData.get("form_title") as string)
-    apiFormData.append("description", formData.get("description") as string)
-    apiFormData.append("quality", formData.get("quality") as string)
-    apiFormData.append("workload", formData.get("workload") as string)
-    apiFormData.append("file_type", evidenceType)
-    apiFormData.append("ex_score", "0")
+  // Prepare FormData for API
+  const apiFormData = new FormData()
+  apiFormData.append("as_u_id", String(userId || 0))
+  apiFormData.append("formlist_id", String(workloadGroupInfo?.formlist_id || 0))
+  apiFormData.append("subtask_id", String(subtask_id || 0))
+  apiFormData.append("form_title", formData.get("form_title") as string)
+  apiFormData.append("description", formData.get("description") as string)
+  apiFormData.append("quality", formData.get("quality") as string)
+  apiFormData.append("workload", formData.get("workload") as string)
+  apiFormData.append("file_type", evidenceType)
+  apiFormData.append("ex_score", "0")
 
-    if (evidenceType === "link" && links && links.length > 0) {
-      // Add links as JSON string
-      apiFormData.append("links", JSON.stringify(links))
-    } else if (evidenceType === "file in system" && fileInSystem) {
-      apiFormData.append("link", fileInSystem)
-      apiFormData.append("link_name", fileName || fileInSystem)
-    } else {
-      apiFormData.append("link", "-")
-      apiFormData.append("link_name", "-")
-    }
+  if (evidenceType === "link" && links && links.length > 0) {
+    // Add links as JSON string
+    apiFormData.append("links", JSON.stringify(links))
+  } else if (evidenceType === "file in system" && fileInSystem) {
+    apiFormData.append("link", fileInSystem)
+    apiFormData.append("link_name", fileName || fileInSystem)
+  } else {
+    apiFormData.append("link", "-")
+    apiFormData.append("link_name", "-")
+  }
 
-    if (evidenceType === "external file" || evidenceType === "file in system") {
-      uploadedFiles.forEach((file) => {
-        apiFormData.append("files", file)
-      })
-    }
+  // ตรวจสอบว่ามีไฟล์ที่จะอัปโหลดหรือไม่
+  if (evidenceType === "external file" && uploadedFiles.length === 0) {
+    Swal.fire({
+      icon: "error",
+      title: "กรุณาเลือกไฟล์",
+      text: "คุณต้องเลือกไฟล์อย่างน้อย 1 ไฟล์",
+      confirmButtonText: "ตกลง",
+    })
+    return
+  }
 
-    try {
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_API}/workload_form/form_info/add`, apiFormData, {
-        headers: {
-          ...headers,
-          "Content-Type": "multipart/form-data",
-        },
-      })
-      console.log(apiFormData)
+  // ตรวจสอบขนาดไฟล์รวม
+  if (uploadedFiles.length > 0) {
+    const totalSize = uploadedFiles.reduce((total, file) => total + file.size, 0)
+    const maxSize = 10 * 1024 * 1024 // 10MB
 
-      const apiForm: ApiFormData = response.data.data[0]
-
-      const newForm: FormInfo & { total_score: number } = {
-        form_id: apiForm.form_id,
-        as_u_id: apiForm.as_u_id,
-        formlist_id: apiForm.formlist_id,
-        form_title: apiForm.form_title,
-        description: apiForm.description,
-        quality: apiForm.quality,
-        workload: apiForm.workload,
-        file_type: apiForm.file_type,
-        ex_score: apiForm.ex_score,
-        subtask_id: Number(subtask_id),
-        total_score: apiForm.quality * apiForm.workload,
-      }
-
-      setFormList((prev) => [...prev, newForm])
-      setIsOpen((prev) => ({ ...prev, [formList.length]: false }))
-
-      if (apiForm.file_type === "external file" && apiForm.files.length > 0) {
-        setFormFiles((prev) => ({ ...prev, [apiForm.form_id]: apiForm.files }))
-      } else if (apiForm.file_type === "link" && apiForm.links && apiForm.links.length > 0) {
-        // Handle multiple links
-        setFormLinks((prev) => ({
-          ...prev,
-          [apiForm.form_id]:
-            apiForm.links?.map((link) => ({
-              link_id: link.link_id,
-              link_path: link.link_path,
-              link_name: link.link_name || link.link_path,
-              form_id: apiForm.form_id,
-            })) || [],
-        }))
-      } else if (apiForm.file_type === "link" && apiForm.link && apiForm.link !== "-") {
-        setFormLinks((prev) => ({
-          ...prev,
-          [apiForm.form_id]: [
-            {
-              link_path: apiForm.link,
-              link_name: apiForm.link_name || apiForm.link,
-              form_id: apiForm.form_id,
-            },
-          ],
-        }))
-      } else if (apiForm.file_type === "file in system" && apiForm.files.length > 0) {
-        setFormSystemFiles((prev) => ({
-          ...prev,
-          [apiForm.form_id]: apiForm.files[0],
-        }))
-      }
-
-      // Close modal first
-      const modal = document.getElementById("modal-forminfo") as HTMLInputElement
-      if (modal) modal.checked = false
-
-      // Then show success alert
-      await Swal.fire({
-        icon: "success",
-        title: "เพิ่มข้อมูลสำเร็จ",
-        text: "รายละเอียดภาระงานถูกเพิ่มเรียบร้อยแล้ว",
-        timer: 1500,
-        showConfirmButton: false,
-      })
-
-      // Scroll to the newly added item
-      setTimeout(() => {
-        const newItemIndex = formList.length
-        const newItemElement = document.querySelectorAll(`.bg-gray-50.shadow-sm.border-l-4`)[newItemIndex]
-        if (newItemElement) {
-          newItemElement.scrollIntoView({ behavior: "smooth", block: "center" })
-
-          // Open the dropdown for the new item
-          setIsOpen((prev) => ({ ...prev, [newItemIndex]: true }))
-        }
-      }, 100)
-    } catch (error) {
-      console.error("Error adding form:", error)
-      let errorMessage = "เกิดข้อผิดพลาดในการเพิ่มข้อมูล"
-      if (axios.isAxiosError(error) && error.response?.data?.error) {
-        errorMessage = error.response.data.error
-      }
-
-      // Show error alert
-      await Swal.fire({
+    if (totalSize > maxSize) {
+      Swal.fire({
         icon: "error",
-        title: "เกิดข้อผิดพลาด",
-        text: errorMessage,
+        title: "ขนาดไฟล์เกินกำหนด",
+        text: "ขนาดไฟล์รวมต้องไม่เกิน 10MB",
         confirmButtonText: "ตกลง",
       })
+      return
     }
   }
 
+  if (evidenceType === "external file" || evidenceType === "file in system") {
+    uploadedFiles.forEach((file) => {
+      apiFormData.append("files", file)
+      console.log(`Adding file: ${file.name} (${file.size} bytes, ${file.type})`)
+    })
+  }
+
+  // แสดงข้อมูลที่จะส่งไปยัง API
+  console.log("Sending to API:", {
+    as_u_id: userId,
+    formlist_id: workloadGroupInfo?.formlist_id,
+    subtask_id: subtask_id,
+    form_title: formData.get("form_title"),
+    description: formData.get("description"),
+    quality: formData.get("quality"),
+    workload: formData.get("workload"),
+    file_type: evidenceType,
+    files: uploadedFiles.map((f) => ({ name: f.name, size: f.size, type: f.type })),
+    links: evidenceType === "link" ? links : undefined,
+  })
+
+  try {
+    const response = await axios.post(`${process.env.NEXT_PUBLIC_API}/workload_form/form_info/add`, apiFormData, {
+      headers: {
+        ...headers,
+        "Content-Type": "multipart/form-data",
+      },
+    })
+    console.log("API Response:", response.data)
+
+    const apiForm: ApiFormData = response.data.data[0]
+
+    const newForm: FormInfo & { total_score: number } = {
+      form_id: apiForm.form_id,
+      as_u_id: apiForm.as_u_id,
+      formlist_id: apiForm.formlist_id,
+      form_title: apiForm.form_title,
+      description: apiForm.description,
+      quality: apiForm.quality,
+      workload: apiForm.workload,
+      file_type: apiForm.file_type,
+      ex_score: apiForm.ex_score,
+      subtask_id: Number(subtask_id),
+      total_score: apiForm.quality * apiForm.workload,
+    }
+
+    setFormList((prev) => [...prev, newForm])
+    setIsOpen((prev) => ({ ...prev, [formList.length]: false }))
+
+    if (apiForm.file_type === "external file" && apiForm.files.length > 0) {
+      setFormFiles((prev) => ({ ...prev, [apiForm.form_id]: apiForm.files }))
+    } else if (apiForm.file_type === "link" && apiForm.links && apiForm.links.length > 0) {
+      // Handle multiple links
+      setFormLinks((prev) => ({
+        ...prev,
+        [apiForm.form_id]:
+          apiForm.links?.map((link) => ({
+            link_id: link.link_id,
+            link_path: link.link_path,
+            link_name: link.link_name || link.link_path,
+            form_id: apiForm.form_id,
+          })) || [],
+      }))
+    } else if (apiForm.file_type === "link" && apiForm.link && apiForm.link !== "-") {
+      setFormLinks((prev) => ({
+        ...prev,
+        [apiForm.form_id]: [
+          {
+            link_path: apiForm.link,
+            link_name: apiForm.link_name || apiForm.link,
+            form_id: apiForm.form_id,
+          },
+        ],
+      }))
+    } else if (apiForm.file_type === "file in system" && apiForm.files.length > 0) {
+      setFormSystemFiles((prev) => ({
+        ...prev,
+        [apiForm.form_id]: apiForm.files[0],
+      }))
+    }
+
+    // Close modal first
+    const modal = document.getElementById("modal-forminfo") as HTMLInputElement
+    if (modal) modal.checked = false
+
+    // Then show success alert
+    await Swal.fire({
+      icon: "success",
+      title: "เพิ่มข้อมูลสำเร็จ",
+      text: "รายละเอียดภาระงานถูกเพิ่มเรียบร้อยแล้ว",
+      timer: 1500,
+      showConfirmButton: false,
+    })
+
+    // Scroll to the newly added item
+    setTimeout(() => {
+      const newItemIndex = formList.length
+      const newItemElement = document.querySelectorAll(`.bg-gray-50.shadow-sm.border-l-4`)[newItemIndex]
+      if (newItemElement) {
+        newItemElement.scrollIntoView({ behavior: "smooth", block: "center" })
+
+        // Open the dropdown for the new item
+        setIsOpen((prev) => ({ ...prev, [newItemIndex]: true }))
+      }
+    }, 100)
+  } catch (error) {
+    console.error("Error adding form:", error)
+    let errorMessage = "เกิดข้อผิดพลาดในการเพิ่มข้อมูล"
+
+    if (axios.isAxiosError(error)) {
+      console.error("API Error Response:", error.response?.data)
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error
+      } else if (error.response?.status === 413) {
+        errorMessage = "ขนาดไฟล์รวมใหญ่เกินไป กรุณาลดขนาดหรือจำนวนไฟล์"
+      }
+    }
+
+    // Show error alert
+    await Swal.fire({
+      icon: "error",
+      title: "เกิดข้อผิดพลาด",
+      text: errorMessage,
+      confirmButtonText: "ตกลง",
+    })
+  }
+}
   const handleEditForm = async (
     form_id: number,
     event: React.FormEvent<HTMLFormElement>,

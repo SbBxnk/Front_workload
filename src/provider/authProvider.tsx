@@ -5,9 +5,8 @@ import { useRouter, usePathname } from "next/navigation"
 import Swal from "sweetalert2"
 import type React from "react"
 import { jwtDecode } from "jwt-decode"
+import axios from "axios"
 import type { DecodedToken } from "@/Types"
-
-
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -17,18 +16,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
 
   useEffect(() => {
+    const interceptor = axios.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response && error.response.status === 403) {
+          localStorage.removeItem("token")
+          Swal.fire({
+            title: "ไม่มีสิทธิ์เข้าถึง",
+            text: "กรุณาเข้าสู่ระบบใหม่อีกครั้ง",
+            icon: "error",
+            confirmButtonText: "OK",
+          }).then(() => {
+            router.push("/login")
+          })
+        }
+        return Promise.reject(error)
+      }
+    )
+
+    return () => {
+      axios.interceptors.response.eject(interceptor)
+    }
+  }, [router])
+
+  useEffect(() => {
     const token = localStorage.getItem("token")
 
     if (!token) {
-      router.push("/login") // ถ้าไม่มี token ให้ไปหน้า login ทันที
+      router.push("/login") 
       return
     }
 
     try {
       const decodedToken = jwtDecode<DecodedToken>(token)
 
-      // ตรวจสอบว่า token หมดอายุหรือไม่
-      const currentTime = Math.floor(Date.now() / 1000) // เวลาปัจจุบันเป็นวินาที
+      const currentTime = Math.floor(Date.now() / 1000)
       if (decodedToken.exp < currentTime) {
         handleTokenExpired()
         return
@@ -39,15 +61,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       checkAuthorization(decodedToken.level_name, pathname)
     } catch (error) {
       console.error("Invalid token:", error)
-      router.push("/login") // ถ้า token ไม่ถูกต้องให้ logout
+      router.push("/login") 
     }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname, userRole])
 
-  // ฟังก์ชันเมื่อ token หมดอายุ
   const handleTokenExpired = () => {
-    localStorage.removeItem("token") // ลบ token ออกจาก localStorage
+    localStorage.removeItem("token")
     Swal.fire({
       title: "เซสชันหมดอายุ",
       text: "กรุณาเข้าสู่ระบบใหม่อีกครั้ง",
