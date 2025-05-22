@@ -203,16 +203,17 @@ function WorkloadSubtaskInfo() {
     // eslint-disable-next-line
   }, [subtask_id, task_id])
 
-  useEffect(() => {
-    const fetchFormInfo = async () => {
-      if (workloadGroupInfo?.formlist_id && subtask_id) {
-        try {
-          const response = await axios.get(
-            `${process.env.NEXT_PUBLIC_API}/workload_form/form_info/${workloadGroupInfo.formlist_id}/${subtask_id}`,
-            { headers },
-          )
+useEffect(() => {
+  const fetchFormInfo = async () => {
+    if (workloadGroupInfo?.formlist_id && subtask_id) {
+      try {
+        // เพิ่ม userId ในการเรียก API
+        const response = await axios.get(
+          `${process.env.NEXT_PUBLIC_API}/workload_form/form_info/${workloadGroupInfo.formlist_id}/${subtask_id}?as_u_id=${userId}`,
+          { headers },
+        )
 
-          const apiForms: ApiFormData[] = response.data.data
+        const apiForms: ApiFormData[] = response.data.data
 
           const newForms: (FormInfo & { total_score: number })[] = apiForms.map((apiForm) => ({
             form_id: apiForm.form_id,
@@ -296,7 +297,7 @@ function WorkloadSubtaskInfo() {
 
     fetchFormInfo()
     // eslint-disable-next-line
-  }, [workloadGroupInfo?.formlist_id, subtask_id])
+}, [workloadGroupInfo?.formlist_id, subtask_id, userId])
 
   // เพิ่มฟังก์ชันนี้เพื่อตรวจสอบข้อมูล
   useEffect(() => {
@@ -697,26 +698,27 @@ function WorkloadSubtaskInfo() {
     }, 0)
   }
 
-  const fetchFormDetail = async (id: number) => {
-    try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API}/workload_form/form_info_detail/${id}`, {
-        headers,
-      })
+const fetchFormDetail = async (id: number) => {
+  try {
+    // เพิ่ม userId ในการเรียก API
+    const response = await axios.get(
+      `${process.env.NEXT_PUBLIC_API}/workload_form/form_info_detail/${id}?as_u_id=${userId}`, 
+      { headers }
+    )
 
-      if (response.data.status && response.data.data) {
-        setFormDetail(response.data.data)
-      }
-    } catch (err) {
-      console.error("Error fetching form data:", err)
-      Swal.fire({
-        icon: "error",
-        title: "เกิดข้อผิดพลาด",
-        text: "ไม่สามารถดึงข้อมูลได้ กรุณาลองใหม่อีกครั้ง",
-        confirmButtonText: "ตกลง",
-      })
+    if (response.data.status && response.data.data) {
+      setFormDetail(response.data.data)
     }
+  } catch (err) {
+    console.error("Error fetching form data:", err)
+    Swal.fire({
+      icon: "error",
+      title: "เกิดข้อผิดพลาด",
+      text: "ไม่สามารถดึงข้อมูลได้ กรุณาลองใหม่อีกครั้ง",
+      confirmButtonText: "ตกลง",
+    })
   }
-
+}
   const handleEdit = (form_id: number) => {
     setEditFormId(form_id)
     fetchFormDetail(form_id)

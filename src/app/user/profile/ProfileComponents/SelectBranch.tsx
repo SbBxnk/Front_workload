@@ -53,7 +53,7 @@ function SelectBranch({
                     throw new Error('No token found. Please log in.');
                 }
 
-                const response = await axios.get(process.env.NEXT_PUBLIC_API + 'branch', {
+                const response = await axios.get(process.env.NEXT_PUBLIC_API + '/branch', {
                     headers: {
                         'Content-Type': 'application/json',
                         Authorization: `Bearer ${token}`,

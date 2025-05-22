@@ -465,11 +465,10 @@ export default function EditModal({ form_id, formDetail, onSubmit }: EditModalPr
                       </label>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                         <div
-                          className={`flex items-center justify-center px-4 py-2 rounded-md border-2 text-sm font-light ${
-                            evidenceType === "link"
+                          className={`flex items-center justify-center px-4 py-2 rounded-md border-2 text-sm font-light ${evidenceType === "link"
                               ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
                               : "border-gray-300 dark:border-zinc-600 bg-gray-100 dark:bg-zinc-700 text-gray-400 dark:text-gray-500"
-                          } dark:bg-zinc-800`}
+                            } dark:bg-zinc-800`}
                         >
                           <Link
                             className={`w-4 h-4 mr-2 ${evidenceType !== "link" ? "text-gray-400 dark:text-gray-500" : ""}`}
@@ -477,11 +476,10 @@ export default function EditModal({ form_id, formDetail, onSubmit }: EditModalPr
                           ลิ้งก์
                         </div>
                         <div
-                          className={`flex items-center justify-center px-4 py-2 rounded-md border-2 text-sm font-light ${
-                            evidenceType === "external file"
+                          className={`flex items-center justify-center px-4 py-2 rounded-md border-2 text-sm font-light ${evidenceType === "external file"
                               ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
                               : "border-gray-300 dark:border-zinc-600 bg-gray-100 dark:bg-zinc-700 text-gray-400 dark:text-gray-500"
-                          } dark:bg-zinc-800`}
+                            } dark:bg-zinc-800`}
                         >
                           <Upload
                             className={`w-4 h-4 mr-2 ${evidenceType !== "external file" ? "text-gray-400 dark:text-gray-500" : ""}`}
@@ -506,8 +504,8 @@ export default function EditModal({ form_id, formDetail, onSubmit }: EditModalPr
                                 className="flex flex-col space-y-2 p-3 border border-gray-200 dark:border-zinc-700 rounded-md"
                               >
                                 <div className="flex justify-between items-center">
-                                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                                    ลิงก์ #{index + 1} {link.link_id ? `(ID: ${link.link_id})` : "(ใหม่)"}
+                                  <span className={`text-sm font-medium  ${link.link_id ? "text-gray-600" : "text-green-500"} dark:text-gray-400`}>
+                                    ลิงก์ #{index + 1} {link.link_id ? `` : "(ใหม่)"}
                                   </span>
                                   <button
                                     type="button"
@@ -593,11 +591,10 @@ export default function EditModal({ form_id, formDetail, onSubmit }: EditModalPr
                           {/* Upload new files section */}
                           <div
                             {...getRootProps()}
-                            className={`w-full py-2 flex flex-col items-center justify-center border-2 border-dashed rounded-md transition-all duration-300 ease-in-out ${
-                              isDragActive
+                            className={`w-full py-2 flex flex-col items-center justify-center border-2 border-dashed rounded-md transition-all duration-300 ease-in-out ${isDragActive
                                 ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30"
                                 : "border-gray-300 dark:border-zinc-600 dark:bg-zinc-800"
-                            } hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 cursor-pointer`}
+                              } hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 cursor-pointer`}
                           >
                             <input {...getInputProps()} name="workload_file" />
                             <p className="text-sm text-gray-600 dark:text-gray-400">

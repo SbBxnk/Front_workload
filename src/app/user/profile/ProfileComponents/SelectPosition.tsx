@@ -37,7 +37,7 @@ function SelectPrefix({
         if (!token) {
           throw new Error("No token found. Please log in.")
         }
-        const response = await axios.get(process.env.NEXT_PUBLIC_API + "position", {
+        const response = await axios.get(process.env.NEXT_PUBLIC_API + "/position", {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,

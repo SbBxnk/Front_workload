@@ -35,7 +35,7 @@ function ProfileCard() {
 
   return (
     <Link
-      href="../admin/profile"
+      href="../user/profile"
       className="lg:sticky lg:top-[8.6rem] bg-white dark:bg-zinc-900 p-4 rounded-md h-full shadow w-full lg:w-1/3 transition-all duration-300 ease-in-out"
     >
       <div className="border-b pb-2 mb-2 border-gray-400 dark:border-zinc-400 pb-[16px]">

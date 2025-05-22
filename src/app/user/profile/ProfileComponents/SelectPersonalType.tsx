@@ -26,7 +26,7 @@ function SelectPersonalType({ openDropdown, setOpenDropdown, personalTypeDropdow
                     throw new Error("No token found. Please log in.");
                 }
 
-                const response = await axios.get(process.env.NEXT_PUBLIC_API + "personalType", {
+                const response = await axios.get(process.env.NEXT_PUBLIC_API + "/personalType", {
                     headers: {
                         "Content-Type": "application/json",
                         "Authorization": `Bearer ${token}`,

@@ -49,7 +49,7 @@ function SelectCourse({
                     throw new Error('No token found. Please log in.');
                 }
 
-                const response = await axios.get(process.env.NEXT_PUBLIC_API + 'course', {
+                const response = await axios.get(process.env.NEXT_PUBLIC_API + '/course', {
                     headers: {
                         'Content-Type': 'application/json',
                         Authorization: `Bearer ${token}`,
