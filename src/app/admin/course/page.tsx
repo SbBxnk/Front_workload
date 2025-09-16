@@ -1,17 +1,17 @@
-"use client"
-import type React from "react"
-import { useEffect, useState } from "react"
-import { Edit2, Loader, Plus, Trash2 } from "lucide-react"
-import type { Course, Branch } from "@/Types"
-import SkeletonTable from "../personal-list/Personal-listComponents/SkeletonTable"
-import axios from "axios"
-import CreateModal from "./createModal"
-import DeleteModal from "./deleteModal"
-import Pagination from "@/components/Pagination"
-import { FiX } from "react-icons/fi"
-import SearchFilter from "@/components/SearchFilter"
-import Swal from "sweetalert2"
-import EditModal from "./editModal"
+'use client'
+import type React from 'react'
+import { useEffect, useState } from 'react'
+import { Edit2, Loader, Plus, Trash2 } from 'lucide-react'
+import type { Course, Branch } from '@/Types'
+import SkeletonTable from '../personal-list/Personal-listComponents/SkeletonTable'
+import axios from 'axios'
+import CreateModal from './createModal'
+import DeleteModal from './deleteModal'
+import Pagination from '@/components/Pagination'
+import { FiX } from 'react-icons/fi'
+import SearchFilter from '@/components/SearchFilter'
+import Swal from 'sweetalert2'
+import EditModal from './editModal'
 
 const ITEMS_PER_PAGE = 10
 
@@ -21,16 +21,16 @@ interface FormDataCourse {
 }
 
 const FormDataCourse: FormDataCourse = {
-  course_name: "",
+  course_name: '',
   branch_id: 0,
 }
 
 function PositionTable() {
   const [FormData, setFormData] = useState<FormDataCourse>(FormDataCourse)
   const [currentPage, setCurrentPage] = useState(1)
-  const [searchName, setSearchName] = useState<string>("")
-  const [selectedCourse, setSelectedCourse] = useState<string>("")
-  const [selectedBranch, setSelectedBranch] = useState<string>("")
+  const [searchName, setSearchName] = useState<string>('')
+  const [selectedCourse, setSelectedCourse] = useState<string>('')
+  const [selectedBranch, setSelectedBranch] = useState<string>('')
   const [courses, setCourse] = useState<Course[]>([])
   const [branchs, setBranchs] = useState<Branch[]>([])
   const [courseLoading, setCourseLoading] = useState(false)
@@ -38,9 +38,9 @@ function PositionTable() {
   const [courseError, setCourseError] = useState<string | null>(null)
   const [branchError, setBranchError] = useState<string | null>(null)
   const [selectedCourseId, setSelectedCourseId] = useState<number>(0)
-  const [selectedCourseName, setSelectedCourseName] = useState<string>("")
+  const [selectedCourseName, setSelectedCourseName] = useState<string>('')
   const [selectedBranchId, setSelectedBranchId] = useState<number>(0)
-  const [selectedBranchName, setSelectedBranchName] = useState<string>("")
+  const [selectedBranchName, setSelectedBranchName] = useState<string>('')
 
   useEffect(() => {
     fetchCourse()
@@ -49,28 +49,35 @@ function PositionTable() {
 
   const fetchCourse = async () => {
     try {
-      const token = localStorage.getItem("token")
+      const token = localStorage.getItem('token')
       if (!token) {
-        setCourseError("ไม่พบ token กรุณาลงชื่อเข้าใช้งาน")
+        setCourseError('ไม่พบ token กรุณาลงชื่อเข้าใช้งาน')
         setCourseLoading(false)
         return
       }
 
-      const response = await axios.get(process.env.NEXT_PUBLIC_API + "/course", {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      })
+      const response = await axios.get(
+        process.env.NEXT_PUBLIC_API + '/course',
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
 
-      console.log("API Response:", response.data)
+      console.log('API Response:', response.data)
 
       if (response.data && Array.isArray(response.data)) {
         setCourse(response.data)
-      } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
+      } else if (
+        response.data &&
+        response.data.data &&
+        Array.isArray(response.data.data)
+      ) {
         setCourse(response.data.data)
       } else {
-        setCourseError("ข้อมูลที่ได้รับไม่ใช่รูปแบบที่คาดหวัง")
+        setCourseError('ข้อมูลที่ได้รับไม่ใช่รูปแบบที่คาดหวัง')
       }
 
       setCourseLoading(false)
@@ -82,28 +89,35 @@ function PositionTable() {
   }
   const fetchBranch = async () => {
     try {
-      const token = localStorage.getItem("token")
+      const token = localStorage.getItem('token')
       if (!token) {
-        setBranchError("ไม่พบ token กรุณาลงชื่อเข้าใช้งาน")
+        setBranchError('ไม่พบ token กรุณาลงชื่อเข้าใช้งาน')
         setBranchLoading(false)
         return
       }
 
-      const response = await axios.get(process.env.NEXT_PUBLIC_API + "/branch", {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      })
+      const response = await axios.get(
+        process.env.NEXT_PUBLIC_API + '/branch',
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
 
-      console.log("API Response:", response.data)
+      console.log('API Response:', response.data)
 
       if (response.data && Array.isArray(response.data)) {
         setBranchs(response.data)
-      } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
+      } else if (
+        response.data &&
+        response.data.data &&
+        Array.isArray(response.data.data)
+      ) {
         setBranchs(response.data.data)
       } else {
-        setBranchError("ข้อมูลที่ได้รับไม่ใช่รูปแบบที่คาดหวัง")
+        setBranchError('ข้อมูลที่ได้รับไม่ใช่รูปแบบที่คาดหวัง')
       }
 
       setBranchLoading(false)
@@ -115,7 +129,7 @@ function PositionTable() {
   }
 
   const clearSearch = () => {
-    setSearchName("")
+    setSearchName('')
   }
 
   const handlePageChange = (page: number) => {
@@ -141,8 +155,13 @@ function PositionTable() {
     })
 
   const totalPages = Math.ceil(filteredCourse.length / ITEMS_PER_PAGE)
-  const currentData = filteredCourse.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
-  const selectedLabel = courses.find((pos) => pos.course_name === selectedCourse)?.course_name || "เลือกหลักสูตร"
+  const currentData = filteredCourse.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  )
+  const selectedLabel =
+    courses.find((pos) => pos.course_name === selectedCourse)?.course_name ||
+    'เลือกหลักสูตร'
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -153,7 +172,10 @@ function PositionTable() {
     setFormData((prev) => ({ ...prev, branch_id }))
   }
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement> | React.MouseEvent, course_name: string, branch_id: number,
+  const handleSubmit = async (
+    e: React.FormEvent<HTMLFormElement> | React.MouseEvent,
+    course_name: string,
+    branch_id: number
   ) => {
     setCourseLoading(true)
     e.preventDefault()
@@ -163,30 +185,30 @@ function PositionTable() {
         { course_name, branch_id },
         {
           headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
-        },
+        }
       )
       setFormData(FormDataCourse)
       fetchCourse()
       setCourseLoading(false)
       Swal.fire({
-        position: "center",
-        icon: "success",
-        title: "สำเร็จ!",
+        position: 'center',
+        icon: 'success',
+        title: 'สำเร็จ!',
         text: `เพิ่มหลักสูตร ${course_name} สำเร็จ!`,
         showConfirmButton: false,
         timer: 1500,
       })
     } catch (error) {
-      console.error("Error adding courses:", error)
+      console.error('Error adding courses:', error)
       setCourseLoading(false)
       Swal.fire({
-        position: "center",
-        icon: "error",
-        title: "เกิดข้อผิดพลาด!",
-        text: "เกิดข้อผิดพลาดในการเพิ่มหลักสูตร",
+        position: 'center',
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด!',
+        text: 'เกิดข้อผิดพลาดในการเพิ่มหลักสูตร',
         showConfirmButton: false,
         timer: 1500,
       })
@@ -196,35 +218,38 @@ function PositionTable() {
   const handleDelete = async (
     e: React.FormEvent<HTMLFormElement> | React.MouseEvent,
     course_id: number,
-    course_name: string,
+    course_name: string
   ) => {
     e.preventDefault()
     setCourseLoading(true)
     try {
-      await axios.delete(`${process.env.NEXT_PUBLIC_API}/course/delete/${course_id}`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      })
+      await axios.delete(
+        `${process.env.NEXT_PUBLIC_API}/course/delete/${course_id}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        }
+      )
       fetchCourse()
       setCourseLoading(false)
 
       Swal.fire({
-        icon: "success",
-        title: "ลบสำเร็จ!",
+        icon: 'success',
+        title: 'ลบสำเร็จ!',
         text: `ลบสาขา ${course_name} สำเร็จ!`,
         showConfirmButton: false,
         timer: 1500,
       })
     } catch (error) {
-      console.error("Error deleting course:", error)
+      console.error('Error deleting course:', error)
       setCourseLoading(false)
 
       Swal.fire({
-        icon: "error",
-        title: "เกิดข้อผิดพลาด!",
-        text: "เกิดข้อผิดพลาดในการลบสาขา",
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด!',
+        text: 'เกิดข้อผิดพลาดในการลบสาขา',
         showConfirmButton: false,
         timer: 1500,
       })
@@ -235,7 +260,7 @@ function PositionTable() {
     e: React.FormEvent<HTMLFormElement> | React.MouseEvent,
     course_id: number,
     course_name: string,
-    branch_id: number,
+    branch_id: number
   ) => {
     e.preventDefault()
     setCourseLoading(true)
@@ -245,29 +270,29 @@ function PositionTable() {
         { course_name, branch_id },
         {
           headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
-        },
+        }
       )
       fetchCourse()
       setCourseLoading(false)
 
       Swal.fire({
-        icon: "success",
-        title: "แก้ไขสำเร็จ!",
+        icon: 'success',
+        title: 'แก้ไขสำเร็จ!',
         text: `แก้ไขหลักสูตร ${course_name} สำเร็จ!`,
         showConfirmButton: false,
         timer: 1500,
       })
     } catch (error) {
-      console.error("Error deleting prefix:", error)
+      console.error('Error deleting prefix:', error)
       setCourseLoading(false)
 
       Swal.fire({
-        icon: "error",
-        title: "เกิดข้อผิดพลาด!",
-        text: "เกิดข้อผิดพลาดในการแก้ไขหลักสูตร",
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด!',
+        text: 'เกิดข้อผิดพลาดในการแก้ไขหลักสูตร',
         showConfirmButton: false,
         timer: 1500,
       })
@@ -279,16 +304,20 @@ function PositionTable() {
   }
 
   if (courseError || branchError) {
-    return <div>เกิดข้อผิดพลาดในการเชื่อมต่อข้อมูล: {courseError || branchError}</div>
+    return (
+      <div>
+        เกิดข้อผิดพลาดในการเชื่อมต่อข้อมูล: {courseError || branchError}
+      </div>
+    )
   }
 
   return (
-    <div className="bg-white p-4 rounded-md shadow dark:bg-zinc-900 dark:text-gray-400 transition-all duration-300 ease-in-out ">
+    <div className="rounded-md bg-white p-4 shadow transition-all duration-300 ease-in-out dark:bg-zinc-900 dark:text-gray-400">
       <div className="py-4 md:flex">
-        <div className="flex flex-wrap gap-4 w-full md:w-full">
-          <div className="relative flex items-center w-full md:w-52">
+        <div className="flex w-full flex-wrap gap-4 md:w-full">
+          <div className="relative flex w-full items-center md:w-52">
             <input
-              className="w-full px-4 py-2 font-light rounded-md text-sm border-2 border-gray-300 dark:border-zinc-600 text-gray-600 dark:bg-zinc-800 dark:text-gray-400 focus:outline-none focus:border-blue-500 focus:border-blue-500 transition-colors transition-all duration-300 ease-in-out"
+              className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
               placeholder="ค้นหาด้วยชื่อบุคคล"
               value={searchName}
               onChange={(e) => setSearchName(e.target.value)}
@@ -296,13 +325,13 @@ function PositionTable() {
             {searchName && (
               <button
                 onClick={clearSearch}
-                className="absolute right-3 text-gray-400 hover:text-red-500 transition duration-200"
+                className="absolute right-3 text-gray-400 transition duration-200 hover:text-red-500"
               >
-                <FiX className="w-4 h-4" />
+                <FiX className="h-4 w-4" />
               </button>
             )}
           </div>
-          <SearchFilter<Course, "course_name">
+          <SearchFilter<Course, 'course_name'>
             selectedLabel={selectedLabel}
             handleSelect={handleCourseSelect}
             objects={Array.isArray(courses) ? courses : []}
@@ -310,8 +339,8 @@ function PositionTable() {
             labelKey="course_name"
             placeholder="ค้นหาหลักสูตร"
           />
-          <SearchFilter<Branch, "branch_name">
-            selectedLabel={selectedBranch || "เลือกสาขา"}
+          <SearchFilter<Branch, 'branch_name'>
+            selectedLabel={selectedBranch || 'เลือกสาขา'}
             handleSelect={handleBranchSelect}
             objects={Array.isArray(branchs) ? branchs : []}
             valueKey="branch_name"
@@ -319,57 +348,60 @@ function PositionTable() {
             placeholder="ค้นหาสาขา"
           />
         </div>
-        <div className="w-full md:w-auto pt-4 md:pt-0">
+        <div className="w-full pt-4 md:w-auto md:pt-0">
           <label
             htmlFor={`modal-create`}
-            className="w-full md:w-52 bg-success text-sm font-light text-white rounded-md py-2.5 px-4 hover:bg-success/80 transition ease-in-out duration-300 flex items-center gap-2 justify-between cursor-pointer"
+            className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-md bg-success px-4 py-2.5 text-sm font-light text-white transition duration-300 ease-in-out hover:bg-success/80 md:w-52"
           >
             เพิ่มสาขา
-            <Plus className="w-4 h-4" />
+            <Plus className="h-4 w-4" />
           </label>
         </div>
-      </div>{" "}
-      <div className="border rounded-md dark:border-zinc-600 transition-all duration-300 ease-in-out">
+      </div>{' '}
+      <div className="rounded-md border transition-all duration-300 ease-in-out dark:border-zinc-600">
         <div className="">
           {courseLoading && (
-            <div className="absolute inset-0 bg-gray-100 bg-opacity-80 flex items-center justify-center z-50">
-              <Loader className="animate-spin text-gray-600 w-12 h-12" />
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-gray-100 bg-opacity-80">
+              <Loader className="h-12 w-12 animate-spin text-gray-600" />
             </div>
           )}
           <div className="overflow-x-auto">
-            <table className="w-full overflow-x-auto md:table-auto ">
-              <thead className="bg-gray-100 dark:bg-zinc-800 transition-all duration-300 ease-in-out">
+            <table className="w-full overflow-x-auto md:table-auto">
+              <thead className="bg-gray-100 transition-all duration-300 ease-in-out dark:bg-zinc-800">
                 <tr>
-                  <td className="p-4 text-sm text-gray-600 text-center py-4 dark:text-gray-300 text-nowrap border border-gray-300 dark:border-zinc-600 border-opacity-40">
+                  <td className="text-nowrap border border-gray-300 border-opacity-40 p-4 py-4 text-center text-sm text-gray-600 dark:border-zinc-600 dark:text-gray-300">
                     #
                   </td>
-                  <td className="p-4 text-sm text-gray-600 text-center py-4 dark:text-gray-300 text-nowrap border border-gray-300 dark:border-zinc-600 border-opacity-40">
+                  <td className="text-nowrap border border-gray-300 border-opacity-40 p-4 py-4 text-center text-sm text-gray-600 dark:border-zinc-600 dark:text-gray-300">
                     หลักสูตร
                   </td>
-                  <td className="p-4 text-sm text-gray-600 text-center py-4 dark:text-gray-300 text-nowrap border border-gray-300 dark:border-zinc-600 border-opacity-40">
+                  <td className="text-nowrap border border-gray-300 border-opacity-40 p-4 py-4 text-center text-sm text-gray-600 dark:border-zinc-600 dark:text-gray-300">
                     สาขา
                   </td>
-                  <td className="p-4 text-sm text-gray-600 text-center py-4 dark:text-gray-300 text-nowrap sticky right-0 bg-gray-100 dark:bg-zinc-800 transition-all duration-300 ease-in-out border border-gray-300 dark:border-zinc-600 border-opacity-40">
+                  <td className="sticky right-0 text-nowrap border border-gray-300 border-opacity-40 bg-gray-100 p-4 py-4 text-center text-sm text-gray-600 transition-all duration-300 ease-in-out dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-300">
                     จัดการ
                   </td>
                 </tr>
               </thead>
-              <tbody className="bg-white dark:bg-zinc-900 divide-y divide-gray-200 dark:divide-zinc-600 transition-all duration-300 ease-in-out ">
+              <tbody className="divide-y divide-gray-200 bg-white transition-all duration-300 ease-in-out dark:divide-zinc-600 dark:bg-zinc-900">
                 {currentData.map((item: Course, index) => (
-                  <tr key={item.course_id} className="hover:bg-gray-50 dark:hover:bg-zinc-800">
-                    <td className="p-4 whitespace-nowrap text-center text-md font-regular text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-zinc-600 border-opacity-40">
+                  <tr
+                    key={item.course_id}
+                    className="hover:bg-gray-50 dark:hover:bg-zinc-800"
+                  >
+                    <td className="text-md font-regular whitespace-nowrap border border-gray-300 border-opacity-40 p-4 text-center text-gray-600 dark:border-zinc-600 dark:text-gray-300">
                       {(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
                     </td>
-                    <td className="p-4 whitespace-nowrap text-start text-md font-light text-gray-500 dark:text-gray-400 border border-gray-300 dark:border-zinc-600 border-opacity-40">
-                      {item?.course_name || "-"}
+                    <td className="text-md whitespace-nowrap border border-gray-300 border-opacity-40 p-4 text-start font-light text-gray-500 dark:border-zinc-600 dark:text-gray-400">
+                      {item?.course_name || '-'}
                     </td>
-                    <td className="p-4 whitespace-nowrap text-start text-md font-light text-gray-500 dark:text-gray-400 border border-gray-300 dark:border-zinc-600 border-opacity-40">
-                      {item?.branch_name || "-"}
+                    <td className="text-md whitespace-nowrap border border-gray-300 border-opacity-40 p-4 text-start font-light text-gray-500 dark:border-zinc-600 dark:text-gray-400">
+                      {item?.branch_name || '-'}
                     </td>
-                    <td className="p-4 whitespace-nowrap text-center text-md font-light flex justify-center gap-2 sticky right-0 bg-white dark:bg-zinc-900 transition-all duration-300 ease-in-out border border-gray-300 dark:border-zinc-600 border-opacity-40">
+                    <td className="text-md sticky right-0 flex justify-center gap-2 whitespace-nowrap border border-gray-300 border-opacity-40 bg-white p-4 text-center font-light transition-all duration-300 ease-in-out dark:border-zinc-600 dark:bg-zinc-900">
                       <label
                         htmlFor={`modal-edit${item.course_id}`}
-                        className="text-yellow-500 border-none border-yellow-500 rounded-md p-1 hover:bg-yellow-500 hover:text-white transition ease-in-out duration-300 cursor-pointer"
+                        className="cursor-pointer rounded-md border-none border-yellow-500 p-1 text-yellow-500 transition duration-300 ease-in-out hover:bg-yellow-500 hover:text-white"
                         onClick={() => {
                           setSelectedCourseId(item.course_id)
                           setSelectedCourseName(item.course_name)
@@ -377,17 +409,17 @@ function PositionTable() {
                           setSelectedBranchName(String(item.branch_name))
                         }}
                       >
-                        <Edit2 className="w-4 h-4" />
+                        <Edit2 className="h-4 w-4" />
                       </label>
                       <label
                         htmlFor={`modal-delete${item.course_id}`}
-                        className="text-red-500 border-none border-red-500 rounded-md p-1 hover:bg-red-500 hover:text-white transition ease-in-out duration-300 cursor-pointer"
+                        className="cursor-pointer rounded-md border-none border-red-500 p-1 text-red-500 transition duration-300 ease-in-out hover:bg-red-500 hover:text-white"
                         onClick={() => {
                           setSelectedCourseId(item.course_id)
                           setSelectedCourseName(item.course_name)
                         }}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="h-4 w-4" />
                       </label>
                     </td>
                   </tr>
@@ -434,4 +466,3 @@ function PositionTable() {
 }
 
 export default PositionTable
-

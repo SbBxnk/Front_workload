@@ -1,125 +1,135 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronDown } from 'lucide-react';
-import axios from 'axios';
-import {jwtDecode} from 'jwt-decode';
-
-interface UserLoginData {
-    course_name: string;
-}
-
-interface Course {
-    course_id: number;
-    course_name: string;
-}
+import React, { useState, useEffect } from 'react'
+import { ChevronDown } from 'lucide-react'
+import { useSession } from 'next-auth/react'
+import DropdownService from '@/services/dropdownServices'
+import type { DropdownCourse } from '@/services/dropdownServices'
 
 interface SelectCourseProps {
-    openDropdown: string | null;
-    setOpenDropdown: React.Dispatch<React.SetStateAction<string | null>>;
-    courseDropdownRef: React.RefObject<HTMLDivElement>;
-    selectCourse: string | null;
-    setSelectedCourse: React.Dispatch<React.SetStateAction<string | null>>;
-    handleOnChangeCourse: (course_id: number, course_name: string) => void;
+  openDropdown: string | null
+  setOpenDropdown: React.Dispatch<React.SetStateAction<string | null>>
+  courseDropdownRef: React.RefObject<HTMLDivElement>
+  setSelectCourse: React.Dispatch<React.SetStateAction<number | null>>
+  handleOnChangeCourse: (course_id: number) => void
+  initialCourseName: string
+  disabled?: boolean
 }
 
 function SelectCourse({
-    openDropdown,
-    setOpenDropdown,
-    courseDropdownRef,
-    selectCourse,
-    setSelectedCourse,
-    handleOnChangeCourse,
+  openDropdown,
+  setOpenDropdown,
+  courseDropdownRef,
+  setSelectCourse,
+  handleOnChangeCourse,
+  initialCourseName,
+  disabled = false,
 }: SelectCourseProps) {
-    const [courses, setCourses] = useState<Course[]>([]);
-    const [error, setError] = useState<string | null>(null);
+  const [courses, setCourses] = useState<DropdownCourse[]>([])
+  const [loading, setLoading] = useState<boolean>(true)
+  const [error, setError] = useState<string | null>(null)
+  const { data: session } = useSession()
 
-    useEffect(() => {
-        // Decode token and set the default course
-        const token = localStorage.getItem('token');
-        if (token) {
-            const decoded: UserLoginData = jwtDecode(token);
-            setSelectedCourse(decoded.course_name); // Set default course based on token
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        if (!session?.accessToken) {
+          throw new Error('No access token available')
         }
-    }, [setSelectedCourse]);
 
-    useEffect(() => {
-        const fetchCourses = async () => {
-            try {
-                const token = localStorage.getItem('token');
-                if (!token) {
-                    throw new Error('No token found. Please log in.');
-                }
+        const response = await DropdownService.getCourses(session.accessToken)
+        
+        if (response.success && response.payload) {
+          setCourses(response.payload)
+        } else {
+          throw new Error('Failed to fetch courses')
+        }
+      } catch (err) {
+        console.error('Error fetching courses:', err)
+        setError('Error fetching courses')
+      } finally {
+        setLoading(false)
+      }
+    }
 
-                const response = await axios.get(process.env.NEXT_PUBLIC_API + '/course', {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
+    fetchCourses()
+  }, [session?.accessToken])
 
-                if (response.status === 200) {
-                    if (response.data.status) {
-                        setCourses(response.data.data);
-                    } else {
-                        throw new Error('No data found');
-                    }
-                } else {
-                    throw new Error('Failed to fetch data');
-                }
-            } catch (error) {
-                if (axios.isAxiosError(error)) {
-                    setError(error.response?.data?.message || 'Error fetching courses');
-                    console.error('Axios error:', error.response || error.message);
-                } else {
-                    setError('An unknown error occurred');
-                    console.error('Unknown error:', error);
-                }
-            }
-        };
+  const handleSelectCourse = (course_id: number, course_name: string) => {
+    setSelectCourse(course_id)
+    handleOnChangeCourse(course_id)
+    setOpenDropdown(null)
+  }
 
-        fetchCourses();
-    }, []);
+  const displayCourse = initialCourseName || 'เลือกหลักสูตร'
 
-    const handleSelectCourse = (course_name: string, course_id: number) => {
-        setSelectedCourse(course_name);
-        handleOnChangeCourse(course_id, course_name);
-        setOpenDropdown(null);
-    };
-
+  if (loading) {
     return (
-        <div>
-            <label className="block text-sm font-regular text-gray-600 dark:text-gray-400 mb-2">
-                หลักสูตร
-            </label>
-            <div className="relative z-5" ref={courseDropdownRef}>
-                <button
-                    type="button"
-                    onClick={() => setOpenDropdown(openDropdown === 'course' ? null : 'course')}
-                    className="w-full px-4 py-2 font-light rounded-md text-sm border-2 border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-gray-600 dark:text-gray-400 focus:outline-none focus:border-blue-500 transition-colors flex items-center justify-between transition-all duration-300 ease-in-out"
-                >
-                    {selectCourse || 'เลือกหลักสูตร'}
-                    <ChevronDown
-                        className={`w-4 h-4 text-gray-600 dark:text-zinc-600 transition-transform duration-200 ${
-                            openDropdown === 'course' ? 'rotate-180' : ''
-                        }`}
-                    />
-                </button>
-                {openDropdown === 'course' && (
-                    <div className="absolute z-10 overflow-y-auto max-h-36 w-full mt-2 bg-white dark:bg-zinc-900 border-2 border-gray-300 dark:border-zinc-600 rounded-md shadow-lg">
-                        {courses.map((course) => (
-                            <div
-                                key={course.course_id}
-                                className="px-4 py-2 text-sm font-light text-gray-600 hover:bg-gray-100 dark:hover:bg-zinc-800 cursor-pointer dark:text-gray-400"
-                                onClick={() => handleSelectCourse(course.course_name, course.course_id)}
-                            >
-                                {course.course_name}
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </div>
-            {error && <div className="text-red-500 mt-2">{error}</div>}
+      <div className="space-y-2">
+        <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
+          หลักสูตร
+        </label>
+        <div className="flex h-10 w-full items-center justify-center rounded-md border-2 border-gray-300 bg-gray-100 dark:border-zinc-600 dark:bg-zinc-700">
+          <span className="text-sm text-gray-500">กำลังโหลด...</span>
         </div>
-    );
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-2">
+        <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
+          หลักสูตร
+        </label>
+        <div className="flex h-10 w-full items-center justify-center rounded-md border-2 border-red-300 bg-red-50 dark:border-red-600 dark:bg-red-900/20">
+          <span className="text-sm text-red-500">{error}</span>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-2">
+      <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
+        หลักสูตร
+      </label>
+      <div className="relative" ref={courseDropdownRef}>
+        <button
+          type="button"
+          onClick={() =>
+            !disabled && setOpenDropdown(openDropdown === 'course' ? null : 'course')
+          }
+          aria-expanded={openDropdown === 'course'}
+          disabled={disabled}
+          className={`flex w-full items-center justify-between rounded-md border-2 border-gray-300 bg-white px-4 py-2 text-sm font-light text-gray-600 transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-100 disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400 dark:disabled:bg-zinc-700`}
+        >
+          {displayCourse}
+          <ChevronDown
+            className={`h-4 w-4 text-gray-600 transition-transform duration-200 dark:text-zinc-600 ${
+              openDropdown === 'course' ? 'rotate-180' : ''
+            }`}
+          />
+        </button>
+        {openDropdown === 'course' && !disabled && (
+          <div className="absolute z-10 mt-2 max-h-36 w-full overflow-y-auto rounded-md border-2 border-gray-300 bg-white shadow-lg dark:border-zinc-600 dark:bg-zinc-900">
+            {courses.map((course) => (
+              <div
+                key={course.course_id}
+                className="cursor-pointer px-4 py-2 text-sm font-light text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-zinc-800"
+                onClick={() =>
+                  handleSelectCourse(course.course_id, course.course_name)
+                }
+              >
+                {course.course_name}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
 }
 
-export default SelectCourse;
+export default SelectCourse

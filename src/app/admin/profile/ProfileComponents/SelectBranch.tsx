@@ -1,125 +1,135 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronDown } from 'lucide-react';
-import axios from 'axios';
-import {jwtDecode} from 'jwt-decode';
-
-interface UserLoginData {
-    branch_name: string;
-}
-
-interface Branch {
-    branch_id: number;
-    branch_name: string;
-}
+import React, { useState, useEffect } from 'react'
+import { ChevronDown } from 'lucide-react'
+import { useSession } from 'next-auth/react'
+import DropdownService from '@/services/dropdownServices'
+import type { DropdownBranch } from '@/services/dropdownServices'
 
 interface SelectBranchProps {
-    openDropdown: string | null;
-    setOpenDropdown: React.Dispatch<React.SetStateAction<string | null>>;
-    branchDropdownRef: React.RefObject<HTMLDivElement>;
-    selectBranch: string | null;
-    setSelectedBranch: React.Dispatch<React.SetStateAction<string | null>>;
-    handleOnChangeBranch: (branch_id: number, branch_name: string) => void;
+  openDropdown: string | null
+  setOpenDropdown: React.Dispatch<React.SetStateAction<string | null>>
+  branchDropdownRef: React.RefObject<HTMLDivElement>
+  setSelectBranch: React.Dispatch<React.SetStateAction<number | null>>
+  handleOnChangeBranch: (branch_id: number) => void
+  initialBranchName: string
+  disabled?: boolean
 }
 
 function SelectBranch({
-    openDropdown,
-    setOpenDropdown,
-    branchDropdownRef,
-    selectBranch,
-    setSelectedBranch,
-    handleOnChangeBranch,
+  openDropdown,
+  setOpenDropdown,
+  branchDropdownRef,
+  setSelectBranch,
+  handleOnChangeBranch,
+  initialBranchName,
+  disabled = false,
 }: SelectBranchProps) {
-    const [branchs, setBranchs] = useState<Branch[]>([]);
-    const [error, setError] = useState<string | null>(null);
+  const [branches, setBranches] = useState<DropdownBranch[]>([])
+  const [loading, setLoading] = useState<boolean>(true)
+  const [error, setError] = useState<string | null>(null)
+  const { data: session } = useSession()
 
-    useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            try {
-                const decoded: UserLoginData = jwtDecode(token);
-                setSelectedBranch(decoded.branch_name);
-            } catch (decodeError) {
-                console.error('Error decoding token:', decodeError);
-            }
+  useEffect(() => {
+    const fetchBranches = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        if (!session?.accessToken) {
+          throw new Error('No access token available')
         }
-    }, [setSelectedBranch]);
 
-    useEffect(() => {
-        const fetchBranch = async () => {
-            setError(null); // Clear previous errors
-            try {
-                const token = localStorage.getItem('token');
-                if (!token) {
-                    throw new Error('No token found. Please log in.');
-                }
+        const response = await DropdownService.getBranches(session.accessToken)
+        
+        if (response.success && response.payload) {
+          setBranches(response.payload)
+        } else {
+          throw new Error('Failed to fetch branches')
+        }
+      } catch (err) {
+        console.error('Error fetching branches:', err)
+        setError('Error fetching branches')
+      } finally {
+        setLoading(false)
+      }
+    }
 
-                const response = await axios.get(process.env.NEXT_PUBLIC_API + '/branch', {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
+    fetchBranches()
+  }, [session?.accessToken])
 
-                if (response.status === 200 && response.data.status) {
-                    setBranchs(response.data.data);
-                } else {
-                    throw new Error('No data found');
-                }
-            } catch (error) {
-                if (axios.isAxiosError(error)) {
-                    setError(error.response?.data?.message || 'Error fetching branchs');
-                    console.error('Axios error:', error.response || error.message);
-                } else {
-                    setError('An unknown error occurred');
-                    console.error('Unknown error:', error);
-                }
-            }
-        };
+  const handleSelectBranch = (branch_id: number, branch_name: string) => {
+    setSelectBranch(branch_id)
+    handleOnChangeBranch(branch_id)
+    setOpenDropdown(null)
+  }
 
-        fetchBranch();
-    }, []);
+  const displayBranch = initialBranchName || 'เลือกสาขา'
 
-    const handleSelectBranch = (branch_id: number, branch_name: string) => {
-        setSelectedBranch(branch_name);
-        handleOnChangeBranch(branch_id, branch_name);
-        setOpenDropdown(null);
-    };
-
+  if (loading) {
     return (
-        <div>
-            <label className="block text-sm font-regular text-gray-600 dark:text-gray-400 mb-2">
-                หลักสูตร
-            </label>
-            <div className="relative z-5" ref={branchDropdownRef}>
-                <button
-                    type="button"
-                    onClick={() => setOpenDropdown(openDropdown === 'branch' ? null : 'branch')}
-                    aria-expanded={openDropdown === 'branch'}
-                    className="w-full px-4 py-2 font-light rounded-md text-sm border-2 border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-gray-600 dark:text-gray-400 focus:outline-none focus:border-blue-500 transition-colors flex items-center justify-between transition-all duration-300 ease-in-out"
-                >
-                    {selectBranch || 'เลือกสาขา'}
-                    <ChevronDown
-                        className={`w-4 h-4 text-gray-600 dark:text-zinc-600 transition-transform duration-200 ${openDropdown === 'branch' ? 'rotate-180' : ''
-                            }`}
-                    />
-                </button>
-                {openDropdown === 'branch' && (
-                    <div className="absolute z-10 overflow-y-auto max-h-36 w-full mt-2 bg-white dark:bg-zinc-900 border-2 border-gray-300 dark:border-zinc-600 rounded-md shadow-lg">
-                        {branchs.map((branch) => (
-                            <div
-                                key={branch.branch_id}
-                                className="px-4 py-2 text-sm font-light text-gray-600 hover:bg-gray-100 dark:hover:bg-zinc-800 cursor-pointer dark:text-gray-400"
-                                onClick={() => handleSelectBranch(branch.branch_id, branch.branch_name)}
-                            >
-                                {branch.branch_name}
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </div>
-            {error && <div className="text-red-500 mt-2">{error}</div>}
+      <div className="space-y-2">
+        <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
+          สาขา
+        </label>
+        <div className="flex h-10 w-full items-center justify-center rounded-md border-2 border-gray-300 bg-gray-100 dark:border-zinc-600 dark:bg-zinc-700">
+          <span className="text-sm text-gray-500">กำลังโหลด...</span>
         </div>
-    );
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-2">
+        <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
+          สาขา
+        </label>
+        <div className="flex h-10 w-full items-center justify-center rounded-md border-2 border-red-300 bg-red-50 dark:border-red-600 dark:bg-red-900/20">
+          <span className="text-sm text-red-500">{error}</span>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-2">
+      <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
+        สาขา
+      </label>
+      <div className="relative" ref={branchDropdownRef}>
+        <button
+          type="button"
+          onClick={() =>
+            !disabled && setOpenDropdown(openDropdown === 'branch' ? null : 'branch')
+          }
+          aria-expanded={openDropdown === 'branch'}
+          disabled={disabled}
+          className={`flex w-full items-center justify-between rounded-md border-2 border-gray-300 bg-white px-4 py-2 text-sm font-light text-gray-600 transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-100 disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400 dark:disabled:bg-zinc-700`}
+        >
+          {displayBranch}
+          <ChevronDown
+            className={`h-4 w-4 text-gray-600 transition-transform duration-200 dark:text-zinc-600 ${
+              openDropdown === 'branch' ? 'rotate-180' : ''
+            }`}
+          />
+        </button>
+        {openDropdown === 'branch' && !disabled && (
+          <div className="absolute z-10 mt-2 max-h-36 w-full overflow-y-auto rounded-md border-2 border-gray-300 bg-white shadow-lg dark:border-zinc-600 dark:bg-zinc-900">
+            {branches.map((branch) => (
+              <div
+                key={branch.branch_id}
+                className="cursor-pointer px-4 py-2 text-sm font-light text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-zinc-800"
+                onClick={() =>
+                  handleSelectBranch(branch.branch_id, branch.branch_name)
+                }
+              >
+                {branch.branch_name}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
 }
 
-export default SelectBranch;
+export default SelectBranch

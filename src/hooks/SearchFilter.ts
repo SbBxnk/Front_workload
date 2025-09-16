@@ -1,20 +1,20 @@
-import { useState } from 'react';
+import { useState } from 'react'
 
 export function useSearchFilter(initialSearch: string, initialLabel: string) {
-    const [searchName, setSearchName] = useState(initialSearch);
-    const [selectedLabel, setSelectedLabel] = useState(initialLabel);
+  const [searchName, setSearchName] = useState(initialSearch)
+  const [selectedLabel, setSelectedLabel] = useState(initialLabel)
 
-    const clearSearch = () => setSearchName('');
+  const clearSearch = () => setSearchName('')
 
-    const handleSelect = (value: string) => {
-        setSelectedLabel(value);
-    };
+  const handleSelect = (value: string) => {
+    setSelectedLabel(value)
+  }
 
-    return {
-        searchName,
-        setSearchName,
-        selectedLabel,
-        handleSelect,
-        clearSearch,
-    };
+  return {
+    searchName,
+    setSearchName,
+    selectedLabel,
+    handleSelect,
+    clearSearch,
+  }
 }

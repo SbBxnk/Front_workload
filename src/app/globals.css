@@ -5,7 +5,6 @@
 @tailwind components;
 @tailwind utilities;
 
-
 * {
   font-family: 'Kanit', sans-serif;
   scrollbar-color: #f1f1f1 #e5e5e5;
@@ -15,7 +14,6 @@
 .fadeRight {
   animation: fadeRight 1s ease-in-out;
 }
-
 
 .fadeLeft {
   animation: fadeLeft 1s ease-in-out;
@@ -91,7 +89,6 @@
   scrollbar-width: none;
 }
 
-
 @layer utilities {
   .backdrop-blur-lg {
     backdrop-filter: blur(20px);
@@ -102,7 +99,6 @@
     backdrop-filter: blur(8px);
   }
 }
-
 
 @layer base {
   :root {
@@ -130,7 +126,6 @@
     --chart-2: 271 91% 65.1%;
     --chart-3: 38 92.1% 50.2%;
 
-
     --radius: 0.5rem;
   }
 
@@ -157,11 +152,9 @@
 
     --chart-1: 160 84.1% 39.4%;
     --chart-2: 271 91% 65.1%;
-    --chart-3: 38 92.1% 50.2%
-
+    --chart-3: 38 92.1% 50.2%;
   }
 }
-
 
 @layer base {
   * {
@@ -173,9 +166,6 @@
   }
 }
 
-
-
-
 .Toastify__toast-body {
   font-family: 'Kanit', sans-serif;
 }
@@ -184,14 +174,13 @@
   font-family: 'Kanit', sans-serif;
 }
 
-
-input[type="number"]::-webkit-outer-spin-button,
-input[type="number"]::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 /* ซ่อนลูกศรใน Firefox */
-input[type="number"] {
-    -moz-appearance: textfield;
+input[type='number'] {
+  -moz-appearance: textfield;
 }

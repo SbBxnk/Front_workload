@@ -1,10 +1,10 @@
-"use client"
+'use client'
 
-import { CalendarClock } from "lucide-react"
-import type { Terms, WorkloadGroup } from "@/Types"
-import useAuthHeaders from "@/hooks/Header"
-import { useEffect, useState, useRef } from "react"
-import axios from "axios"
+import { CalendarClock } from 'lucide-react'
+import type { Terms, WorkloadGroup } from '@/Types'
+import useAuthHeaders from '@/hooks/Header'
+import { useEffect, useState, useRef } from 'react'
+import axios from 'axios'
 
 interface CheckWorkloadGroupResponse {
   workload_group_id: number | null
@@ -16,7 +16,10 @@ interface InfoHoverModalProps {
   isOpen: boolean
 }
 
-export default function InfoHoverModal({ workloadGroupInfo, isOpen }: InfoHoverModalProps) {
+export default function InfoHoverModal({
+  workloadGroupInfo,
+  isOpen,
+}: InfoHoverModalProps) {
   const [terms, setTerms] = useState<Terms[]>([])
   const [, setWorkloadGroups] = useState<WorkloadGroup[]>([])
   const [taskNames, setTaskNames] = useState<string[]>([])
@@ -26,10 +29,16 @@ export default function InfoHoverModal({ workloadGroupInfo, isOpen }: InfoHoverM
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const responseTerms = await axios.get(`${process.env.NEXT_PUBLIC_API}/workload_form/terms`, { headers })
-        const responseWorkloadGroups = await axios.get(`${process.env.NEXT_PUBLIC_API}/workload_group`, {
-          headers,
-        })
+        const responseTerms = await axios.get(
+          `${process.env.NEXT_PUBLIC_API}/workload_form/terms`,
+          { headers }
+        )
+        const responseWorkloadGroups = await axios.get(
+          `${process.env.NEXT_PUBLIC_API}/workload_group`,
+          {
+            headers,
+          }
+        )
 
         const termsData = responseTerms.data.data
         const workloadGroupsData = responseWorkloadGroups.data.data
@@ -38,7 +47,9 @@ export default function InfoHoverModal({ workloadGroupInfo, isOpen }: InfoHoverM
         setWorkloadGroups(workloadGroupsData)
 
         if (Array.isArray(termsData) && termsData.length > 0) {
-          const uniqueTaskNames = [...new Set(termsData.map((term) => term.task_name))]
+          const uniqueTaskNames = [
+            ...new Set(termsData.map((term) => term.task_name)),
+          ]
           setTaskNames(uniqueTaskNames)
         }
       } catch (error) {
@@ -55,7 +66,10 @@ export default function InfoHoverModal({ workloadGroupInfo, isOpen }: InfoHoverM
   const getWorkloadHours = (taskName: string, groupName: string) => {
     if (!Array.isArray(terms)) return 0
 
-    const item = terms.find((term) => term.task_name === taskName && term.workload_group_name === groupName)
+    const item = terms.find(
+      (term) =>
+        term.task_name === taskName && term.workload_group_name === groupName
+    )
     return item ? item.quantity_workload_hours : 0
   }
 
@@ -76,46 +90,51 @@ export default function InfoHoverModal({ workloadGroupInfo, isOpen }: InfoHoverM
   return (
     <div
       ref={modalRef}
-      className="absolute z-50 top-7 right-0 w-auto bg-white dark:bg-zinc-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 transition-opacity duration-200 ease-in-out"
+      className="absolute right-0 top-7 z-50 w-auto rounded-lg border border-gray-200 bg-white shadow-xl transition-opacity duration-200 ease-in-out dark:border-gray-700 dark:bg-zinc-800"
     >
-      <div className="p-4 max-h-[80vh] overflow-auto">
-        <div className="flex items-center mb-4">
-          <CalendarClock className="text-blue-500 dark:text-blue-400 mr-2 w-7 h-7" />
-          <h3 className="text-xl font-medium text-gray-700 dark:text-gray-300 truncate">
+      <div className="max-h-[80vh] overflow-auto p-4">
+        <div className="mb-4 flex items-center">
+          <CalendarClock className="mr-2 h-7 w-7 text-blue-500 dark:text-blue-400" />
+          <h3 className="truncate text-xl font-medium text-gray-700 dark:text-gray-300">
             เกณฑ์การประเมินภาระงานของกลุ่มภาระงาน: {selectedGroupName}
           </h3>
         </div>
 
         <div className="overflow-x-auto">
           {Array.isArray(terms) && terms.length > 0 && (
-            <table className="w-full bg-white border border-gray-300 dark:bg-zinc-900 dark:border-gray-700">
+            <table className="w-full border border-gray-300 bg-white dark:border-gray-700 dark:bg-zinc-900">
               <thead className="bg-gray-100 dark:bg-zinc-800">
                 <tr>
-                  <th className="py-3 px-4 border-b border-r border-gray-300 dark:border-gray-700 text-left text-gray-700 dark:text-gray-300">
+                  <th className="border-b border-r border-gray-300 px-4 py-3 text-left text-gray-700 dark:border-gray-700 dark:text-gray-300">
                     ภาระงาน
                   </th>
-                  <th className="py-2 px-4 border-b border-r border-gray-300 dark:border-gray-700 text-center font-normal text-gray-600 dark:text-gray-300 text-md text-nowrap bg-green-200 dark:bg-green-700/50">
+                  <th className="text-md text-nowrap border-b border-r border-gray-300 bg-green-200 px-4 py-2 text-center font-normal text-gray-600 dark:border-gray-700 dark:bg-green-700/50 dark:text-gray-300">
                     {selectedGroupName}
-                    <div className="text-xs text-gray-500 dark:text-gray-400 text-nowrap">(ภาระงานต่อสัปดาห์)</div>
+                    <div className="text-nowrap text-xs text-gray-500 dark:text-gray-400">
+                      (ภาระงานต่อสัปดาห์)
+                    </div>
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {taskNames.map((taskName, taskIndex) => (
-                  <tr key={taskIndex} className="hover:bg-gray-50 dark:hover:bg-zinc-800/50">
-                    <td className="py-2 px-4 border-b border-r border-gray-300 dark:border-gray-700 font-normal text-md text-gray-700 dark:text-gray-300 text-nowrap">
+                  <tr
+                    key={taskIndex}
+                    className="hover:bg-gray-50 dark:hover:bg-zinc-800/50"
+                  >
+                    <td className="text-md text-nowrap border-b border-r border-gray-300 px-4 py-2 font-normal text-gray-700 dark:border-gray-700 dark:text-gray-300">
                       {taskIndex + 1}. {taskName}
                     </td>
-                    <td className="py-2 px-4 border-b border-r border-gray-300 dark:border-gray-700 text-center text-gray-500 dark:text-gray-400 bg-green-100 dark:bg-green-800/30">
+                    <td className="border-b border-r border-gray-300 bg-green-100 px-4 py-2 text-center text-gray-500 dark:border-gray-700 dark:bg-green-800/30 dark:text-gray-400">
                       {getWorkloadHours(taskName, selectedGroupName)}
                     </td>
                   </tr>
                 ))}
-                <tr className="bg-gray-100 dark:bg-zinc-800 font-bold">
-                  <td className="py-2 px-4 border-b border-r border-gray-300 dark:border-gray-700 font-normal text-center text-gray-600 dark:text-gray-300">
+                <tr className="bg-gray-100 font-bold dark:bg-zinc-800">
+                  <td className="border-b border-r border-gray-300 px-4 py-2 text-center font-normal text-gray-600 dark:border-gray-700 dark:text-gray-300">
                     ผลรวม (ไม่น้อยกว่า)
                   </td>
-                  <td className="py-2 px-4 border-b border-r border-gray-300 dark:border-gray-700 text-center text-business1 dark:text-blue-400 font-normal bg-green-200 dark:bg-green-700/50">
+                  <td className="border-b border-r border-gray-300 bg-green-200 px-4 py-2 text-center font-normal text-business1 dark:border-gray-700 dark:bg-green-700/50 dark:text-blue-400">
                     {calculateGroupTotal(selectedGroupName)}
                   </td>
                 </tr>

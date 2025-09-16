@@ -1,9 +1,9 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
   images: {
-    domains: ['img.daisyui.com','reqres.in'],
+    domains: ['img.daisyui.com', 'reqres.in'],
   },
-};
+}
 
-export default nextConfig;
+export default nextConfig

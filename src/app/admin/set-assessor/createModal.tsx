@@ -1,7 +1,7 @@
-"use client"
+'use client'
 
-import type React from "react"
-import { CalendarClock } from "lucide-react"
+import type React from 'react'
+import { CalendarClock } from 'lucide-react'
 
 interface FormDataRoundList {
   round_list_name: string
@@ -16,10 +16,17 @@ interface CreateModalProps {
   isLoading: boolean
   handleSubmit: (e: React.FormEvent<HTMLFormElement> | React.MouseEvent) => void
   formData: FormDataRoundList
-  handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void
+  handleInputChange: (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => void
 }
 
-export default function CreateModal({ isLoading, handleSubmit, formData, handleInputChange }: CreateModalProps) {
+export default function CreateModal({
+  isLoading,
+  handleSubmit,
+  formData,
+  handleInputChange,
+}: CreateModalProps) {
   return (
     <>
       {isLoading ? null : (
@@ -29,31 +36,34 @@ export default function CreateModal({ isLoading, handleSubmit, formData, handleI
             <div className="modal-box rounded-md dark:bg-zinc-800">
               <form onSubmit={(e) => handleSubmit(e)}>
                 <div className="flex items-center">
-                  <CalendarClock className="text-business1 dark:text-blue-500/80 mr-2 w-7 h-7" />
-                  <h3 className="flex text-2xl font-regular truncate text-start text-gray-600 dark:text-gray-400">
+                  <CalendarClock className="mr-2 h-7 w-7 text-business1 dark:text-blue-500/80" />
+                  <h3 className="font-regular flex truncate text-start text-2xl text-gray-600 dark:text-gray-400">
                     เพิ่มรอบการประเมิน&nbsp;
                   </h3>
                 </div>
                 <div className="flex-col justify-between space-y-4 py-4">
-                  <div className="w-full flex justify-between items-center gap-4">
+                  <div className="flex w-full items-center justify-between gap-4">
                     <div className="w-full">
-                      <label className="block text-sm font-regular text-gray-600 dark:text-gray-400 mb-2">
+                      <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
                         รอบการประเมิน
                       </label>
                       <select
                         name="round"
-                        value={formData.round === 0 ? "" : formData.round} 
+                        value={formData.round === 0 ? '' : formData.round}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-2 font-light rounded-md text-sm border-2 border-gray-300 dark:border-zinc-600 text-gray-600 dark:bg-zinc-800 dark:text-gray-400 focus:outline-none focus:border-blue-500 transition-colors transition-all duration-300 ease-in-out"
+                        className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                         required
                       >
-                        <option value="" disabled> เลือกรอบการประเมิน</option>
+                        <option value="" disabled>
+                          {' '}
+                          เลือกรอบการประเมิน
+                        </option>
                         <option value="1">1</option>
                         <option value="2">2</option>
                       </select>
                     </div>
                     <div className="w-full">
-                      <label className="block text-sm font-regular text-gray-600 dark:text-gray-400 mb-2">
+                      <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
                         ปีการประเมิน
                       </label>
                       <input
@@ -62,44 +72,48 @@ export default function CreateModal({ isLoading, handleSubmit, formData, handleI
                         onChange={handleInputChange}
                         type="number"
                         placeholder="ป้อนปีการประเมิน"
-                        className="w-full h-full px-4 py-2 font-light rounded-md text-sm border-2 border-gray-300 dark:border-zinc-600 text-gray-600 dark:bg-zinc-800 dark:text-gray-400 focus:outline-none focus:border-blue-500 transition-colors transition-all duration-300 ease-in-out"
+                        className="h-full w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                         required
                       />
                     </div>
                   </div>
                   <div className="w-full">
-                    <label className="block text-sm font-regular text-gray-600 dark:text-gray-400 mb-2">วันที่เริ่มต้น</label>
+                    <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
+                      วันที่เริ่มต้น
+                    </label>
                     <input
                       name="date_start"
                       value={formData.date_start}
                       onChange={handleInputChange}
                       type="date"
-                      className="w-full px-4 py-2 font-light rounded-md text-sm border-2 border-gray-300 dark:border-zinc-600 text-gray-600 dark:bg-zinc-800 dark:text-gray-400 focus:outline-none focus:border-blue-500 transition-colors transition-all duration-300 ease-in-out"
+                      className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                       required
                     />
                   </div>
                   <div className="w-full">
-                    <label className="block text-sm font-regular text-gray-600 dark:text-gray-400 mb-2">วันที่สิ้นสุด</label>
+                    <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
+                      วันที่สิ้นสุด
+                    </label>
                     <input
                       name="date_end"
                       value={formData.date_end}
                       onChange={handleInputChange}
                       type="date"
-                      className="w-full px-4 py-2 font-light rounded-md text-sm border-2 border-gray-300 dark:border-zinc-600 text-gray-600 dark:bg-zinc-800 dark:text-gray-400 focus:outline-none focus:border-blue-500 transition-colors transition-all duration-300 ease-in-out"
+                      className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                       required
                     />
                   </div>
                 </div>
-                <div className="flex justify-end gap-4 mt-6">
+                <div className="mt-6 flex justify-end gap-4">
                   <button
                     type="submit"
-                    className="w-20 bg-success flex items-center justify-center text-md text-white rounded-md py-2 px-4 hover:bg-success hover:text-white hover:bg-success/80 transition ease-in-out duration-300"
+                    className="text-md flex w-20 items-center justify-center rounded-md bg-success px-4 py-2 text-white transition duration-300 ease-in-out hover:bg-success hover:bg-success/80 hover:text-white"
                   >
                     ยืนยัน
                   </button>
                   <label
                     htmlFor={`modal-create`}
-                    className="z-50 w-20 border border-2 border-gray-200 flex items-center justify-center bg-gray-200 text-md text-gray-600 rounded-md py-2 px-4 hover:bg-gray-300 hover:border-gray-300 dark:bg-zinc-700 dark:text-gray-400 dark:hover:bg-zinc-600 dark:hover:border-zinc-600 dark:border-zinc-700 transition ease-in-out duration-300 cursor-pointer"
+                    className="text-md z-50 flex w-20 cursor-pointer items-center justify-center rounded-md border border-2 border-gray-200 bg-gray-200 px-4 py-2 text-gray-600 transition duration-300 ease-in-out hover:border-gray-300 hover:bg-gray-300 dark:border-zinc-700 dark:bg-zinc-700 dark:text-gray-400 dark:hover:border-zinc-600 dark:hover:bg-zinc-600"
                   >
                     ยกเลิก
                   </label>
@@ -115,4 +129,3 @@ export default function CreateModal({ isLoading, handleSubmit, formData, handleI
     </>
   )
 }
-

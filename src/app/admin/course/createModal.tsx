@@ -1,23 +1,33 @@
-import type React from "react";
-import { LibraryBigIcon } from "lucide-react";
-import SelectBranch from "./courseComponents/SelectBranch";
-import { useEffect, useRef, useState } from "react";
+import type React from 'react'
+import { LibraryBigIcon } from 'lucide-react'
+import SelectBranch from './courseComponents/SelectBranch'
+import { useEffect, useRef, useState } from 'react'
 
 interface FormDataCourse {
-  course_name: string;
-  branch_id: number;
+  course_name: string
+  branch_id: number
 }
 
 interface CreateModalProps {
-  isLoading: boolean;
-  handleSubmit: (e: React.FormEvent<HTMLFormElement> | React.MouseEvent, course_name: string, branch_id: number) => void;
-  formData: FormDataCourse;
-  handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleBranchChange: (branch_id: number) => void;
+  isLoading: boolean
+  handleSubmit: (
+    e: React.FormEvent<HTMLFormElement> | React.MouseEvent,
+    course_name: string,
+    branch_id: number
+  ) => void
+  formData: FormDataCourse
+  handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  handleBranchChange: (branch_id: number) => void
   setFormData: React.Dispatch<React.SetStateAction<FormDataCourse>>
 }
 
-export default function CreateModal({ isLoading, handleSubmit, formData, handleInputChange, setFormData }: CreateModalProps) {
+export default function CreateModal({
+  isLoading,
+  handleSubmit,
+  formData,
+  handleInputChange,
+  setFormData,
+}: CreateModalProps) {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const branchDropdownRef = useRef<HTMLDivElement>(null)
   const [selectBranch, setSelectedBranch] = useState<string | null>(null)
@@ -30,9 +40,9 @@ export default function CreateModal({ isLoading, handleSubmit, formData, handleI
         setOpenDropdown(null)
       }
     }
-    document.addEventListener("mousedown", handleClickOutside)
+    document.addEventListener('mousedown', handleClickOutside)
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside)
+      document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [])
 
@@ -49,11 +59,15 @@ export default function CreateModal({ isLoading, handleSubmit, formData, handleI
         <div className="relative z-[100]">
           <input type="checkbox" id={`modal-create`} className="modal-toggle" />
           <div className="modal" role={`modal-create`}>
-            <div className="modal-box rounded-md dark:bg-zinc-800 no-scrollbar">
-              <form onSubmit={(e) => handleSubmit(e, formData.course_name, formData.branch_id)}>
+            <div className="no-scrollbar modal-box rounded-md dark:bg-zinc-800">
+              <form
+                onSubmit={(e) =>
+                  handleSubmit(e, formData.course_name, formData.branch_id)
+                }
+              >
                 <div className="flex items-center">
-                  <LibraryBigIcon className="text-business1 dark:text-blue-500/80 mr-2 w-7 h-7" />
-                  <h3 className="flex text-2xl font-regular truncate text-start text-gray-600 dark:text-gray-400">
+                  <LibraryBigIcon className="mr-2 h-7 w-7 text-business1 dark:text-blue-500/80" />
+                  <h3 className="font-regular flex truncate text-start text-2xl text-gray-600 dark:text-gray-400">
                     เพิ่มหลักสูตร
                   </h3>
                 </div>
@@ -69,7 +83,7 @@ export default function CreateModal({ isLoading, handleSubmit, formData, handleI
                     />
                   </div>
                   <div className="w-full">
-                    <label className="block text-sm font-regular text-gray-600 dark:text-gray-400 mb-2">
+                    <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
                       หลักสูตร
                     </label>
                     <input
@@ -77,22 +91,21 @@ export default function CreateModal({ isLoading, handleSubmit, formData, handleI
                       value={formData.course_name}
                       onChange={handleInputChange}
                       type="text"
-                      className="w-full px-4 py-2 font-light rounded-md text-sm border-2 border-gray-300 dark:border-zinc-600 text-gray-600 dark:bg-zinc-800 dark:text-gray-400 focus:outline-none focus:border-blue-500 transition-colors transition-all duration-300 ease-in-out"
+                      className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                       placeholder="กรุณากรอกสาขา"
                     />
                   </div>
-
                 </div>
                 <div className="flex justify-end gap-4">
                   <button
                     type="submit"
-                    className="w-20 bg-success flex items-center justify-center text-md text-white rounded-md py-2 px-4 hover:bg-success hover:text-white hover:bg-success/80 transition ease-in-out duration-300"
+                    className="text-md flex w-20 items-center justify-center rounded-md bg-success px-4 py-2 text-white transition duration-300 ease-in-out hover:bg-success hover:bg-success/80 hover:text-white"
                   >
                     ยืนยัน
                   </button>
                   <label
                     htmlFor={`modal-create`}
-                    className=" w-20 border border-2 border-gray-200 flex items-center justify-center bg-gray-200 text-md text-gray-600 rounded-md py-2 px-4 hover:bg-gray-300 hover:border-gray-300 dark:bg-zinc-700 dark:text-gray-400 dark:hover:bg-zinc-600 dark:hover:border-zinc-600 dark:border-zinc-700 transition ease-in-out duration-300 cursor-pointer"
+                    className="text-md flex w-20 cursor-pointer items-center justify-center rounded-md border border-2 border-gray-200 bg-gray-200 px-4 py-2 text-gray-600 transition duration-300 ease-in-out hover:border-gray-300 hover:bg-gray-300 dark:border-zinc-700 dark:bg-zinc-700 dark:text-gray-400 dark:hover:border-zinc-600 dark:hover:bg-zinc-600"
                   >
                     ยกเลิก
                   </label>
@@ -106,5 +119,5 @@ export default function CreateModal({ isLoading, handleSubmit, formData, handleI
         </div>
       )}
     </>
-  );
+  )
 }

@@ -1,13 +1,13 @@
-"use client"
+'use client'
 
-import { useState, useEffect } from "react"
+import { useState, useEffect } from 'react'
 import Select, {
   type ClearIndicatorProps,
   components,
   type StylesConfig,
   type SingleValue,
-} from "react-select"
-import { FiX } from "react-icons/fi"
+} from 'react-select'
+import { FiX } from 'react-icons/fi'
 
 export interface SelectOption {
   value: number | string
@@ -24,7 +24,7 @@ interface SelectDropdownProps {
   isClearable?: boolean
   isSearchable?: boolean
   className?: string
-  menuPosition?: "absolute" | "fixed"
+  menuPosition?: 'absolute' | 'fixed'
   noOptionsMessage?: () => string
 }
 
@@ -32,14 +32,14 @@ export default function SelectDropdown({
   options,
   value,
   onChange,
-  placeholder = "เลือกตัวเลือก",
+  placeholder = 'เลือกตัวเลือก',
   isDisabled = false,
   isLoading = false,
   isClearable = true,
   isSearchable = true,
-  className = "",
-  menuPosition = "fixed",
-  noOptionsMessage = () => "ไม่พบข้อมูล",
+  className = '',
+  menuPosition = 'fixed',
+  noOptionsMessage = () => 'ไม่พบข้อมูล',
 }: SelectDropdownProps) {
   const [mounted, setMounted] = useState(false)
 
@@ -47,10 +47,12 @@ export default function SelectDropdown({
     setMounted(true)
   }, [])
 
-  const CustomClearIndicator = (props: ClearIndicatorProps<SelectOption, false>) => {
+  const CustomClearIndicator = (
+    props: ClearIndicatorProps<SelectOption, false>
+  ) => {
     return (
       <components.ClearIndicator {...props}>
-        <FiX className="w-4 h-4 text-gray-400 hover:text-red-500 transition duration-200 cursor-pointer" />
+        <FiX className="h-4 w-4 cursor-pointer text-gray-400 transition duration-200 hover:text-red-500" />
       </components.ClearIndicator>
     )
   }
@@ -59,29 +61,29 @@ export default function SelectDropdown({
   const customStyles: StylesConfig<SelectOption, false> = {
     control: (provided) => ({
       ...provided,
-      fontSize: "0.875rem",
-      fontWeight: "300",
-      color: "#d1d5db",
-      borderRadius: "0.375rem",
-      border: "2px solid",
-      padding: "2px 4px",
+      fontSize: '0.875rem',
+      fontWeight: '300',
+      color: '#d1d5db',
+      borderRadius: '0.375rem',
+      border: '2px solid',
+      padding: '2px 4px',
     }),
     placeholder: (provided) => ({
       ...provided,
-      fontSize: "0.875rem",
-      fontWeight: "300",
-      color: "#9CA3AF",
+      fontSize: '0.875rem',
+      fontWeight: '300',
+      color: '#9CA3AF',
     }),
     option: (provided) => ({
       ...provided,
-      fontSize: "0.875rem",
-      fontWeight: "300",
-      padding: "10px",
+      fontSize: '0.875rem',
+      fontWeight: '300',
+      padding: '10px',
     }),
     dropdownIndicator: (provided) => ({
       ...provided,
-      fontSize: "1rem",
-      padding: "4px",
+      fontSize: '1rem',
+      padding: '4px',
     }),
     menuPortal: (base) => ({
       ...base,
@@ -117,10 +119,10 @@ export default function SelectDropdown({
           ...theme,
           colors: {
             ...theme.colors,
-            primary: "#3b82f6",
-            primary25: "#e5e7eb",
-            neutral0: "var(--bg-color, white)",
-            neutral80: "var(--text-color, #4b5563)",
+            primary: '#3b82f6',
+            primary25: '#e5e7eb',
+            neutral0: 'var(--bg-color, white)',
+            neutral80: 'var(--text-color, #4b5563)',
           },
         })}
       />

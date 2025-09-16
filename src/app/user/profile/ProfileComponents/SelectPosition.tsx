@@ -1,7 +1,8 @@
-import type React from "react"
-import { useState, useEffect } from "react"
-import { ChevronDown } from "lucide-react"
-import axios from "axios"
+import type React from 'react'
+import { useState, useEffect } from 'react'
+import { ChevronDown } from 'lucide-react'
+import axios from 'axios'
+import { useSession } from 'next-auth/react'
 
 interface Position {
   position_id: number
@@ -27,47 +28,56 @@ function SelectPrefix({
 }: SelectPosition) {
   const [positions, setPositions] = useState<Position[]>([])
   const [error, setError] = useState<string | null>(null)
-  const [displayPosition, setDisplayPosition] = useState<string>("เลือกคำนำหน้า")
+  const [displayPosition, setDisplayPosition] =
+    useState<string>('เลือกคำนำหน้า')
+  const { data: session } = useSession()
 
   useEffect(() => {
     const fetchPosition = async () => {
       setError(null)
       try {
-        const token = localStorage.getItem("token")
-        if (!token) {
-          throw new Error("No token found. Please log in.")
+        if (!session?.accessToken) {
+          throw new Error('No token found. Please log in.')
         }
-        const response = await axios.get(process.env.NEXT_PUBLIC_API + "/position", {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        })
+        const response = await axios.get(
+          process.env.NEXT_PUBLIC_API + '/position',
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${session.accessToken}`,
+            },
+          }
+        )
 
         if (response.status === 200 && response.data.status) {
-            setPositions(response.data.data)
+          setPositions(response.data.data)
 
-          const matchingPosition = response.data.data.find((position: Position) => position.position_name === initialPositionName)
+          const matchingPosition = response.data.data.find(
+            (position: Position) =>
+              position.position_name === initialPositionName
+          )
           if (matchingPosition) {
             setSelectPosition(matchingPosition.position_id)
             setDisplayPosition(matchingPosition.position_name)
           }
         } else {
-          throw new Error("No data found")
+          throw new Error('No data found')
         }
       } catch (error) {
         if (axios.isAxiosError(error)) {
-          setError(error.response?.data?.message || "Error fetching prefixes")
-          console.error("Axios error:", error.response || error.message)
+          setError(error.response?.data?.message || 'Error fetching prefixes')
+          console.error('Axios error:', error.response || error.message)
         } else {
-          setError("An unknown error occurred")
-          console.error("Unknown error:", error)
+          setError('An unknown error occurred')
+          console.error('Unknown error:', error)
         }
       }
     }
 
-    fetchPosition()
-  }, [initialPositionName, setSelectPosition])
+    if (session?.accessToken) {
+      fetchPosition()
+    }
+  }, [initialPositionName, setSelectPosition, session?.accessToken])
 
   const handleSelectPosition = (position_id: number, position_name: string) => {
     setSelectPosition(position_id)
@@ -78,28 +88,37 @@ function SelectPrefix({
 
   return (
     <div>
-      <label className="block text-sm font-regular text-gray-600 dark:text-gray-400 mb-2">ตำแหน่งวิชาการ</label>
-      <div className="relative z-5" ref={positionDropdownRef}>
+      <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
+        ตำแหน่งวิชาการ
+      </label>
+      <div className="z-5 relative" ref={positionDropdownRef}>
         <button
           type="button"
-          onClick={() => setOpenDropdown(openDropdown === "position" ? null : "position")}
-          aria-expanded={openDropdown === "position"}
-          className="w-full px-4 py-2 font-light rounded-md text-sm border-2 border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-gray-600 dark:text-gray-400 focus:outline-none focus:border-blue-500 transition-colors flex items-center justify-between transition-all duration-300 ease-in-out"
+          onClick={() =>
+            setOpenDropdown(openDropdown === 'position' ? null : 'position')
+          }
+          aria-expanded={openDropdown === 'position'}
+          className="flex w-full items-center justify-between rounded-md border-2 border-gray-300 bg-white px-4 py-2 text-sm font-light text-gray-600 transition-all transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
         >
           {displayPosition}
           <ChevronDown
-            className={`w-4 h-4 text-gray-600 dark:text-zinc-600 transition-transform duration-200 ${
-              openDropdown === "position" ? "rotate-180" : ""
+            className={`h-4 w-4 text-gray-600 transition-transform duration-200 dark:text-zinc-600 ${
+              openDropdown === 'position' ? 'rotate-180' : ''
             }`}
           />
         </button>
-        {openDropdown === "position" && (
-          <div className="absolute z-10 overflow-y-auto max-h-36 w-full mt-2 bg-white dark:bg-zinc-900 border-2 border-gray-300 dark:border-zinc-600 rounded-md shadow-lg">
+        {openDropdown === 'position' && (
+          <div className="absolute z-10 mt-2 max-h-36 w-full overflow-y-auto rounded-md border-2 border-gray-300 bg-white shadow-lg dark:border-zinc-600 dark:bg-zinc-900">
             {positions.map((position) => (
               <div
                 key={position.position_id}
-                className="px-4 py-2 text-sm font-light text-gray-600 hover:bg-gray-100 dark:hover:bg-zinc-800 cursor-pointer dark:text-gray-400"
-                onClick={() => handleSelectPosition(position.position_id, position.position_name)}
+                className="cursor-pointer px-4 py-2 text-sm font-light text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-zinc-800"
+                onClick={() =>
+                  handleSelectPosition(
+                    position.position_id,
+                    position.position_name
+                  )
+                }
               >
                 {position.position_name}
               </div>
@@ -107,10 +126,9 @@ function SelectPrefix({
           </div>
         )}
       </div>
-      {error && <div className="text-red-500 mt-2">{error}</div>}
+      {error && <div className="mt-2 text-red-500">{error}</div>}
     </div>
   )
 }
 
 export default SelectPrefix
-

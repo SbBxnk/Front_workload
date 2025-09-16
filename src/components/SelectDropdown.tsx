@@ -1,5 +1,9 @@
-import Select, { type ClearIndicatorProps, components, type StylesConfig } from "react-select"
-import { FiX } from "react-icons/fi"
+import Select, {
+  type ClearIndicatorProps,
+  components,
+  type StylesConfig,
+} from 'react-select'
+import { FiX } from 'react-icons/fi'
 
 interface Option {
   value: number
@@ -21,7 +25,7 @@ export default function SelectDropdown<T, K extends keyof T>({
   objects,
   valueKey,
   labelKey,
-  placeholder = "ค้นหา",
+  placeholder = 'ค้นหา',
 }: SelectDropdownProps<T, K>) {
   const options: Option[] = objects.map((obj) => ({
     value: Number(obj[valueKey]),
@@ -31,7 +35,7 @@ export default function SelectDropdown<T, K extends keyof T>({
   const CustomClearIndicator = (props: ClearIndicatorProps<Option, false>) => {
     return (
       <components.ClearIndicator {...props}>
-        <FiX className="w-4 h-4 text-gray-400 hover:text-red-500 transition duration-200 cursor-pointer" />
+        <FiX className="h-4 w-4 cursor-pointer text-gray-400 transition duration-200 hover:text-red-500" />
       </components.ClearIndicator>
     )
   }
@@ -39,29 +43,29 @@ export default function SelectDropdown<T, K extends keyof T>({
   const customStyles: StylesConfig<Option, false> = {
     control: (provided) => ({
       ...provided,
-      fontSize: "0.875rem",
-      fontWeight: "300",
-      color: "#d1d5db",
-      borderRadius: "0.375rem",
-      border: "2px solid",
-      padding: "0px 4px",
+      fontSize: '0.875rem',
+      fontWeight: '300',
+      color: '#d1d5db',
+      borderRadius: '0.375rem',
+      border: '2px solid',
+      padding: '0px 4px',
     }),
     placeholder: (provided) => ({
       ...provided,
-      fontSize: "0.875rem",
-      fontWeight: "300",
-      color: "#9CA3AF",
+      fontSize: '0.875rem',
+      fontWeight: '300',
+      color: '#9CA3AF',
     }),
     option: (provided) => ({
       ...provided,
-      fontSize: "0.875rem",
-      fontWeight: "300",
-      padding: "10px",
+      fontSize: '0.875rem',
+      fontWeight: '300',
+      padding: '10px',
     }),
     dropdownIndicator: (provided) => ({
       ...provided,
-      fontSize: "1rem",
-      padding: "4px",
+      fontSize: '1rem',
+      padding: '4px',
     }),
   }
 
@@ -71,14 +75,20 @@ export default function SelectDropdown<T, K extends keyof T>({
         placeholder={placeholder}
         options={options}
         onChange={(selectedOption) => {
-          if (selectedOption && "value" in selectedOption) {
+          if (selectedOption && 'value' in selectedOption) {
             handleSelect(selectedOption.value.toString())
           } else {
-            handleSelect("")
+            handleSelect('')
           }
         }}
         isClearable
-        value={selectedLabel ? options.find((option) => option.value.toString() === selectedLabel) : null}
+        value={
+          selectedLabel
+            ? options.find(
+                (option) => option.value.toString() === selectedLabel
+              )
+            : null
+        }
         classNamePrefix="react-select"
         components={{ ClearIndicator: CustomClearIndicator }}
         styles={customStyles}
@@ -86,4 +96,3 @@ export default function SelectDropdown<T, K extends keyof T>({
     </div>
   )
 }
-

@@ -1,12 +1,13 @@
-"use client"
+'use client'
 
-import { useEffect, useState } from "react"
-import { useRouter, usePathname } from "next/navigation"
-import Swal from "sweetalert2"
-import type React from "react"
-import { jwtDecode } from "jwt-decode"
-import axios from "axios"
-import type { DecodedToken } from "@/Types"
+import { useEffect, useState } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
+import { useSession, signOut } from 'next-auth/react'
+import Swal from 'sweetalert2'
+import type React from 'react'
+import { jwtDecode } from 'jwt-decode'
+import axios from 'axios'
+import type { DecodedToken } from '@/Types'
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -14,20 +15,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userRole, setUserRole] = useState<string | null>(null)
   const router = useRouter()
   const pathname = usePathname()
+  const { data: session, status } = useSession()
 
   useEffect(() => {
     const interceptor = axios.interceptors.response.use(
       (response) => response,
       (error) => {
         if (error.response && error.response.status === 403) {
-          localStorage.removeItem("token")
           Swal.fire({
-            title: "ไม่มีสิทธิ์เข้าถึง",
-            text: "กรุณาเข้าสู่ระบบใหม่อีกครั้ง",
-            icon: "error",
-            confirmButtonText: "OK",
+            title: 'ไม่มีสิทธิ์เข้าถึง',
+            text: 'กรุณาเข้าสู่ระบบใหม่อีกครั้ง',
+            icon: 'error',
+            confirmButtonText: 'OK',
           }).then(() => {
-            router.push("/login")
+            signOut({ callbackUrl: '/login' })
           })
         }
         return Promise.reject(error)
@@ -37,18 +38,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       axios.interceptors.response.eject(interceptor)
     }
-  }, [router])
+  }, [])
 
   useEffect(() => {
-    const token = localStorage.getItem("token")
+    // รอให้ session โหลดเสร็จก่อน
+    if (status === 'loading') {
+      return
+    }
 
-    if (!token) {
-      router.push("/login") 
+    // ถ้าไม่มี session หรือ session หมดอายุ
+    if (status === 'unauthenticated' || !session?.accessToken) {
+      router.push('/login')
       return
     }
 
     try {
-      const decodedToken = jwtDecode<DecodedToken>(token)
+      const decodedToken = jwtDecode<DecodedToken>(session.accessToken)
 
       const currentTime = Math.floor(Date.now() / 1000)
       if (decodedToken.exp < currentTime) {
@@ -60,22 +65,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsAuthenticated(true)
       checkAuthorization(decodedToken.level_name, pathname)
     } catch (error) {
-      console.error("Invalid token:", error)
-      router.push("/login") 
+      console.error('Invalid token:', error)
+      signOut({ callbackUrl: '/login' })
     }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname, userRole])
+  }, [session, status, pathname])
 
   const handleTokenExpired = () => {
-    localStorage.removeItem("token")
     Swal.fire({
-      title: "เซสชันหมดอายุ",
-      text: "กรุณาเข้าสู่ระบบใหม่อีกครั้ง",
-      icon: "warning",
-      confirmButtonText: "OK",
+      title: 'เซสชันหมดอายุ',
+      text: 'กรุณาเข้าสู่ระบบใหม่อีกครั้ง',
+      icon: 'warning',
+      confirmButtonText: 'OK',
     }).then(() => {
-      router.push("/login")
+      signOut({ callbackUrl: '/login' })
     })
   }
 
@@ -84,14 +88,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const checkAuthorization = (role: string, path: string) => {
-    if (role === "ผู้ดูแลระบบ" && (path.startsWith("/user") || path.startsWith("/examiner"))) {
-      showUnauthorizedAlert("/admin")
+    if (
+      role === 'ผู้ดูแลระบบ' &&
+      (path.startsWith('/user') || path.startsWith('/examiner'))
+    ) {
+      showUnauthorizedAlert('/admin')
       setIsAuthorized(false)
-    } else if (role === "ผู้ใช้งานทั่วไป" && (path.startsWith("/admin") || path.startsWith("/examiner"))) {
-      showUnauthorizedAlert("/user")
+    } else if (
+      role === 'ผู้ใช้งานทั่วไป' &&
+      (path.startsWith('/admin') || path.startsWith('/examiner'))
+    ) {
+      showUnauthorizedAlert('/user')
       setIsAuthorized(false)
-    } else if (role === "ผู้ตรวจประเมิน" && (path.startsWith("/admin") || path.startsWith("/user"))) {
-      showUnauthorizedAlert("/examiner")
+    } else if (
+      role === 'ผู้ตรวจประเมิน' &&
+      (path.startsWith('/admin') || path.startsWith('/user'))
+    ) {
+      showUnauthorizedAlert('/examiner')
       setIsAuthorized(false)
     } else {
       setIsAuthorized(true)

@@ -1,12 +1,12 @@
-"use client"
+'use client'
 
-import type React from "react"
-import { CalendarClock } from "lucide-react"
-import { useEffect, useState } from "react"
-import axios from "axios"
-import useAuthHeaders from "@/hooks/Header"
-import type { ExPosition, User } from "@/Types"
-import SelectDropdown, { type SelectOption } from "@/components/SelectValue"
+import type React from 'react'
+import { CalendarClock } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import axios from 'axios'
+import useAuthHeaders from '@/hooks/Header'
+import type { ExPosition, User } from '@/Types'
+import SelectDropdown, { type SelectOption } from '@/components/SelectValue'
 
 interface FormDataFormList {
   ex_u_id: number
@@ -51,7 +51,7 @@ export default function CreateModal({
         // Pass the set_asses_list_id as a query parameter
         const response = await axios.get(
           `${process.env.NEXT_PUBLIC_API}/ex_user/?set_asses_list_id=${formData.set_asses_list_id}`,
-          { headers },
+          { headers }
         )
 
         if (response.data.status && response.data.data) {
@@ -66,14 +66,16 @@ export default function CreateModal({
       } catch (error) {
         if (axios.isAxiosError(error)) {
           if (error.response?.status === 404) {
-            console.log("No available users found - all users have been assigned as assessors for this round")
+            console.log(
+              'No available users found - all users have been assigned as assessors for this round'
+            )
             setUsers([])
             setNoUsersAvailable(true)
           } else {
-            console.error("Error fetching filtered users:", error.message)
+            console.error('Error fetching filtered users:', error.message)
           }
         } else {
-          console.error("Unexpected error:", error)
+          console.error('Unexpected error:', error)
         }
 
         setUsers([])
@@ -93,7 +95,8 @@ export default function CreateModal({
     if (users.length > 0) {
       const options = users.map((user) => ({
         value: user.u_id,
-        label: `${user.prefix_name || ""}${user.u_fname || ""} ${user.u_lname || ""} ${user.u_id} ${user.ex_position_name ? `(${user.ex_position_name})` : ""
+        label: `${user.prefix_name || ''}${user.u_fname || ''} ${user.u_lname || ''} ${user.u_id} ${
+          user.ex_position_name ? `(${user.ex_position_name})` : ''
         }`,
       }))
       setUserOptions(options)
@@ -105,7 +108,8 @@ export default function CreateModal({
   // Update selectedUser when formData.ex_u_id changes
   useEffect(() => {
     if (formData.ex_u_id && userOptions.length > 0) {
-      const option = userOptions.find((opt) => opt.value === formData.ex_u_id) || null
+      const option =
+        userOptions.find((opt) => opt.value === formData.ex_u_id) || null
       setSelectedUser(option)
     } else {
       setSelectedUser(null)
@@ -116,7 +120,10 @@ export default function CreateModal({
   const handleSelectChange = (selectedOption: SelectOption | null) => {
     setSelectedUser(selectedOption)
     if (selectedOption) {
-      setFormData((prev) => ({ ...prev, ex_u_id: Number(selectedOption.value) }))
+      setFormData((prev) => ({
+        ...prev,
+        ex_u_id: Number(selectedOption.value),
+      }))
     } else {
       setFormData((prev) => ({ ...prev, ex_u_id: 0 }))
     }
@@ -130,23 +137,26 @@ export default function CreateModal({
           <div className="modal-box rounded-md dark:bg-zinc-800">
             <form onSubmit={(e) => handleSubmit(e)}>
               <div className="flex items-center">
-                <CalendarClock className="text-business1 dark:text-blue-500/80 mr-2 w-7 h-7" />
-                <h3 className="flex text-2xl font-regular truncate text-start text-gray-600 dark:text-gray-400">
+                <CalendarClock className="mr-2 h-7 w-7 text-business1 dark:text-blue-500/80" />
+                <h3 className="font-regular flex truncate text-start text-2xl text-gray-600 dark:text-gray-400">
                   เพิ่มผู้ประเมิน&nbsp;
                 </h3>
               </div>
               <div className="flex-col justify-between space-y-4 py-4">
-                <div className="w-full flex flex-col justify-between gap-4">
+                <div className="flex w-full flex-col justify-between gap-4">
                   <div className="w-full">
-                    <label className="block text-sm font-regular text-gray-600 dark:text-gray-400 mb-2">
+                    <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
                       เลือกผู้ประเมิน
                     </label>
 
                     {isLoadingUsers ? (
-                      <div className="text-sm text-gray-600 dark:text-gray-400 py-2">กำลังโหลดข้อมูล...</div>
+                      <div className="py-2 text-sm text-gray-600 dark:text-gray-400">
+                        กำลังโหลดข้อมูล...
+                      </div>
                     ) : noUsersAvailable ? (
-                      <div className="text-sm text-amber-500 font-light py-2 border border-gray-300 bg-gray-50 rounded-md px-3">
-                        ผู้ใช้ทั้งหมดถูกกำหนดเป็นผู้ประเมินในรอบนี้แล้ว ไม่มีผู้ใช้ที่สามารถเลือกได้
+                      <div className="rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm font-light text-amber-500">
+                        ผู้ใช้ทั้งหมดถูกกำหนดเป็นผู้ประเมินในรอบนี้แล้ว
+                        ไม่มีผู้ใช้ที่สามารถเลือกได้
                       </div>
                     ) : (
                       <SelectDropdown
@@ -155,7 +165,9 @@ export default function CreateModal({
                         onChange={handleSelectChange}
                         placeholder="เลือกผู้ประเมิน"
                         isLoading={isLoadingUsers}
-                        noOptionsMessage={() => "ไม่พบผู้ประเมินที่สามารถเลือกได้"}
+                        noOptionsMessage={() =>
+                          'ไม่พบผู้ประเมินที่สามารถเลือกได้'
+                        }
                       />
                     )}
 
@@ -164,7 +176,7 @@ export default function CreateModal({
                       value={formData.set_asses_list_id}
                       type="hidden"
                       placeholder="ป้อนรอบการประเมิน"
-                      className="w-full h-full px-4 py-2 font-light rounded-md text-sm border-2 border-gray-300 dark:border-zinc-600 text-gray-600 dark:bg-zinc-800 dark:text-gray-400 focus:outline-none focus:border-blue-500 transition-colors transition-all duration-300 ease-in-out"
+                      className="h-full w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                       required
                       readOnly
                     />
@@ -172,19 +184,24 @@ export default function CreateModal({
                 </div>
               </div>
 
-              <div className="flex justify-end gap-4 mt-6">
+              <div className="mt-6 flex justify-end gap-4">
                 {noUsersAvailable ? null : (
                   <button
                     type="submit"
-                    className="w-20 bg-success flex items-center justify-center text-md text-white rounded-md py-2 px-4 hover:bg-success hover:text-white hover:bg-success/80 transition ease-in-out duration-300"
-                    disabled={isLoading || userOptions.length === 0 || noUsersAvailable || !formData.ex_u_id}
+                    className="text-md flex w-20 items-center justify-center rounded-md bg-success px-4 py-2 text-white transition duration-300 ease-in-out hover:bg-success hover:bg-success/80 hover:text-white"
+                    disabled={
+                      isLoading ||
+                      userOptions.length === 0 ||
+                      noUsersAvailable ||
+                      !formData.ex_u_id
+                    }
                   >
-                    {isLoading ? "กำลังบันทึก..." : "ยืนยัน"}
+                    {isLoading ? 'กำลังบันทึก...' : 'ยืนยัน'}
                   </button>
                 )}
                 <label
                   htmlFor="modal-create"
-                  className="z-50 w-20 border border-2 border-gray-200 flex items-center justify-center bg-gray-200 text-md text-gray-600 rounded-md py-2 px-4 hover:bg-gray-300 hover:border-gray-300 dark:bg-zinc-700 dark:text-gray-400 dark:hover:bg-zinc-600 dark:hover:border-zinc-600 dark:border-zinc-700 transition ease-in-out duration-300 cursor-pointer"
+                  className="text-md z-50 flex w-20 cursor-pointer items-center justify-center rounded-md border border-2 border-gray-200 bg-gray-200 px-4 py-2 text-gray-600 transition duration-300 ease-in-out hover:border-gray-300 hover:bg-gray-300 dark:border-zinc-700 dark:bg-zinc-700 dark:text-gray-400 dark:hover:border-zinc-600 dark:hover:bg-zinc-600"
                 >
                   ยกเลิก
                 </label>

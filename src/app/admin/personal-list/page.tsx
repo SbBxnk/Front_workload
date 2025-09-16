@@ -1,203 +1,463 @@
-"use client"
-import type React from "react"
-import { useEffect, useState } from "react"
-import { Plus, Loader, Trash2, Edit2 } from "lucide-react"
-import { useRouter } from "next/navigation"
-import useFetchData from "@/hooks/FetchAPI"
-// components
-import Pagination from "@/components/Pagination"
-import SkeletonTable from "./Personal-listComponents/SkeletonTable"
-import DeleteModal from "./Personal-listComponents/DeletePersonalModal"
-import SearchFilter from "@/components/SearchFilter"
-import { FiX } from "react-icons/fi"
-import type { Position, Branch, Personal, Course, UserLevel } from "@/Types"
-import Image from "next/image"
-import Swal from "sweetalert2"
+'use client'
+import type React from 'react'
+import { useEffect, useState } from 'react'
+import { Edit2, Plus, Trash2 } from 'lucide-react'
+import type { Personal, Position, Branch, Course, UserLevel } from '@/Types'
+import {UserSearchParams } from '@/services/userServices'
+import { FiX } from 'react-icons/fi'
+import SearchFilter from '@/components/SearchFilter'
+import Swal from 'sweetalert2'
+import UserServices from '@/services/userServices'
+import { useSession } from 'next-auth/react'
+import Table, { TableColumn, SortState, SortOrder } from '@/components/Table'
+import { useRouter } from 'next/navigation'
+import useFetchData from '@/hooks/FetchAPI'
+import DeleteModal from './Personal-listComponents/DeletePersonalModal'
+import UpdatePersonalModal from './Personal-listComponents/UpdatePersonalModal'
+import useUtility from '@/hooks/useUtility'
 
 const positionStyles: { [key: string]: string } = {
-  อาจารย์: "text-blue-500 bg-blue-500/15",
-  รองศาสตราจารย์: "text-green-500 bg-green-500/15",
-  ศาสตราจารย์: "text-purple-500 bg-purple-500/15",
-  ผู้ช่วยศาสตราจารย์: "text-amber-500 bg-amber-500/15",
-  ผู้ช่วยอาจารย์: "text-purple-500 bg-purple-500/15",
+  อาจารย์: 'text-white bg-blue-500',
+  รองศาสตราจารย์: 'text-white bg-green-500',
+  ศาสตราจารย์: 'text-white bg-purple-500',
+  ผู้ช่วยศาสตราจารย์: 'text-white bg-amber-500',
+  ผู้ช่วยอาจารย์: 'text-white bg-purple-500',
 }
 
 const ITEMS_PER_PAGE = 10
 
-export default function PersonalList() {
-  // State declarations
-  const [isLoading, setIsLoading] = useState(false)
-  const [currentPage, setCurrentPage] = useState(1)
-  const [searchName, setSearchName] = useState<string>("")
-  const [selectedPosition, setSelectedPosition] = useState<string>("")
-  const [selectedBranch, setSelectedBranch] = useState<string>("")
-  const [selectedCourse, setSelectedCourse] = useState<string>("")
-  const [selectedLevel, setSelectedLevel] = useState<string>("")
+type Order = 'asc' | 'desc'
 
-  // Fetching data using custom hook
-  const {
-    data: personals,
-    loading: personalLoading,
-    error: personalError,
-    setData: setPersonals,
-  } = useFetchData<Personal[]>("/user")
-  const { data: positions, loading: positionLoading, error: positionError } = useFetchData<Position[]>("/position")
-  const { data: branchs, loading: branchLoading, error: branchError } = useFetchData<Branch[]>("/branch")
-  const { data: courses, loading: courseLoading, error: courseError } = useFetchData<Course[]>("/course")
-  const { data: levels, loading: levelLoading, error: levelError } = useFetchData<UserLevel[]>("/level")
-
-  // Router
+function PersonalListTable() {
+  const { data: session } = useSession()
+  const { setBreadcrumbs } = useUtility()
   const router = useRouter()
-
-  useEffect(() => {
-    if (personals) {
-      personals.filter((personal) => {
-        const fullName = `${personal.prefix_name}${personal.u_fname} ${personal.u_lname}`.toLowerCase()
-        return (
-          fullName.includes(searchName.toLowerCase()) &&
-          (selectedPosition ? personal.position_name === selectedPosition : true) &&
-          (selectedBranch ? personal.branch_name === selectedBranch : true) &&
-          (selectedCourse ? personal.course_name === selectedCourse : true)
-        )
-      })
-      setCurrentPage(1)
-    }
-  }, [personals, searchName, selectedPosition, selectedBranch, selectedCourse])
-
-  // Loading and Error Handling
-  if (personalLoading || positionLoading || branchLoading || courseLoading || levelLoading) {
-    return <SkeletonTable />
-  }
-
-  const createPersonal = () => {
-    router.push("/admin/personal-list/create-personal")
-  }
-
-  if (
-    personalError ||
-    !personals ||
-    positionError ||
-    !positions ||
-    branchError ||
-    !branchs ||
-    courseError ||
-    !courses ||
-    levelError ||
-    !levels
-  ) {
-    return (
-      <div className="bg-white p-4 rounded-md shadow dark:bg-zinc-900 dark:text-gray-400 transition-all duration-300 ease-in-out">
-        <div className="py-4 md:flex">
-          <div className="flex flex-wrap gap-4 w-full md:w-full">
-            <div className="relative flex items-center w-full md:w-52">
-              <input
-                className="w-full px-4 py-2 font-light rounded-md text-sm border-2 border-gray-300 dark:border-zinc-600 text-gray-600 dark:bg-zinc-800 dark:text-gray-400 focus:outline-none focus:border-blue-500 focus:border-blue-500 transition-colors transition-all duration-300 ease-in-out"
-                placeholder="ค้นหาด้วยชื่อบุคคล"
-                disabled
-              />
-            </div>
-            <button
-              disabled
-              className="w-full md:w-52 bg-gray-300 dark:bg-zinc-700 text-sm font-light text-gray-500 dark:text-gray-400 rounded-md py-2.5 px-4 transition ease-in-out duration-300 flex items-center gap-2 justify-between"
-            >
-              ค้นหาตำแหน่ง
-            </button>
-            <button
-              disabled
-              className="w-full md:w-52 bg-gray-300 dark:bg-zinc-700 text-sm font-light text-gray-500 dark:text-gray-400 rounded-md py-2.5 px-4 transition ease-in-out duration-300 flex items-center gap-2 justify-between"
-            >
-              ค้นหาสาขา
-            </button>
-            <button
-              disabled
-              className="w-full md:w-52 bg-gray-300 dark:bg-zinc-700 text-sm font-light text-gray-500 dark:text-gray-400 rounded-md py-2.5 px-4 transition ease-in-out duration-300 flex items-center gap-2 justify-between"
-            >
-              ค้นหาหลักสูตร
-            </button>
-          </div>
-          <div className="w-full md:w-auto pt-4 md:pt-0">
-            <button
-              onClick={createPersonal}
-              className="w-full md:w-52 bg-success text-sm font-light text-white rounded-md py-2.5 px-4 hover:bg-success/80 transition ease-in-out duration-300 flex items-center gap-2 justify-between"
-            >
-              เพิ่มบุคลากร
-              <Plus className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-        <div className="border rounded-md dark:border-zinc-600 transition-all duration-300 ease-in-out">
-          <div className="overflow-x-auto">
-            <table className="w-full overflow-x-auto md:table-auto">
-              <thead className="bg-gray-100 dark:bg-zinc-800 transition-all duration-300 ease-in-out">
-                <tr>
-                  <td className="p-4 text-sm text-gray-600 text-center py-4 dark:text-gray-300 text-nowrap border border-gray-300 dark:border-zinc-600 border-opacity-40">
-                    #
-                  </td>
-                  <td className="p-4 text-sm text-gray-600 text-center py-4 dark:text-gray-300 text-nowrap border border-gray-300 dark:border-zinc-600 border-opacity-40">
-                    รูปภาพ
-                  </td>
-                  <td className="p-4 text-sm text-gray-600 text-center py-4 dark:text-gray-300 text-nowrap border border-gray-300 dark:border-zinc-600 border-opacity-40">
-                    ชื่อ
-                  </td>
-                  <td className="p-4 text-sm text-gray-600 text-center py-4 dark:text-gray-300 text-nowrap border border-gray-300 dark:border-zinc-600 border-opacity-40">
-                    ตำแหน่งวิชาการ
-                  </td>
-                  <td className="p-4 text-sm text-gray-600 text-center py-4 dark:text-gray-300 text-nowrap border border-gray-300 dark:border-zinc-600 border-opacity-40">
-                    ตำแหน่งบริหาร
-                  </td>
-                  <td className="p-4 text-sm text-gray-600 text-center py-4 dark:text-gray-300 text-nowrap border border-gray-300 dark:border-zinc-600 border-opacity-40">
-                    เลขประจำตำแหน่ง
-                  </td>
-                  <td className="p-4 text-sm text-gray-600 text-center py-4 dark:text-gray-300 text-nowrap border border-gray-300 dark:border-zinc-600 border-opacity-40">
-                    จัดการ
-                  </td>
-                </tr>
-              </thead>
-              <tbody className="bg-white dark:bg-zinc-900 divide-y divide-gray-200 dark:divide-zinc-600 transition-all duration-300 ease-in-out">
-                <tr>
-                  <td colSpan={7} className="p-4 text-center text-md font-light text-gray-500 dark:text-gray-400">
-                    ไม่พบข้อมูลผู้ถูกประเมิน
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // Handling Page Change
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page)
-  }
-
-  // Filter personals based on selected values
-  const filteredPersonals = personals.filter((personal) => {
-    const fullName = `${personal.prefix_name}${personal.u_fname} ${personal.u_lname}`.toLowerCase()
-    return (
-      fullName.includes(searchName.toLowerCase()) &&
-      (selectedPosition ? personal.position_name === selectedPosition : true) &&
-      (selectedBranch ? personal.branch_name === selectedBranch : true) &&
-      (selectedCourse ? personal.course_name === selectedCourse : true) &&
-      (selectedLevel ? personal.level_name === selectedLevel : true)
-    )
+  const [loading, setLoading] = useState<boolean>(false)
+  const [order, setOrder] = useState<Order>('asc')
+  const [orderBy, setOrderBy] = useState<string>('')
+  const [page, setPage] = useState<number>(0)
+  const [rowsPerPage, setRowsPerPage] = useState<number>(10)
+  const [total, setTotal] = useState<number>(0)
+  const [data, setData] = useState<Personal[]>([])
+  const [params, setParams] = useState<UserSearchParams>({
+    search: '',
+    page: 1,
+    limit: 10,
+    sort: '',
+    order: '',
+  })
+  const [searchInput, setSearchInput] = useState<string>('')
+  const [selectedPosition, setSelectedPosition] = useState<string>('')
+  const [selectedBranch, setSelectedBranch] = useState<string>('')
+  const [selectedCourse, setSelectedCourse] = useState<string>('')
+  const [selectedLevel, setSelectedLevel] = useState<string>('')
+  const [selectedUserId, setSelectedUserId] = useState<number>(0)
+  const [selectedUserName, setSelectedUserName] = useState<string>('')
+  const [selectedUserData, setSelectedUserData] = useState<Personal | null>(null)
+  const [sortState, setSortState] = useState<SortState>({
+    column: null,
+    order: null,
   })
 
-  // Pagination logic
-  const totalPages = Math.ceil(filteredPersonals.length / ITEMS_PER_PAGE)
-  const currentData = filteredPersonals.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+  // Fetching data using custom hook for dropdowns
+  const {
+    data: positions,
+    loading: positionLoading,
+    error: positionError,
+  } = useFetchData<Position[]>('/position')
+  const {
+    data: branchs,
+    loading: branchLoading,
+    error: branchError,
+  } = useFetchData<Branch[]>('/branch')
+  const {
+    data: courses,
+    loading: courseLoading,
+    error: courseError,
+  } = useFetchData<Course[]>('/course')
+  const {
+    data: levels,
+    loading: levelLoading,
+    error: levelError,
+  } = useFetchData<UserLevel[]>('/level')
 
-  // Default label for position select
-  const selectedLabel =
-    positions.find((pos) => pos.position_name === selectedPosition)?.position_name || "เลือกตำแหน่งวิชาการ"
+  // Define table columns
+  const columns: TableColumn<Personal>[] = [
+    {
+      key: 'index',
+      label: '#',
+      width: '80px',
+      align: 'center',
+      render: (_, __, index) => (
+        <span className="font-regular text-sm text-gray-600 dark:text-gray-300">
+          {page * rowsPerPage + index + 1}
+        </span>
+      ),
+    },
+    {
+      key: 'u_img',
+      label: 'รูปภาพ',
+      width: '100px',
+      align: 'center',
+      render: (value, row) => (
+        <div className="flex justify-center">
+          <img
+            src={`/images/${row?.u_img || 'default.png'}`}
+            alt="User Image"
+            className="w-10 h-10 rounded-full border-2 object-cover"
+              />
+            </div>
+      ),
+    },
+    {
+      key: 'name',
+      label: 'ชื่อ',
+      align: 'left',
+      sortable: false,
+      render: (_, row) => (
+        <span className="text-sm font-light text-gray-500 dark:text-gray-400">
+          {row?.prefix_name || ''}{row?.u_fname || ''} {row?.u_lname || ''}
+        </span>
+      ),
+    },
+    {
+      key: 'position_name',
+      label: 'ตำแหน่งวิชาการ',
+      align: 'left',
+      sortable: false,
+      render: (value) => (
+        <span className={`inline-block rounded-md ${positionStyles[value as string] || 'bg-gray-600 text-white'} px-2 py-0.5 text-sm font-light`}>
+          {value || '-'}
+        </span>
+      ),
+    },
+    {
+      key: 'ex_position_name',
+      label: 'ตำแหน่งบริหาร',
+      align: 'left',
+      sortable: false,
+      render: (value) => (
+        <span className="text-sm font-light text-gray-500 dark:text-gray-400">
+          {value || '-'}
+        </span>
+      ),
+    },
+    {
+      key: 'u_id_card',
+      label: 'เลขประจำตัวประชาชน',
+      align: 'center',
+      sortable: false,
+      render: (value) => (
+        <span className="text-sm font-light text-gray-500 dark:text-gray-400">
+          {value || '-'}
+        </span>
+      ),
+    },
+    {
+      key: 'u_email',
+      label: 'อีเมล',
+      align: 'left',
+      sortable: false,
+      render: (value) => (
+        <span className="text-sm font-light text-gray-500 dark:text-gray-400">
+          {value || '-'}
+        </span>
+      ),
+    },
+    {
+      key: 'u_tel',
+      label: 'เบอร์ติดต่อ',
+      align: 'center',
+      sortable: false,
+      render: (value) => (
+        <span className="text-sm font-light text-gray-500 dark:text-gray-400">
+          {value || '-'}
+        </span>
+      ),
+    },
+    {
+      key: 'age',
+      label: 'อายุ',
+      align: 'center',
+      sortable: false,
+      render: (value) => (
+        <span className="text-sm font-light text-gray-500 dark:text-gray-400">
+          {value || '-'}
+        </span>
+      ),
+    },
+    {
+      key: 'gender',
+      label: 'เพศ',
+      align: 'left',
+      sortable: false,
+      render: (value) => (
+        <span className="text-sm font-light text-gray-500 dark:text-gray-400">
+          {value || '-'}
+        </span>
+      ),
+    },
+    {
+      key: 'salary',
+      label: 'เงินเดือน',
+      align: 'center',
+      sortable: false,
+      render: (value) => (
+        <span className="text-sm font-light text-gray-500 dark:text-gray-400">
+          {value || '-'}
+        </span>
+      ),
+    },
+    {
+      key: 'branch_name',
+      label: 'สาขา',
+      align: 'left',
+      sortable: false,
+      render: (value) => (
+        <span className="text-sm font-light text-gray-500 dark:text-gray-400">
+          {value || '-'}
+        </span>
+      ),
+    },
+    {
+      key: 'course_name',
+      label: 'หลักสูตร',
+      align: 'left',
+      sortable: false,
+      render: (value) => (
+        <span className="text-sm font-light text-gray-500 dark:text-gray-400">
+          {value || '-'}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      label: 'จัดการ',
+      width: '120px',
+      align: 'center',
+      render: (_, row, index) => (
+        <div className="w-full flex justify-center gap-2 p-0">
+            <button
+            type="button"
+            className="cursor-pointer rounded-md p-1 text-yellow-500 transition duration-300 ease-in-out hover:bg-yellow-500 hover:text-white"
+            onClick={() => {
+              setSelectedUserId(row.u_id)
+              setSelectedUserName(`${row.prefix_name}${row.u_fname} ${row.u_lname}`)
+              setSelectedUserData(row)
+              // Trigger modal
+              const modal = document.getElementById(
+                `modal-edit${row.u_id}`
+              ) as HTMLInputElement
+              if (modal) modal.checked = true
+            }}
+          >
+            <Edit2 className="h-4 w-4" />
+            </button>
+            <button
+            type="button"
+            className="cursor-pointer rounded-md p-1 text-red-500 transition duration-300 ease-in-out hover:bg-red-500 hover:text-white"
+            onClick={() => {
+              setSelectedUserId(row.u_id)
+              setSelectedUserName(`${row.prefix_name}${row.u_fname} ${row.u_lname}`)
+              // Trigger modal
+              const modal = document.getElementById(
+                `modal-delete${row.u_id}`
+              ) as HTMLInputElement
+              if (modal) modal.checked = true
+            }}
+          >
+            <Trash2 className="h-4 w-4" />
+            </button>
+        </div>
+      ),
+    },
+  ]
 
-  // Clear search input
-  const clearSearch = () => {
-    setSearchName("")
+  useEffect(() => {
+ 
+      setBreadcrumbs([
+        { text: "รายชื่อบุคลากร", path: "/admin/personal-list" },
+      ])
+   
+    const urlParams = new URLSearchParams(window.location.search)
+    const searchFromUrl = urlParams.get('search') || ''
+    const pageFromUrl = parseInt(urlParams.get('page') || '1', 10)
+    const limitFromUrl = parseInt(urlParams.get('limit') || '10', 10)
+    const sortFromUrl = urlParams.get('sort') || ''
+    const orderFromUrl = urlParams.get('order') || ''
+
+    setSearchInput(searchFromUrl)
+    setParams({
+      search: searchFromUrl,
+      page: pageFromUrl,
+      limit: limitFromUrl,
+      sort: sortFromUrl,
+      order: orderFromUrl,
+    })
+    if (sortFromUrl && orderFromUrl) {
+      setOrderBy(sortFromUrl)
+      setOrder(orderFromUrl as Order)
+    }
+  }, [])
+
+  const updateUrlParams = (params: {
+    search?: string
+    page?: number
+    limit?: number
+    sort?: string
+    order?: string
+  }) => {
+    const searchParams = new URLSearchParams()
+    if (params.search) searchParams.set('search', params.search)
+    if (params.page) searchParams.set('page', params.page.toString())
+    if (params.limit) searchParams.set('limit', params.limit.toString())
+    if (params.sort) {
+      searchParams.set('sort', params.sort)
+    }
+    if (params.order) {
+      searchParams.set('order', params.order)
+    }
+    window.history.replaceState({}, '', `?${searchParams.toString()}`)
   }
 
-  // Select handlers
+  const getUsers = async (
+    search: string,
+    limit: number | undefined,
+    page: number | undefined,
+    sort: string,
+    order: string,
+    position_name: string,
+    branch_name: string,
+    course_name: string,
+    afterSuccess?: () => void
+  ) => {
+    setLoading(true)
+    setData([])
+    try {
+      if (!session?.accessToken) {
+        throw new Error('No access token')
+      }
+
+      const response = await UserServices.getAllUsers(
+        session.accessToken,
+        {
+          search,
+          page: page ?? 1,
+          limit: limit ?? 10,
+          sort,
+          order,
+          position_name,
+          branch_name,
+          course_name,
+        }
+      )
+
+
+      if (response && response.status) {
+        const responseMeta = response.meta
+        if (responseMeta) {
+          setTotal(responseMeta.total_rows)
+          setPage(responseMeta.page - 1)
+          setRowsPerPage(responseMeta.limit)
+        }
+        setData(response.payload || [])
+      } else {
+        setData([])
+        setTotal(0)
+        setPage(0)
+      }
+      if (afterSuccess) {
+        afterSuccess()
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error)
+      setData([])
+      setTotal(0)
+      setPage(0)
+    } finally {
+      setLoading(false)
+      updateUrlParams({
+        search,
+        page,
+        limit,
+        sort,
+        order,
+      })
+    }
+  }
+
+  // Auto search with debounce
+  useEffect(() => {
+    const delayDebounce = setTimeout(() => {
+      setParams((prev) => ({
+        ...prev,
+        search: searchInput.trim(),
+        page: 1,
+      }))
+    }, 500)
+    return () => clearTimeout(delayDebounce)
+  }, [searchInput])
+
+  useEffect(() => {
+    if (session?.accessToken) {
+      getUsers(
+        params.search || '',
+        params.limit,
+        params.page,
+        params.sort || '',
+        params.order || '',
+        selectedPosition,
+        selectedBranch,
+        selectedCourse,
+      )
+    } else {
+      console.log('No access token found')
+    }
+  }, [
+    params.search,
+    params.page,
+    params.limit,
+    params.sort,
+    params.order,
+    selectedPosition,
+    selectedBranch,
+    selectedCourse,
+    session?.accessToken,
+  ])
+
+  const clearSearch = () => {
+    setSearchInput('')
+  }
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage)
+    setParams((prev) => ({
+      ...prev,
+      page: newPage + 1,
+    }))
+  }
+
+  const handleSort = (column: string, order: SortOrder) => {
+    setSortState({ column, order })
+    setParams((prev) => ({
+      ...prev,
+      sort: order ? column : '',
+      order: order || '',
+      page: 1, // Reset to first page when sorting
+    }))
+    setPage(0) // Reset page to 0 (display page 1)
+  }
+
+  const handleRowsPerPageChange = (newRowsPerPage: number) => {
+    setRowsPerPage(newRowsPerPage)
+    setParams((prev) => ({
+      ...prev,
+      limit: newRowsPerPage,
+      page: 1, // Reset to first page when changing rows per page
+    }))
+    setPage(0) // Reset page to 0 (display page 1)
+  }
+
   const handlePositionSelect = (value: string) => {
     setSelectedPosition(value)
   }
@@ -214,239 +474,206 @@ export default function PersonalList() {
     setSelectedLevel(value)
   }
 
+  const createPersonal = () => {
+    router.push('/admin/personal-list/create-personal')
+  }
 
-  // Delete personal
-  const handleDeletePost = (e: React.MouseEvent, prefix: string, u_fname: string, u_lname: string, u_id: number) => {
-    const filteredPosts = personals.filter((post) => post.u_id !== u_id)
+  const handleDelete = async (
+    e: React.FormEvent<HTMLFormElement> | React.MouseEvent,
+    userId: number,
+    userName: string
+  ) => {
     e.preventDefault()
-    setIsLoading(true)
-    setTimeout(() => {
-      setIsLoading(false)
-      setPersonals(filteredPosts)
-      setCurrentPage(1)
+    setLoading(true)
+    try {
+      if (!session?.accessToken) throw new Error('No access token')
+      await UserServices.deleteUser(userId, session.accessToken)
+
+      getUsers(
+        params.search || '',
+        params.limit,
+        params.page,
+        params.sort || '',
+        params.order || '',
+        selectedPosition,
+        selectedBranch,
+        selectedCourse,
+      )
+
       Swal.fire({
-        icon: "success",
-        title: "ลบสำเร็จ!",
-        text: `ลบบุคคล ${u_fname} ${u_lname} สำเร็จ!`,
+        icon: 'success',
+        title: 'ลบสำเร็จ!',
+        text: `ลบบุคลากร ${userName} สำเร็จ!`,
         showConfirmButton: false,
         timer: 1500,
       })
-    }, 1000)
+    } catch (error) {
+      console.error('Error deleting user:', error)
+      setLoading(false)
+
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด!',
+        text: 'เกิดข้อผิดพลาดในการลบบุคลากร',
+        showConfirmButton: false,
+        timer: 1500,
+      })
+    }
   }
 
+  const handleEdit = async (
+    e: React.FormEvent<HTMLFormElement> | React.MouseEvent,
+    userId: number,
+    userData: Partial<Personal>
+  ) => {
+    e.preventDefault()
+    setLoading(true)
+    try {
+      if (!session?.accessToken) throw new Error('No access token')
+      const response = await UserServices.updateUser(
+        userId,
+        userData as any,
+        session.accessToken
+      )
+
+      if (response && (response as any).status === true) {
+        getUsers(
+          params.search || '',
+          params.limit,
+          params.page,
+          params.sort || '',
+          params.order || '',
+          selectedPosition,
+          selectedBranch,
+          selectedCourse,
+        )
+
+        Swal.fire({
+          icon: 'success',
+          title: 'แก้ไขสำเร็จ!',
+          text: `แก้ไขข้อมูลบุคลากรสำเร็จ!`,
+          showConfirmButton: false,
+          timer: 1500,
+        })
+      } else {
+        throw new Error('ไม่สามารถแก้ไขข้อมูลได้')
+      }
+    } catch (error) {
+      console.error('Error updating user:', error)
+      setLoading(false)
+
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด!',
+        text: 'เกิดข้อผิดพลาดในการแก้ไขข้อมูล',
+        showConfirmButton: false,
+        timer: 1500,
+      })
+    }
+  }
+
+  const totalPages = Math.ceil(total / rowsPerPage)
+
+  // Default labels for selects
+  const selectedPositionLabel = positions?.find((pos) => pos.position_name === selectedPosition)?.position_name || 'เลือกตำแหน่งวิชาการ'
+  const selectedBranchLabel = branchs?.find((branch) => branch.branch_name === selectedBranch)?.branch_name || 'เลือกสาขา'
+  const selectedCourseLabel = courses?.find((course) => course.course_name === selectedCourse)?.course_name || 'เลือกหลักสูตร'
+
   return (
-    <div className="bg-white p-4 rounded-md shadow dark:bg-zinc-900 dark:text-gray-400 transition-all duration-300 ease-in-out ">
-      <div className="py-4 md:flex">
-        <div className="flex flex-wrap gap-4 w-full md:w-full">
-          <div className="relative flex items-center w-full md:w-52">
-            <input
-              className="w-full px-4 py-2 font-light rounded-md text-sm border-2 border-gray-300 dark:border-zinc-600 text-gray-600 dark:bg-zinc-800 dark:text-gray-400 focus:outline-none focus:border-blue-500 focus:border-blue-500 transition-colors transition-all duration-300 ease-in-out"
-              placeholder="ค้นหาด้วยชื่อบุคคล"
-              value={searchName}
-              onChange={(e) => setSearchName(e.target.value)}
-            />
-            {searchName && (
-              <button
-                onClick={clearSearch}
-                className="absolute right-3 text-gray-400 hover:text-red-500 transition duration-200"
-              >
-                <FiX className="w-4 h-4" />
-              </button>
-            )}
+    <div className="rounded-md bg-white p-4 shadow transition-all duration-300 ease-in-out dark:bg-zinc-900 dark:text-gray-400">
+      <div className="mb-4 flex flex-wrap justify-between items-end gap-4">
+        {/* Total count */}
+        {loading ? (
+          <div className="skeleton h-7 w-16 rounded-md"></div>
+        ) : (
+          <div className="w-auto rounded-md bg-gray-200 px-2 py-1 text-sm font-normal text-business1 dark:text-gray-400">
+            {total} รายการ
           </div>
-          <SearchFilter<Position, "position_name">
-            selectedLabel={selectedLabel}
+        )}
+        
+       <div className="flex flex-wrap gap-4 items-center justify-end">
+         {/* Filters */}
+          <SearchFilter<Position, 'position_name'>
+          selectedLabel={selectedPositionLabel}
             handleSelect={handlePositionSelect}
-            objects={positions}
+          objects={positions || []}
             valueKey="position_name"
             labelKey="position_name"
             placeholder="ค้นหาตำแหน่ง"
           />
-          <SearchFilter<Branch, "branch_name">
-            selectedLabel={selectedBranch}
-            handleSelect={handleBranchSelect}
-            objects={branchs}
-            valueKey="branch_name"
-            labelKey="branch_name"
-            placeholder="ค้นหาสาขา"
-          />
-          <SearchFilter<Course, "course_name">
-            selectedLabel={selectedCourse}
+          <SearchFilter<Course, 'course_name'>
+          selectedLabel={selectedCourseLabel}
             handleSelect={handleCourseSelect}
-            objects={courses}
+          objects={courses || []}
             valueKey="course_name"
             labelKey="course_name"
             placeholder="ค้นหาหลักสูตร"
           />
-          <SearchFilter<UserLevel, "level_name">
-            selectedLabel={selectedLevel}
-            handleSelect={handleLevelSelect}
-            objects={levels}
-            valueKey="level_name"
-            labelKey="level_name"
-            placeholder="ค้นหาระดับผู้ใช้งาน"
+        
+        <div className="relative flex w-full items-center sm:w-52">
+          <input
+            className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
+            placeholder="ค้นหาชื่อ, สาขา, หลักสูตร, เลขบัตร, อีเมล"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
           />
+          {searchInput && (
+            <button
+              onClick={clearSearch}
+              className="absolute right-3 text-gray-400 transition duration-200 hover:text-red-500"
+            >
+              <FiX className="h-4 w-4" />
+            </button>
+          )}
         </div>
-        <div className="w-full md:w-auto pt-4 md:pt-0">
+        
+        {/* Add button */}
           <button
             onClick={createPersonal}
-            className="w-full md:w-52 bg-success text-sm font-light text-white rounded-md py-2.5 px-4 hover:bg-success/80 transition ease-in-out duration-300 flex items-center gap-2 justify-between"
+          className="flex w-full items-center justify-between gap-2 rounded-md bg-success px-4 py-2.5 text-sm font-light text-white transition duration-300 ease-in-out hover:bg-success/80 sm:w-52"
           >
             เพิ่มบุคลากร
-            <Plus className="w-4 h-4" />
+            <Plus className="h-4 w-4" />
           </button>
         </div>
       </div>
-      <div className="border rounded-md dark:border-zinc-600 transition-all duration-300 ease-in-out">
-        <div className="">
-          {isLoading && (
-            <div className="absolute inset-0 bg-gray-100 bg-opacity-80 flex items-center justify-center z-50">
-              <Loader className="animate-spin text-gray-600 w-12 h-12" />
-            </div>
-          )}
-          <div className="overflow-x-auto">
-            <table className="w-full overflow-x-auto md:table-auto ">
-              <thead className="bg-gray-100 dark:bg-zinc-800 transition-all duration-300 ease-in-out">
-                <tr>
-                  <td className="p-4 text-sm text-gray-600 text-center py-4 dark:text-gray-300 text-nowrap border border-gray-300 dark:border-zinc-600 border-opacity-40">
-                    #
-                  </td>
-                  <td className="p-4 text-sm text-gray-600 text-center py-4 dark:text-gray-300 text-nowrap border border-gray-300 dark:border-zinc-600 border-opacity-40">
-                    รูปภาพ
-                  </td>
-                  <td className="p-4 text-sm text-gray-600 text-center py-4 dark:text-gray-300 text-nowrap border border-gray-300 dark:border-zinc-600 border-opacity-40">
-                    ชื่อ
-                  </td>
-                  <td className="p-4 text-sm text-gray-600 text-center py-4 dark:text-gray-300 text-nowrap border border-gray-300 dark:border-zinc-600 border-opacity-40">
-                    ตำแหน่งวิชาการ
-                  </td>
-                  <td className="p-4 text-sm text-gray-600 text-center py-4 dark:text-gray-300 text-nowrap border border-gray-300 dark:border-zinc-600 border-opacity-40">
-                    ตำแหน่งบริหาร
-                  </td>
-                  <td className="p-4 text-sm text-gray-600 text-center py-4 dark:text-gray-300 text-nowrap border border-gray-300 dark:border-zinc-600 border-opacity-40">
-                    เลขประจำตำแหน่ง
-                  </td>
-                  <td className="p-4 text-sm text-gray-600 text-center py-4 dark:text-gray-300 text-nowrap border border-gray-300 dark:border-zinc-600 border-opacity-40">
-                    อีเมล
-                  </td>
-                  <td className="p-4 text-sm text-gray-600 text-center py-4 dark:text-gray-300 text-nowrap border border-gray-300 dark:border-zinc-600 border-opacity-40">
-                    เบอร์ติดต่อ
-                  </td>
-                  <td className="p-4 text-sm text-gray-600 text-center py-4 dark:text-gray-300 text-nowrap border border-gray-300 dark:border-zinc-600 border-opacity-40">
-                    อายุ
-                  </td>
-                  <td className="p-4 text-sm text-gray-600 text-center py-4 dark:text-gray-300 text-nowrap border border-gray-300 dark:border-zinc-600 border-opacity-40">
-                    เพศ
-                  </td>
-                  <td className="p-4 text-sm text-gray-600 text-center py-4 dark:text-gray-300 text-nowrap border border-gray-300 dark:border-zinc-600 border-opacity-40">
-                    เงินเดือน
-                  </td>
-                  <td className="p-4 text-sm text-gray-600 text-center py-4 dark:text-gray-300 text-nowrap border border-gray-300 dark:border-zinc-600 border-opacity-40">
-                    สาขา
-                  </td>
-                  <td className="p-4 text-sm text-gray-600 text-center py-4 dark:text-gray-300 text-nowrap border border-gray-300 dark:border-zinc-600 border-opacity-40">
-                    หลักสูตร
-                  </td>
-                  <td className="p-4 text-sm text-gray-600 text-center py-4 dark:text-gray-300 text-nowrap sticky right-0 bg-gray-100 dark:bg-zinc-800 transition-all duration-300 ease-in-out border border-gray-300 dark:border-zinc-600 border-opacity-40">
-                    จัดการ
-                  </td>
-                </tr>
-              </thead>
-              <tbody className="bg-white dark:bg-zinc-900 divide-y divide-gray-200 dark:divide-zinc-600 transition-all duration-300 ease-in-out ">
-                {currentData.length > 0 ? (
-                  currentData.map((item, index) => (
-                    <tr key={index} className="hover:bg-gray-50 dark:hover:bg-zinc-800">
-                      <td className="p-4 whitespace-nowrap text-center text-md font-regular text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-zinc-600 border-opacity-40">
-                        {index + 1 + (currentPage - 1) * ITEMS_PER_PAGE}
-                      </td>
-                      <td>
-                        <div className="flex justify-center">
-                          <Image
-                            src={`/images/${item?.u_img || "default.png"}`}
-                            alt="User Image"
-                            width={40}
-                            height={40}
-                            className="rounded-full object-cover border-2"
-                            style={{ width: "40px", height: "40px", objectFit: "cover", borderRadius: "50%" }}
-                          />
-                        </div>
-                      </td>
-                      <td className="p-4 whitespace-nowrap text-start text-md font-light text-gray-500 dark:text-gray-400 border border-gray-300 dark:border-zinc-600 border-opacity-40">
-                        {item?.prefix_name || "-"}
-                        {item?.u_fname || "-"} {item?.u_lname || "-"}
-                      </td>
-                      <td className="p-4 whitespace-nowrap text-start text-md font-light text-gray-500 dark:text-gray-400 border border-gray-300 dark:border-zinc-600 border-opacity-40">
-                        <p
-                          className={`inline-block rounded-md ${positionStyles[item.position_name] || "text-white bg-gray-600"} px-2 py-0.5 font-light text-sm`}
-                        >
-                          {item?.position_name || "-"}
-                        </p>
-                      </td>
 
-                      <td className="p-4 whitespace-nowrap text-start text-md font-light text-gray-500 dark:text-gray-400 border border-gray-300 dark:border-zinc-600 border-opacity-40">
-                        {item?.ex_position_name || "-"}
-                      </td>
-                      <td className="p-4 whitespace-nowrap text-center text-md font-light text-gray-500 dark:text-gray-400 border border-gray-300 dark:border-zinc-600 border-opacity-40">
-                        {item?.u_id_card || "-"}
-                      </td>
-                      <td className="p-4 whitespace-nowrap text-start text-md font-light text-gray-500 dark:text-gray-400 border border-gray-300 dark:border-zinc-600 border-opacity-40">
-                        {item?.u_email || "-"}
-                      </td>
-                      <td className="p-4 whitespace-nowrap text-center text-md font-light text-gray-500 dark:text-gray-400 border border-gray-300 dark:border-zinc-600 border-opacity-40">
-                        {item?.u_tel || "-"}
-                      </td>
-                      <td className="p-4 whitespace-nowrap text-center text-md font-light text-gray-500 dark:text-gray-400 border border-gray-300 dark:border-zinc-600 border-opacity-40">
-                        {item?.age || "-"}
-                      </td>
-                      <td className="p-4 whitespace-nowrap text-start text-md font-light text-gray-500 dark:text-gray-400 border border-gray-300 dark:border-zinc-600 border-opacity-40">
-                        {item?.gender || "-"}
-                      </td>
-                      <td className="p-4 whitespace-nowrap text-center text-md font-light text-gray-500 dark:text-gray-400 border border-gray-300 dark:border-zinc-600 border-opacity-40">
-                        {item?.salary || "-"}
-                      </td>
-                      <td className="p-4 whitespace-nowrap text-start text-md font-light text-gray-500 dark:text-gray-400 border border-gray-300 dark:border-zinc-600 border-opacity-40">
-                        {item?.branch_name || "-"}
-                      </td>
-                      <td className="p-4 whitespace-nowrap text-start text-md font-light text-gray-500 dark:text-gray-400 border border-gray-300 dark:border-zinc-600 border-opacity-40">
-                        {item?.course_name || "-"}
-                      </td>
-                      <td className="p-4 whitespace-nowrap text-center text-md font-light flex justify-center gap-2 sticky right-0 bg-white dark:bg-zinc-900 transition-all duration-300 ease-in-out">
-                        <button className="text-yellow-500 border-none border-yellow-500 rounded-md p-1 hover:bg-yellow-500 hover:text-white transition ease-in-out duration-300">
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <label
-                          htmlFor={`modal-delete${item.u_id}`}
-                          className="text-red-500 border-none border-red-500 rounded-md p-1 hover:bg-red-500 hover:text-white transition ease-in-out duration-300 cursor-pointer"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </label>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={14} className="p-4 text-center text-md font-light text-gray-500 dark:text-gray-400">
-                      ไม่พบข้อมูลผู้ถูกประเมิน
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="px-4">
-          <Pagination
-            ITEMS_PER_PAGE={ITEMS_PER_PAGE}
-            data={filteredPersonals}
-            currentData={currentData}
-            currentPage={currentPage}
+      <Table
+        data={data}
+        columns={columns}
+        loading={loading}
+        total={total}
+        currentPage={page + 1}
             totalPages={totalPages}
-            onPageChange={handlePageChange}
-          />
-        </div>
-      </div>
-      <DeleteModal currentData={currentData} handleDeletePost={handleDeletePost} isLoading={isLoading} />
+        rowsPerPage={rowsPerPage}
+        onPageChange={(newPage) => handlePageChange(newPage - 1)}
+        onRowsPerPageChange={handleRowsPerPageChange}
+        emptyMessage={'ไม่พบข้อมูลบุคลากร'}
+        skeletonRows={rowsPerPage}
+        stickyColumns={1}
+        sortable={true}
+        sortState={sortState}
+        onSort={handleSort}
+        rowsPerPageOptions={[10, 20, 50, 100, 200]}
+      />
+
+      <DeleteModal
+        currentData={data}
+        handleDeletePost={(e, prefix, fname, lname, id) => handleDelete(e, id, `${prefix}${fname} ${lname}`)}
+        isLoading={loading}
+      />
+      <UpdatePersonalModal
+        currentData={data}
+        handleUpdatePost={(e, prefix, fname, lname, id) => {
+          const userData = data.find(user => user.u_id === id)
+          if (userData) {
+            handleEdit(e, id, userData)
+          }
+        }}
+        isLoading={loading}
+      />
     </div>
   )
 }
+
+export default PersonalListTable

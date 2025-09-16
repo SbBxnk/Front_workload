@@ -1,9 +1,9 @@
-"use client"
+'use client'
 
-import type React from "react"
-import { useState, useEffect } from "react"
-import { useDropzone } from "react-dropzone"
-import { X, Link, Upload, CalendarClock, Plus } from "lucide-react"
+import type React from 'react'
+import { useState, useEffect } from 'react'
+import { useDropzone } from 'react-dropzone'
+import { X, Link, Upload, CalendarClock, Plus } from 'lucide-react'
 
 interface CreateModalProps {
   onSubmit: (
@@ -11,99 +11,110 @@ interface CreateModalProps {
     uploadedFiles: File[],
     links?: { link_path: string; link_name: string }[],
     fileInSystem?: string,
-    fileName?: string,
+    fileName?: string
   ) => void
 }
 
 export default function CreateModal({ onSubmit }: CreateModalProps) {
-  const [evidenceType, setEvidenceType] = useState<"link" | "external file" | "file in system">("link")
+  const [evidenceType, setEvidenceType] = useState<
+    'link' | 'external file' | 'file in system'
+  >('link')
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
   // เริ่มต้นด้วยลิงก์เปล่า 3 ลิงก์
-  const [links, setLinks] = useState<{ link_path: string; link_name: string }[]>([
-    { link_path: "", link_name: "" },
-    { link_path: "", link_name: "" },
-    { link_path: "", link_name: "" },
+  const [links, setLinks] = useState<
+    { link_path: string; link_name: string }[]
+  >([
+    { link_path: '', link_name: '' },
+    { link_path: '', link_name: '' },
+    { link_path: '', link_name: '' },
   ])
-  const [fileInSystem, setFileInSystem] = useState<string>("")
-  const [fileName, setFileName] = useState<string>("")
+  const [fileInSystem, setFileInSystem] = useState<string>('')
+  const [fileName, setFileName] = useState<string>('')
 
   // เพิ่ม useEffect เพื่อรีเซ็ตลิงก์เมื่อปิด modal
   useEffect(() => {
-    const modalCheckbox = document.getElementById("modal-forminfo") as HTMLInputElement
+    const modalCheckbox = document.getElementById(
+      'modal-forminfo'
+    ) as HTMLInputElement
 
     const handleModalChange = () => {
       if (modalCheckbox && !modalCheckbox.checked) {
         // เมื่อ modal ถูกปิด ให้รีเซ็ตลิงก์เป็น 3 ลิงก์เปล่า
         setTimeout(() => {
           setLinks([
-            { link_path: "", link_name: "" },
-            { link_path: "", link_name: "" },
-            { link_path: "", link_name: "" },
+            { link_path: '', link_name: '' },
+            { link_path: '', link_name: '' },
+            { link_path: '', link_name: '' },
           ])
         }, 300) // รอให้ animation ของ modal จบก่อน
       }
     }
 
     if (modalCheckbox) {
-      modalCheckbox.addEventListener("change", handleModalChange)
+      modalCheckbox.addEventListener('change', handleModalChange)
       return () => {
-        modalCheckbox.removeEventListener("change", handleModalChange)
+        modalCheckbox.removeEventListener('change', handleModalChange)
       }
     }
   }, [])
 
-const { getRootProps, getInputProps, isDragActive } = useDropzone({
-  onDrop: (acceptedFiles) => {
-    setUploadedFiles((prevFiles) => [...prevFiles, ...acceptedFiles])
-  },
-  multiple: true,
-  accept: {
-    "application/pdf": [".pdf"],
-    "application/msword": [".doc"],
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
-    "application/vnd.ms-excel": [".xls"],
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
-    "text/plain": [".txt"],
-    "image/jpeg": [".jpg", ".jpeg"],
-    "image/png": [".png"],
-    "image/gif": [".gif"],
-    "image/bmp": [".bmp"],
-    "image/webp": [".webp"],
-  },
-})
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop: (acceptedFiles) => {
+      setUploadedFiles((prevFiles) => [...prevFiles, ...acceptedFiles])
+    },
+    multiple: true,
+    accept: {
+      'application/pdf': ['.pdf'],
+      'application/msword': ['.doc'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+        ['.docx'],
+      'application/vnd.ms-excel': ['.xls'],
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': [
+        '.xlsx',
+      ],
+      'text/plain': ['.txt'],
+      'image/jpeg': ['.jpg', '.jpeg'],
+      'image/png': ['.png'],
+      'image/gif': ['.gif'],
+      'image/bmp': ['.bmp'],
+      'image/webp': ['.webp'],
+    },
+  })
 
   const handleRemoveFile = (fileToRemove: File) => {
-    setUploadedFiles((prevFiles) => prevFiles.filter((file) => file !== fileToRemove))
+    setUploadedFiles((prevFiles) =>
+      prevFiles.filter((file) => file !== fileToRemove)
+    )
   }
 
   const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
     // กรองลิงก์ที่ว่างออกก่อนส่งข้อมูล
-    const nonEmptyLinks = links.filter((link) => link.link_path.trim() !== "")
+    const nonEmptyLinks = links.filter((link) => link.link_path.trim() !== '')
 
     onSubmit(
       event,
       uploadedFiles,
-      evidenceType === "link" ? nonEmptyLinks : undefined,
-      evidenceType === "file in system" ? fileInSystem : undefined,
-      evidenceType === "file in system" ? fileName : undefined,
+      evidenceType === 'link' ? nonEmptyLinks : undefined,
+      evidenceType === 'file in system' ? fileInSystem : undefined,
+      evidenceType === 'file in system' ? fileName : undefined
     )
 
     setUploadedFiles([])
     // รีเซ็ตลิงก์เป็น 3 ลิงก์เปล่า
     setLinks([
-      { link_path: "", link_name: "" },
-      { link_path: "", link_name: "" },
-      { link_path: "", link_name: "" },
+      { link_path: '', link_name: '' },
+      { link_path: '', link_name: '' },
+      { link_path: '', link_name: '' },
     ])
-    setFileInSystem("")
-    setEvidenceType("link")
+    setFileInSystem('')
+    setEvidenceType('link')
     event.currentTarget.reset()
   }
 
   const handleAddLink = () => {
-    setLinks([...links, { link_path: "", link_name: "" }])
+    setLinks([...links, { link_path: '', link_name: '' }])
   }
 
   const handleRemoveLink = (index: number) => {
@@ -111,26 +122,32 @@ const { getRootProps, getInputProps, isDragActive } = useDropzone({
     setLinks(links.filter((_, i) => i !== index))
   }
 
-  const handleLinkChange = (index: number, field: "link_path" | "link_name", value: string) => {
+  const handleLinkChange = (
+    index: number,
+    field: 'link_path' | 'link_name',
+    value: string
+  ) => {
     const newLinks = [...links]
     newLinks[index][field] = value
     setLinks(newLinks)
   }
 
-  const handleEvidenceTypeChange = (type: "link" | "external file" | "file in system") => {
+  const handleEvidenceTypeChange = (
+    type: 'link' | 'external file' | 'file in system'
+  ) => {
     setEvidenceType(type)
     setUploadedFiles([])
 
     // ถ้าเปลี่ยนกลับมาเป็นประเภทลิงก์ ให้รีเซ็ตลิงก์เป็น 3 ลิงก์เปล่า
-    if (type === "link") {
+    if (type === 'link') {
       setLinks([
-        { link_path: "", link_name: "" },
-        { link_path: "", link_name: "" },
-        { link_path: "", link_name: "" },
+        { link_path: '', link_name: '' },
+        { link_path: '', link_name: '' },
+        { link_path: '', link_name: '' },
       ])
     }
 
-    setFileInSystem("")
+    setFileInSystem('')
   }
 
   return (
@@ -139,113 +156,129 @@ const { getRootProps, getInputProps, isDragActive } = useDropzone({
         <input type="checkbox" id={`modal-forminfo`} className="modal-toggle" />
         <div className="modal" role={`modal-forminfo`}>
           <div className="modal-box rounded-md dark:bg-zinc-800">
-            <div className="flex items-center mb-4">
-              <CalendarClock className="text-blue-500 dark:text-blue-400 mr-2 w-7 h-7" />
-              <h3 className="text-xl font-medium text-gray-700 dark:text-gray-300 truncate">เพิ่มรายละเอียดภาระงาน</h3>
+            <div className="mb-4 flex items-center">
+              <CalendarClock className="mr-2 h-7 w-7 text-blue-500 dark:text-blue-400" />
+              <h3 className="truncate text-xl font-medium text-gray-700 dark:text-gray-300">
+                เพิ่มรายละเอียดภาระงาน
+              </h3>
             </div>
             <form onSubmit={handleFormSubmit}>
-              <div className="overflow-y-auto max-h-[calc(70vh-150px)] no-scrollbar pb-2">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="no-scrollbar max-h-[calc(70vh-150px)] overflow-y-auto pb-2">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="col-span-1 md:col-span-2">
-                    <label className="block text-sm font-regular text-gray-600 dark:text-gray-400 mb-2">
+                    <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
                       ภาระงาน/กิจกรรม/โครงการ/งาน
                     </label>
                     <input
                       name="form_title"
                       type="text"
                       placeholder="ภาระงาน/กิจกรรม/โครงการ/งาน"
-                      className="w-full px-4 py-2 font-light rounded-md text-sm border-2 border-gray-300 dark:border-zinc-600 text-gray-600 dark:bg-zinc-800 dark:text-gray-400 focus:outline-none focus:border-blue-500 transition-colors transition-all duration-300 ease-in-out"
+                      className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                       required
                     />
                   </div>
 
                   <div className="col-span-1 md:col-span-2">
-                    <label className="block text-sm font-regular text-gray-600 dark:text-gray-400 mb-2">คำอธิบาย</label>
+                    <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
+                      คำอธิบาย
+                    </label>
                     <textarea
                       name="description"
                       placeholder="คำอธิบาย"
-                      className="w-full px-4 py-2 font-light rounded-md text-sm border-2 border-gray-300 dark:border-zinc-600 text-gray-600 dark:bg-zinc-800 dark:text-gray-400 focus:outline-none focus:border-blue-500 transition-colors transition-all duration-300 ease-in-out"
+                      className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                     />
                   </div>
 
                   <div className="col-span-1">
-                    <label className="block text-sm font-regular text-gray-600 dark:text-gray-400 mb-2">จำนวน</label>
+                    <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
+                      จำนวน
+                    </label>
                     <input
                       name="quality"
                       type="number"
                       placeholder="จำนวน"
-                      className="w-full px-4 py-2 font-light rounded-md text-sm border-2 border-gray-300 dark:border-zinc-600 text-gray-600 dark:bg-zinc-800 dark:text-gray-400 focus:outline-none focus:border-blue-500 transition-colors transition-all duration-300 ease-in-out"
+                      className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                       required
                     />
                   </div>
 
                   <div className="col-span-1">
-                    <label className="block text-sm font-regular text-gray-600 dark:text-gray-400 mb-2">ภาระงาน</label>
+                    <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
+                      ภาระงาน
+                    </label>
                     <input
                       name="workload"
                       type="number"
                       placeholder="ภาระงาน"
-                      className="w-full px-4 py-2 font-light rounded-md text-sm border-2 border-gray-300 dark:border-zinc-600 text-gray-600 dark:bg-zinc-800 dark:text-gray-400 focus:outline-none focus:border-blue-500 transition-colors transition-all duration-300 ease-in-out"
+                      className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                       required
                     />
                   </div>
 
                   <div className="col-span-1 md:col-span-2">
-                    <label className="block text-sm font-regular text-gray-600 dark:text-gray-400 mb-2">
+                    <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
                       ประเภทไฟล์หลักฐาน
                     </label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                       <label
-                        className={`flex items-center justify-center px-4 py-2 rounded-md border-2 cursor-pointer transition-all duration-300 ease-in-out text-sm font-light text-gray-600 dark:text-gray-400 dark:bg-zinc-800 ${evidenceType === "link"
-                            ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
-                            : "border-gray-300 dark:border-zinc-600 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30"
-                          }`}
+                        className={`flex cursor-pointer items-center justify-center rounded-md border-2 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out dark:bg-zinc-800 dark:text-gray-400 ${
+                          evidenceType === 'link'
+                            ? 'border-blue-500 bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                            : 'border-gray-300 hover:border-blue-500 hover:bg-blue-50 dark:border-zinc-600 dark:hover:bg-blue-900/30'
+                        }`}
                       >
                         <input
                           type="checkbox"
                           name="file_type"
                           value="link"
-                          checked={evidenceType === "link"}
-                          onChange={() => handleEvidenceTypeChange("link")}
+                          checked={evidenceType === 'link'}
+                          onChange={() => handleEvidenceTypeChange('link')}
                           className="hidden"
                         />
-                        <Link className="w-4 h-4 mr-2" />
+                        <Link className="mr-2 h-4 w-4" />
                         ลิ้งก์
                       </label>
                       <label
-                        className={`flex items-center justify-center px-4 py-2 rounded-md border-2 cursor-pointer transition-all duration-300 ease-in-out text-sm font-light text-gray-600 dark:text-gray-400 dark:bg-zinc-800 ${evidenceType === "external file"
-                            ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
-                            : "border-gray-300 dark:border-zinc-600 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30"
-                          }`}
+                        className={`flex cursor-pointer items-center justify-center rounded-md border-2 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out dark:bg-zinc-800 dark:text-gray-400 ${
+                          evidenceType === 'external file'
+                            ? 'border-blue-500 bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                            : 'border-gray-300 hover:border-blue-500 hover:bg-blue-50 dark:border-zinc-600 dark:hover:bg-blue-900/30'
+                        }`}
                       >
                         <input
                           type="checkbox"
                           name="file_type"
                           value="external file"
-                          checked={evidenceType === "external file"}
-                          onChange={() => handleEvidenceTypeChange("external file")}
+                          checked={evidenceType === 'external file'}
+                          onChange={() =>
+                            handleEvidenceTypeChange('external file')
+                          }
                           className="hidden"
                         />
-                        <Upload className="w-4 h-4 mr-2" />
+                        <Upload className="mr-2 h-4 w-4" />
                         อัปโหลดไฟล์จากเครื่อง
                       </label>
                     </div>
-                    <input type="hidden" name="file_type" value={evidenceType} />
+                    <input
+                      type="hidden"
+                      name="file_type"
+                      value={evidenceType}
+                    />
                   </div>
 
                   <div className="col-span-1 md:col-span-2">
-                    <label className="block text-sm font-regular text-gray-600 dark:text-gray-400 mb-2">
+                    <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
                       ไฟล์หลักฐาน
                     </label>
-                    {evidenceType === "link" && (
+                    {evidenceType === 'link' && (
                       <div className="space-y-4">
                         <div className="space-y-4">
                           {links.map((link, index) => (
                             <div
                               key={index}
-                              className="flex flex-col space-y-2 p-3 border border-gray-200 dark:border-zinc-700 rounded-md"
+                              className="flex flex-col space-y-2 rounded-md border border-gray-200 p-3 dark:border-zinc-700"
                             >
-                              <div className="flex justify-between items-center">
+                              <div className="flex items-center justify-between">
                                 <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
                                   ลิงก์ #{index + 1}
                                 </span>
@@ -254,22 +287,34 @@ const { getRootProps, getInputProps, isDragActive } = useDropzone({
                                   onClick={() => handleRemoveLink(index)}
                                   className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                                 >
-                                  <X className="w-5 h-5" />
+                                  <X className="h-5 w-5" />
                                 </button>
                               </div>
                               <input
                                 type="text"
                                 placeholder="ชื่อที่ต้องการแสดง"
                                 value={link.link_name}
-                                onChange={(e) => handleLinkChange(index, "link_name", e.target.value)}
-                                className="w-full px-4 py-2 font-light rounded-md text-sm border-2 border-gray-300 dark:border-zinc-600 text-gray-600 dark:bg-zinc-800 dark:text-gray-400 focus:outline-none focus:border-blue-500 transition-colors transition-all duration-300 ease-in-out"
+                                onChange={(e) =>
+                                  handleLinkChange(
+                                    index,
+                                    'link_name',
+                                    e.target.value
+                                  )
+                                }
+                                className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                               />
                               <input
                                 type="url"
                                 placeholder="https://example.com"
                                 value={link.link_path}
-                                onChange={(e) => handleLinkChange(index, "link_path", e.target.value)}
-                                className="w-full px-4 py-2 font-light rounded-md text-sm border-2 border-gray-300 dark:border-zinc-600 text-gray-600 dark:bg-zinc-800 dark:text-gray-400 focus:outline-none focus:border-blue-500 transition-colors transition-all duration-300 ease-in-out"
+                                onChange={(e) =>
+                                  handleLinkChange(
+                                    index,
+                                    'link_path',
+                                    e.target.value
+                                  )
+                                }
+                                className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                               />
                             </div>
                           ))}
@@ -277,46 +322,54 @@ const { getRootProps, getInputProps, isDragActive } = useDropzone({
                         <button
                           type="button"
                           onClick={handleAddLink}
-                          className="flex items-center justify-center w-full py-2 text-sm font-medium text-blue-600 hover:text-blue-700 border border-blue-300 hover:border-blue-400 rounded-lg cursor-pointer transition-colors duration-150 dark:text-blue-400 dark:border-blue-800 dark:hover:border-blue-700"
+                          className="flex w-full cursor-pointer items-center justify-center rounded-lg border border-blue-300 py-2 text-sm font-medium text-blue-600 transition-colors duration-150 hover:border-blue-400 hover:text-blue-700 dark:border-blue-800 dark:text-blue-400 dark:hover:border-blue-700"
                         >
                           <Plus className="mr-2 h-4 w-4" />
                           เพิ่มลิงก์
                         </button>
                       </div>
                     )}
-                    {evidenceType === "external file" && (
+                    {evidenceType === 'external file' && (
                       <div className="space-y-4">
                         <div
                           {...getRootProps()}
-                          className={`w-full py-2 flex flex-col items-center justify-center border-2 border-dashed rounded-md transition-all duration-300 ease-in-out ${isDragActive
-                              ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30"
-                              : "border-gray-300 dark:border-zinc-600 dark:bg-zinc-800"
-                            } hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 cursor-pointer`}
+                          className={`flex w-full flex-col items-center justify-center rounded-md border-2 border-dashed py-2 transition-all duration-300 ease-in-out ${
+                            isDragActive
+                              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
+                              : 'border-gray-300 dark:border-zinc-600 dark:bg-zinc-800'
+                          } cursor-pointer hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30`}
                         >
                           <input {...getInputProps()} name="workload_file" />
                           <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {isDragActive ? "วางไฟล์ที่นี่ ..." : "ลากและวางไฟล์ที่นี่ หรือคลิกเพื่อเลือกไฟล์"}
+                            {isDragActive
+                              ? 'วางไฟล์ที่นี่ ...'
+                              : 'ลากและวางไฟล์ที่นี่ หรือคลิกเพื่อเลือกไฟล์'}
                           </p>
-                          <p className="text-xs text-gray-400 dark:text-gray-400">(ขนาดไฟล์ไม่เกิน 10 MB รองรับไฟล์)</p>
+                          <p className="text-xs text-gray-400 dark:text-gray-400">
+                            (ขนาดไฟล์ไม่เกิน 10 MB รองรับไฟล์)
+                          </p>
                         </div>
                         {uploadedFiles.length > 0 && (
                           <div className="mt-2">
-                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">ไฟล์ที่เพิ่ม:</p>
+                            <p className="mb-2 text-sm text-gray-600 dark:text-gray-400">
+                              ไฟล์ที่เพิ่ม:
+                            </p>
                             <ul className="space-y-2">
                               {uploadedFiles.map((file, index) => (
                                 <li
                                   key={index}
-                                  className="flex items-center justify-between p-2 bg-gray-100 dark:bg-zinc-700 rounded-md text-sm text-gray-600 dark:text-gray-400"
+                                  className="flex items-center justify-between rounded-md bg-gray-100 p-2 text-sm text-gray-600 dark:bg-zinc-700 dark:text-gray-400"
                                 >
                                   <span>
-                                    {file.name} ({(file.size / 1024).toFixed(2)} KB)
+                                    {file.name} ({(file.size / 1024).toFixed(2)}{' '}
+                                    KB)
                                   </span>
                                   <button
                                     type="button"
                                     onClick={() => handleRemoveFile(file)}
                                     className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                                   >
-                                    <X className="w-5 h-5" />
+                                    <X className="h-5 w-5" />
                                   </button>
                                 </li>
                               ))}
@@ -325,7 +378,7 @@ const { getRootProps, getInputProps, isDragActive } = useDropzone({
                         )}
                       </div>
                     )}
-                    {evidenceType === "file in system" && (
+                    {evidenceType === 'file in system' && (
                       <>
                         <div className="mb-4">
                           <input
@@ -333,7 +386,7 @@ const { getRootProps, getInputProps, isDragActive } = useDropzone({
                             placeholder="ชื่อที่ต้องการแสดง"
                             value={fileName}
                             onChange={(e) => setFileName(e.target.value)}
-                            className="w-full px-4 py-2 font-light rounded-md text-sm border-2 border-gray-300 dark:border-zinc-600 text-gray-600 dark:bg-zinc-800 dark:text-gray-400 focus:outline-none focus:border-blue-500 transition-colors transition-all duration-300 ease-in-out"
+                            className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                           />
                         </div>
                         <input
@@ -342,7 +395,7 @@ const { getRootProps, getInputProps, isDragActive } = useDropzone({
                           placeholder="Enter file path or ID"
                           value={fileInSystem}
                           onChange={(e) => setFileInSystem(e.target.value)}
-                          className="w-full px-4 py-2 font-light rounded-md text-sm border-2 border-gray-300 dark:border-zinc-600 text-gray-600 dark:bg-zinc-800 dark:text-gray-400 focus:outline-none focus:border-blue-500 transition-colors transition-all duration-300 ease-in-out"
+                          className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                         />
                       </>
                     )}
@@ -351,16 +404,16 @@ const { getRootProps, getInputProps, isDragActive } = useDropzone({
               </div>
 
               {/* แยกส่วนปุ่มออกมาให้ติดด้านล่าง */}
-              <div className="flex justify-end gap-4 mt-4 pt-4 border-t border-gray-200 dark:border-zinc-700 sticky bottom-0 bg-white dark:bg-zinc-800">
+              <div className="sticky bottom-0 mt-4 flex justify-end gap-4 border-t border-gray-200 bg-white pt-4 dark:border-zinc-700 dark:bg-zinc-800">
                 <button
                   type="submit"
-                  className="w-20 bg-success flex items-center justify-center text-md text-white rounded-md py-2 px-4 hover:bg-success hover:text-white hover:bg-success/80 transition ease-in-out duration-300"
+                  className="text-md flex w-20 items-center justify-center rounded-md bg-success px-4 py-2 text-white transition duration-300 ease-in-out hover:bg-success hover:bg-success/80 hover:text-white"
                 >
                   ยืนยัน
                 </button>
                 <label
                   htmlFor={`modal-forminfo`}
-                  className="z-50 w-20 border border-2 border-gray-200 flex items-center justify-center bg-gray-200 text-md text-gray-600 rounded-md py-2 px-4 hover:bg-gray-300 hover:border-gray-300 dark:bg-zinc-700 dark:text-gray-400 dark:hover:bg-zinc-600 dark:hover:border-zinc-600 dark:border-zinc-700 transition ease-in-out duration-300 cursor-pointer"
+                  className="text-md z-50 flex w-20 cursor-pointer items-center justify-center rounded-md border border-2 border-gray-200 bg-gray-200 px-4 py-2 text-gray-600 transition duration-300 ease-in-out hover:border-gray-300 hover:bg-gray-300 dark:border-zinc-700 dark:bg-zinc-700 dark:text-gray-400 dark:hover:border-zinc-600 dark:hover:bg-zinc-600"
                 >
                   ยกเลิก
                 </label>

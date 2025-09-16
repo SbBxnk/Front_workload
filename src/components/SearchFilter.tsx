@@ -1,5 +1,9 @@
-import Select, { type ClearIndicatorProps, components, type StylesConfig } from "react-select"
-import { FiX } from "react-icons/fi"
+import Select, {
+  type ClearIndicatorProps,
+  components,
+  type StylesConfig,
+} from 'react-select'
+import { FiX } from 'react-icons/fi'
 
 interface Option {
   value: string
@@ -21,7 +25,7 @@ export default function SearchFilter<T, K extends keyof T>({
   objects,
   valueKey,
   labelKey,
-  placeholder = "ค้นหา",
+  placeholder = 'ค้นหา',
 }: SearchFilterProps<T, K>) {
   const options: Option[] = objects.map((obj) => ({
     value: String(obj[valueKey]),
@@ -31,7 +35,7 @@ export default function SearchFilter<T, K extends keyof T>({
   const CustomClearIndicator = (props: ClearIndicatorProps<Option, false>) => {
     return (
       <components.ClearIndicator {...props}>
-        <FiX className="w-4 h-4 text-gray-400 hover:text-red-500 transition duration-200 cursor-pointer" />
+        <FiX className="h-4 w-4 cursor-pointer text-gray-400 transition duration-200 hover:text-red-500" />
       </components.ClearIndicator>
     )
   }
@@ -39,46 +43,73 @@ export default function SearchFilter<T, K extends keyof T>({
   const customStyles: StylesConfig<Option, false> = {
     control: (provided) => ({
       ...provided,
-      fontSize: "0.875rem",
-      fontWeight: "300",
-      color: "#d1d5db",
-      borderRadius: "0.375rem",
-      border: "2px solid",
-      padding: "2px 4px",
+      fontSize: '0.875rem',
+      fontWeight: '300',
+      color: '#d1d5db',
+      borderRadius: '0.375rem',
+      border: '2px solid',
+      padding: '2px 4px',
+      minHeight: '40px',
+      maxWidth: '200px', // จำกัดความกว้างสูงสุด
     }),
     placeholder: (provided) => ({
       ...provided,
-      fontSize: "0.875rem",
-      fontWeight: "300",
-      color: "#9CA3AF",
+      fontSize: '0.875rem',
+      fontWeight: '300',
+      color: '#9CA3AF',
+    }),
+    singleValue: (provided) => ({
+      ...provided,
+      fontSize: '0.875rem',
+      fontWeight: '300',
+      color: '#6B7280',
+      maxWidth: 'calc(100% - 40px)', // ลบพื้นที่สำหรับ dropdown indicator
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
     }),
     option: (provided) => ({
       ...provided,
-      fontSize: "0.875rem",
-      fontWeight: "300",
-      padding: "10px",
+      fontSize: '0.875rem',
+      fontWeight: '300',
+      padding: '10px',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
     }),
     dropdownIndicator: (provided) => ({
       ...provided,
-      fontSize: "1rem",
-      padding: "4px",
+      fontSize: '1rem',
+      padding: '4px',
+    }),
+    menu: (provided) => ({
+      ...provided,
+      maxWidth: '300px', // จำกัดความกว้างของ dropdown menu
+    }),
+    menuList: (provided) => ({
+      ...provided,
+      maxHeight: '200px',
     }),
   }
 
   return (
-    <div className="w-full md:w-52">
+    <div className="w-full md:min-w-[200px] md:max-w-[200px] md:w-auto">
       <Select<Option, false>
         placeholder={placeholder}
         options={options}
         onChange={(selectedOption) => {
-          if (selectedOption && "value" in selectedOption) {
+          if (selectedOption && 'value' in selectedOption) {
             handleSelect(selectedOption.value)
           } else {
-            handleSelect("")
+            handleSelect('')
           }
         }}
         isClearable
-        value={selectedLabel ? options.find((option) => option.value === selectedLabel) : null}
+        value={
+          selectedLabel
+            ? options.find((option) => option.value === selectedLabel)
+            : null
+        }
         classNamePrefix="react-select"
         components={{ ClearIndicator: CustomClearIndicator }}
         styles={customStyles}
@@ -86,4 +117,3 @@ export default function SearchFilter<T, K extends keyof T>({
     </div>
   )
 }
-

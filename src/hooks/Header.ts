@@ -1,11 +1,13 @@
+import { useSession } from 'next-auth/react'
+
 const useAuthHeaders = () => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-  
-    return {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    };
-  };
-  
-  export default useAuthHeaders;
-  
+  const { data: session } = useSession()
+  const token = session?.accessToken || null
+
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${token}`,
+  }
+}
+
+export default useAuthHeaders
