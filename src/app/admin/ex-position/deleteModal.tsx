@@ -23,10 +23,10 @@ export default function DeleteModal({
     <div className="relative z-[100]">
       <input
         type="checkbox"
-        id={`modal-delete${ex_position_id}`}
+        id="modal-delete"
         className="modal-toggle"
       />
-      <div className="modal" role={`modal-delete${ex_position_id}`}>
+      <div className="modal" role="modal-delete">
         <div className="modal-box rounded-md dark:bg-zinc-800">
           <form
             onSubmit={(e) => {
@@ -57,8 +57,8 @@ export default function DeleteModal({
                 ยืนยัน
               </button>
               <label
-                htmlFor={`modal-delete${ex_position_id}`}
-                className="text-md z-50 flex w-20 cursor-pointer items-center justify-center rounded-md border border-2 border-gray-200 bg-gray-200 px-4 py-2 text-gray-600 transition duration-300 ease-in-out hover:border-gray-300 hover:bg-gray-300 dark:border-zinc-700 dark:bg-zinc-700 dark:text-gray-400 dark:hover:border-zinc-600 dark:hover:bg-zinc-600"
+                htmlFor="modal-delete"
+                className="text-md z-50 flex w-20 cursor-pointer items-center justify-center rounded-md border-2 border-gray-200 bg-gray-200 px-4 py-2 text-gray-600 transition duration-300 ease-in-out hover:border-gray-300 hover:bg-gray-300 dark:border-zinc-700 dark:bg-zinc-700 dark:text-gray-400 dark:hover:border-zinc-600 dark:hover:bg-zinc-600"
               >
                 ยกเลิก
               </label>
@@ -67,7 +67,7 @@ export default function DeleteModal({
         </div>
         <label
           className="modal-backdrop"
-          htmlFor={`modal-delete${ex_position_id}`}
+          htmlFor="modal-delete"
         >
           Close
         </label>

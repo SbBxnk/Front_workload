@@ -1,17 +1,17 @@
 'use client'
 import type React from 'react'
 import { useEffect, useState } from 'react'
-import { Edit2, Loader, Plus, Trash2 } from 'lucide-react'
-import type { Course, Branch } from '@/Types'
-import SkeletonTable from '../personal-list/Personal-listComponents/SkeletonTable'
-import axios from 'axios'
+import { Edit2, Plus, Trash2 } from 'lucide-react'
+import type { Course, Branch, ResponsePayload } from '@/Types'
 import CreateModal from './createModal'
 import DeleteModal from './deleteModal'
-import Pagination from '@/components/Pagination'
 import { FiX } from 'react-icons/fi'
-import SearchFilter from '@/components/SearchFilter'
 import Swal from 'sweetalert2'
 import EditModal from './editModal'
+import CourseServices from '@/services/courseServices'
+import BranchServices from '@/services/branchServices'
+import { useSession } from 'next-auth/react'
+import Table, { TableColumn, SortState, SortOrder } from '@/components/Table'
 
 const ITEMS_PER_PAGE = 10
 
@@ -25,143 +25,217 @@ const FormDataCourse: FormDataCourse = {
   branch_id: 0,
 }
 
-function PositionTable() {
+type Order = 'asc' | 'desc'
+
+function CourseTable() {
+  const { data: session } = useSession()
   const [FormData, setFormData] = useState<FormDataCourse>(FormDataCourse)
-  const [currentPage, setCurrentPage] = useState(1)
-  const [searchName, setSearchName] = useState<string>('')
-  const [selectedCourse, setSelectedCourse] = useState<string>('')
-  const [selectedBranch, setSelectedBranch] = useState<string>('')
-  const [courses, setCourse] = useState<Course[]>([])
-  const [branchs, setBranchs] = useState<Branch[]>([])
-  const [courseLoading, setCourseLoading] = useState(false)
-  const [branchLoading, setBranchLoading] = useState(false)
-  const [courseError, setCourseError] = useState<string | null>(null)
-  const [branchError, setBranchError] = useState<string | null>(null)
+  const [loading, setLoading] = useState<boolean>(false)
+  const [order, setOrder] = useState<Order>('asc')
+  const [orderBy, setOrderBy] = useState<string>('')
+  const [page, setPage] = useState<number>(0)
+  const [rowsPerPage, setRowsPerPage] = useState<number>(10)
+  const [total, setTotal] = useState<number>(0)
+  const [data, setData] = useState<Course[]>([])
+  const [params, setParams] = useState({
+    search: '',
+    page: 1,
+    limit: 10,
+    sort: '',
+    order: '',
+  })
+  const [searchInput, setSearchInput] = useState<string>('')
   const [selectedCourseId, setSelectedCourseId] = useState<number>(0)
   const [selectedCourseName, setSelectedCourseName] = useState<string>('')
   const [selectedBranchId, setSelectedBranchId] = useState<number>(0)
   const [selectedBranchName, setSelectedBranchName] = useState<string>('')
+  const [sortState, setSortState] = useState<SortState>({
+    column: null,
+    order: null,
+  })
+  const [branches, setBranches] = useState<Branch[]>([])
 
   useEffect(() => {
-    fetchCourse()
-    fetchBranch()
+    const urlParams = new URLSearchParams(window.location.search)
+    const searchFromUrl = urlParams.get('search') || ''
+    const pageFromUrl = parseInt(urlParams.get('page') || '1', 10)
+    const limitFromUrl = parseInt(urlParams.get('limit') || '10', 10)
+    const sortFromUrl = urlParams.get('sort') || ''
+    const orderFromUrl = urlParams.get('order') || ''
+
+    setSearchInput(searchFromUrl)
+    setParams({
+      search: searchFromUrl,
+      page: pageFromUrl,
+      limit: limitFromUrl,
+      sort: sortFromUrl,
+      order: orderFromUrl,
+    })
+    if (sortFromUrl && orderFromUrl) {
+      setOrderBy(sortFromUrl)
+      setOrder(orderFromUrl as Order)
+    }
   }, [])
 
-  const fetchCourse = async () => {
+  const updateUrlParams = (params: {
+    search?: string
+    page?: number
+    limit?: number
+    sort?: string
+    order?: string
+  }) => {
+    const searchParams = new URLSearchParams()
+    if (params.search) searchParams.set('search', params.search)
+    if (params.page) searchParams.set('page', params.page.toString())
+    if (params.limit) searchParams.set('limit', params.limit.toString())
+    if (params.sort) {
+      searchParams.set('sort', params.sort)
+    }
+    if (params.order) {
+      searchParams.set('order', params.order)
+    }
+    window.history.replaceState({}, '', `?${searchParams.toString()}`)
+  }
+
+  const getCourses = async (
+    search: string,
+    limit: number | undefined,
+    page: number | undefined,
+    sort: string,
+    order: string,
+    afterSuccess?: () => void
+  ) => {
+    setLoading(true)
+    setData([])
     try {
-      const token = localStorage.getItem('token')
-      if (!token) {
-        setCourseError('ไม่พบ token กรุณาลงชื่อเข้าใช้งาน')
-        setCourseLoading(false)
-        return
+      if (!session?.accessToken) {
+        throw new Error('No access token')
       }
 
-      const response = await axios.get(
-        process.env.NEXT_PUBLIC_API + '/course',
+      const response = await CourseServices.getAllCourses(
+        session.accessToken,
         {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
+          search,
+          page: page ?? 1,
+          limit: limit ?? 10,
+          sort,
+          order,
         }
       )
 
-      console.log('API Response:', response.data)
-
-      if (response.data && Array.isArray(response.data)) {
-        setCourse(response.data)
-      } else if (
-        response.data &&
-        response.data.data &&
-        Array.isArray(response.data.data)
-      ) {
-        setCourse(response.data.data)
-      } else {
-        setCourseError('ข้อมูลที่ได้รับไม่ใช่รูปแบบที่คาดหวัง')
-      }
-
-      setCourseLoading(false)
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : String(err)
-      setCourseError(`ไม่สามารถดึงข้อมูลได้: ${errorMessage}`)
-      setCourseLoading(false)
-    }
-  }
-  const fetchBranch = async () => {
-    try {
-      const token = localStorage.getItem('token')
-      if (!token) {
-        setBranchError('ไม่พบ token กรุณาลงชื่อเข้าใช้งาน')
-        setBranchLoading(false)
-        return
-      }
-
-      const response = await axios.get(
-        process.env.NEXT_PUBLIC_API + '/branch',
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
+      if (response.success) {
+        const responseMeta = response.meta
+        if (responseMeta) {
+          setTotal(responseMeta.total_rows)
+          setPage(responseMeta.page - 1)
+          setRowsPerPage(responseMeta.limit)
         }
-      )
-
-      console.log('API Response:', response.data)
-
-      if (response.data && Array.isArray(response.data)) {
-        setBranchs(response.data)
-      } else if (
-        response.data &&
-        response.data.data &&
-        Array.isArray(response.data.data)
-      ) {
-        setBranchs(response.data.data)
+        setData(response.payload || [])
       } else {
-        setBranchError('ข้อมูลที่ได้รับไม่ใช่รูปแบบที่คาดหวัง')
+        setData([])
+        setTotal(0)
+        setPage(0)
       }
-
-      setBranchLoading(false)
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : String(err)
-      setBranchError(`ไม่สามารถดึงข้อมูลได้: ${errorMessage}`)
-      setBranchLoading(false)
+      if (afterSuccess) {
+        afterSuccess()
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error)
+    } finally {
+      setLoading(false)
+      updateUrlParams({
+        search,
+        page,
+        limit,
+        sort,
+        order,
+      })
     }
   }
+
+  const getBranches = async () => {
+    try {
+      if (!session?.accessToken) return
+      const response = await BranchServices.getAllBranches(session.accessToken, {
+        search: '',
+        page: 1,
+        limit: 100,
+        sort: 'branch_name',
+        order: 'asc',
+      })
+      if (response.success) {
+        setBranches(response.payload || [])
+      }
+    } catch (error) {
+      console.error('Error fetching branches:', error)
+    }
+  }
+
+  // Auto search with debounce
+  useEffect(() => {
+    const delayDebounce = setTimeout(() => {
+      setParams((prev) => ({
+        ...prev,
+        search: searchInput.trim(),
+        page: 1,
+      }))
+    }, 500)
+    return () => clearTimeout(delayDebounce)
+  }, [searchInput])
+
+  // Fetch data when params change
+  useEffect(() => {
+    if (session?.accessToken) {
+      getCourses(
+        params.search || '',
+        params.limit,
+        params.page,
+        params.sort || '',
+        params.order || ''
+      )
+      getBranches()
+    }
+  }, [
+    params.search,
+    params.page,
+    params.limit,
+    params.sort,
+    params.order,
+    session?.accessToken,
+  ])
 
   const clearSearch = () => {
-    setSearchName('')
+    setSearchInput('')
   }
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page)
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage)
+    setParams((prev) => ({
+      ...prev,
+      page: newPage + 1,
+    }))
   }
 
-  const handleCourseSelect = (value: string) => {
-    setSelectedCourse(value)
-  }
-  const handleBranchSelect = (value: string) => {
-    setSelectedBranch(value)
+  const handleSort = (column: string, order: SortOrder) => {
+    setSortState({ column, order })
+    setParams((prev) => ({
+      ...prev,
+      sort: order ? column : '',
+      order: order || '',
+      page: 1, // Reset to first page when sorting
+    }))
+    setPage(0) // Reset page to 0 (display page 1)
   }
 
-  const filteredCourse =
-    branchs &&
-    courses.filter((course) => {
-      const fullName = `${course.course_name}`.toLowerCase()
-      return (
-        fullName.includes(searchName.toLowerCase()) &&
-        (selectedCourse ? course.course_name === selectedCourse : true) &&
-        (selectedBranch ? String(course.branch_name) === selectedBranch : true)
-      )
-    })
-
-  const totalPages = Math.ceil(filteredCourse.length / ITEMS_PER_PAGE)
-  const currentData = filteredCourse.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  )
-  const selectedLabel =
-    courses.find((pos) => pos.course_name === selectedCourse)?.course_name ||
-    'เลือกหลักสูตร'
+  const handleRowsPerPageChange = (newRowsPerPage: number) => {
+    setRowsPerPage(newRowsPerPage)
+    setParams((prev) => ({
+      ...prev,
+      limit: newRowsPerPage,
+      page: 1, // Reset to first page when changing rows per page
+    }))
+    setPage(0) // Reset page to 0 (display page 1)
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -177,33 +251,37 @@ function PositionTable() {
     course_name: string,
     branch_id: number
   ) => {
-    setCourseLoading(true)
-    e.preventDefault()
+    setLoading(true)
     try {
-      await axios.post(
-        process.env.NEXT_PUBLIC_API + `/course/add`,
+      if (!session?.accessToken) throw new Error('No access token')
+      const response = await CourseServices.createCourse(
         { course_name, branch_id },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        }
+        session.accessToken
       )
-      setFormData(FormDataCourse)
-      fetchCourse()
-      setCourseLoading(false)
-      Swal.fire({
-        position: 'center',
-        icon: 'success',
-        title: 'สำเร็จ!',
-        text: `เพิ่มหลักสูตร ${course_name} สำเร็จ!`,
-        showConfirmButton: false,
-        timer: 1500,
-      })
+
+      if (response && (response as any).status === true) {
+        setFormData(FormDataCourse)
+        getCourses(
+          params.search || '',
+          params.limit,
+          1, // Reset to first page
+          params.sort || '',
+          params.order || ''
+        )
+        Swal.fire({
+          position: 'center',
+          icon: 'success',
+          title: 'สำเร็จ!',
+          text: `เพิ่มหลักสูตร ${course_name} สำเร็จ!`,
+          showConfirmButton: false,
+          timer: 1500,
+        })
+      } else {
+        throw new Error('ไม่สามารถสร้างหลักสูตรได้')
+      }
     } catch (error) {
-      console.error('Error adding courses:', error)
-      setCourseLoading(false)
+      console.error('Error adding course:', error)
+      setLoading(false)
       Swal.fire({
         position: 'center',
         icon: 'error',
@@ -221,35 +299,41 @@ function PositionTable() {
     course_name: string
   ) => {
     e.preventDefault()
-    setCourseLoading(true)
+    setLoading(true)
     try {
-      await axios.delete(
-        `${process.env.NEXT_PUBLIC_API}/course/delete/${course_id}`,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        }
+      if (!session?.accessToken) throw new Error('No access token')
+      await CourseServices.deleteCourse(course_id, session.accessToken)
+
+      // Reset to page 1 and fetch new data
+      setPage(0)
+      setParams((prev) => ({
+        ...prev,
+        page: 1,
+      }))
+      
+      getCourses(
+        params.search || '',
+        params.limit,
+        1, // Reset to page 1
+        params.sort || '',
+        params.order || ''
       )
-      fetchCourse()
-      setCourseLoading(false)
 
       Swal.fire({
         icon: 'success',
         title: 'ลบสำเร็จ!',
-        text: `ลบสาขา ${course_name} สำเร็จ!`,
+        text: `ลบหลักสูตร ${course_name} สำเร็จ!`,
         showConfirmButton: false,
         timer: 1500,
       })
     } catch (error) {
       console.error('Error deleting course:', error)
-      setCourseLoading(false)
+      setLoading(false)
 
       Swal.fire({
         icon: 'error',
         title: 'เกิดข้อผิดพลาด!',
-        text: 'เกิดข้อผิดพลาดในการลบสาขา',
+        text: 'เกิดข้อผิดพลาดในการลบหลักสูตร',
         showConfirmButton: false,
         timer: 1500,
       })
@@ -263,31 +347,37 @@ function PositionTable() {
     branch_id: number
   ) => {
     e.preventDefault()
-    setCourseLoading(true)
+    setLoading(true)
     try {
-      await axios.put(
-        `${process.env.NEXT_PUBLIC_API}/course/update/${course_id}`,
+      if (!session?.accessToken) throw new Error('No access token')
+      const response = await CourseServices.updateCourse(
+        course_id,
         { course_name, branch_id },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        }
+        session.accessToken
       )
-      fetchCourse()
-      setCourseLoading(false)
 
-      Swal.fire({
-        icon: 'success',
-        title: 'แก้ไขสำเร็จ!',
-        text: `แก้ไขหลักสูตร ${course_name} สำเร็จ!`,
-        showConfirmButton: false,
-        timer: 1500,
-      })
+      if (response && (response as any).status === true) {
+        getCourses(
+          params.search || '',
+          params.limit,
+          params.page,
+          params.sort || '',
+          params.order || ''
+        )
+
+        Swal.fire({
+          icon: 'success',
+          title: 'แก้ไขสำเร็จ!',
+          text: `แก้ไขหลักสูตร ${course_name} สำเร็จ!`,
+          showConfirmButton: false,
+          timer: 1500,
+        })
+      } else {
+        throw new Error('ไม่สามารถแก้ไขหลักสูตรได้')
+      }
     } catch (error) {
-      console.error('Error deleting prefix:', error)
-      setCourseLoading(false)
+      console.error('Error updating course:', error)
+      setLoading(false)
 
       Swal.fire({
         icon: 'error',
@@ -299,30 +389,108 @@ function PositionTable() {
     }
   }
 
-  if (courseLoading || branchLoading) {
-    return <SkeletonTable />
-  }
+  // Define table columns
+  const columns: TableColumn<Course>[] = [
+    {
+      key: 'index',
+      label: '#',
+      width: '80px',
+      align: 'center',
+      render: (_, __, index) => (
+        <span className="font-regular text-sm text-gray-600 dark:text-gray-300">
+          {page * rowsPerPage + index + 1}
+        </span>
+      ),
+    },
+    {
+      key: 'course_name',
+      label: 'หลักสูตร',
+      align: 'left',
+      sortable: true,
+      render: (value) => (
+        <span className="text-sm font-light text-gray-500 dark:text-gray-400">
+          {value || '-'}
+        </span>
+      ),
+    },
+    {
+      key: 'branch_name',
+      label: 'สาขา',
+      align: 'left',
+      sortable: true,
+      render: (value) => (
+        <span className="text-sm font-light text-gray-500 dark:text-gray-400">
+          {value || '-'}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      label: 'จัดการ',
+      width: '120px',
+      align: 'center',
+      render: (_, row , index) => (
+        <div className="w-full flex justify-center gap-2 p-0">
+          <button
+            type="button"
+            className="cursor-pointer rounded-md p-1 text-yellow-500 transition duration-300 ease-in-out hover:bg-yellow-500 hover:text-white"
+            onClick={() => {
+              setSelectedCourseId(row.course_id)
+              setSelectedCourseName(row.course_name)
+              setSelectedBranchId(row.branch_id)
+              setSelectedBranchName(String(row.branch_name))
+              // Trigger modal
+              const modal = document.getElementById(
+                `modal-edit`
+              ) as HTMLInputElement
+              if (modal) modal.checked = true
+            }}
+          >
+            <Edit2 className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            className="cursor-pointer rounded-md p-1 text-red-500 transition duration-300 ease-in-out hover:bg-red-500 hover:text-white"
+            onClick={() => {
+              setSelectedCourseId(row.course_id)
+              setSelectedCourseName(row.course_name)
+              // Trigger modal
+              const modal = document.getElementById(
+                `modal-delete`
+              ) as HTMLInputElement
+              if (modal) modal.checked = true
+            }}
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      ),
+    },
+  ]
 
-  if (courseError || branchError) {
-    return (
-      <div>
-        เกิดข้อผิดพลาดในการเชื่อมต่อข้อมูล: {courseError || branchError}
-      </div>
-    )
-  }
+  const totalPages = Math.ceil(total / rowsPerPage)
 
   return (
     <div className="rounded-md bg-white p-4 shadow transition-all duration-300 ease-in-out dark:bg-zinc-900 dark:text-gray-400">
-      <div className="py-4 md:flex">
-        <div className="flex w-full flex-wrap gap-4 md:w-full">
+      <div className="mb-4 flex items-end justify-between">
+        <div className="flex w-full flex-wrap items-end gap-4 md:w-auto">
+          {loading ? (
+            <div className="skeleton h-7 w-16 rounded-md"></div>
+          ) : (
+            <div className="w-auto rounded-md bg-gray-200 px-2 py-1 text-sm font-normal text-business1 dark:text-gray-400">
+              {total} รายการ
+            </div>
+          )}
+        </div>
+        <div className="flex items-center justify-end gap-4">
           <div className="relative flex w-full items-center md:w-52">
             <input
-              className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
-              placeholder="ค้นหาด้วยชื่อบุคคล"
-              value={searchName}
-              onChange={(e) => setSearchName(e.target.value)}
+              className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
+              placeholder="ค้นหาด้วยชื่อหลักสูตรหรือสาขา"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
             />
-            {searchName && (
+            {searchInput && (
               <button
                 onClick={clearSearch}
                 className="absolute right-3 text-gray-400 transition duration-200 hover:text-red-500"
@@ -331,116 +499,38 @@ function PositionTable() {
               </button>
             )}
           </div>
-          <SearchFilter<Course, 'course_name'>
-            selectedLabel={selectedLabel}
-            handleSelect={handleCourseSelect}
-            objects={Array.isArray(courses) ? courses : []}
-            valueKey="course_name"
-            labelKey="course_name"
-            placeholder="ค้นหาหลักสูตร"
-          />
-          <SearchFilter<Branch, 'branch_name'>
-            selectedLabel={selectedBranch || 'เลือกสาขา'}
-            handleSelect={handleBranchSelect}
-            objects={Array.isArray(branchs) ? branchs : []}
-            valueKey="branch_name"
-            labelKey="branch_name"
-            placeholder="ค้นหาสาขา"
-          />
-        </div>
-        <div className="w-full pt-4 md:w-auto md:pt-0">
-          <label
-            htmlFor={`modal-create`}
-            className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-md bg-success px-4 py-2.5 text-sm font-light text-white transition duration-300 ease-in-out hover:bg-success/80 md:w-52"
-          >
-            เพิ่มสาขา
-            <Plus className="h-4 w-4" />
-          </label>
-        </div>
-      </div>{' '}
-      <div className="rounded-md border transition-all duration-300 ease-in-out dark:border-zinc-600">
-        <div className="">
-          {courseLoading && (
-            <div className="absolute inset-0 z-50 flex items-center justify-center bg-gray-100 bg-opacity-80">
-              <Loader className="h-12 w-12 animate-spin text-gray-600" />
-            </div>
-          )}
-          <div className="overflow-x-auto">
-            <table className="w-full overflow-x-auto md:table-auto">
-              <thead className="bg-gray-100 transition-all duration-300 ease-in-out dark:bg-zinc-800">
-                <tr>
-                  <td className="text-nowrap border border-gray-300 border-opacity-40 p-4 py-4 text-center text-sm text-gray-600 dark:border-zinc-600 dark:text-gray-300">
-                    #
-                  </td>
-                  <td className="text-nowrap border border-gray-300 border-opacity-40 p-4 py-4 text-center text-sm text-gray-600 dark:border-zinc-600 dark:text-gray-300">
-                    หลักสูตร
-                  </td>
-                  <td className="text-nowrap border border-gray-300 border-opacity-40 p-4 py-4 text-center text-sm text-gray-600 dark:border-zinc-600 dark:text-gray-300">
-                    สาขา
-                  </td>
-                  <td className="sticky right-0 text-nowrap border border-gray-300 border-opacity-40 bg-gray-100 p-4 py-4 text-center text-sm text-gray-600 transition-all duration-300 ease-in-out dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-300">
-                    จัดการ
-                  </td>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 bg-white transition-all duration-300 ease-in-out dark:divide-zinc-600 dark:bg-zinc-900">
-                {currentData.map((item: Course, index) => (
-                  <tr
-                    key={item.course_id}
-                    className="hover:bg-gray-50 dark:hover:bg-zinc-800"
-                  >
-                    <td className="text-md font-regular whitespace-nowrap border border-gray-300 border-opacity-40 p-4 text-center text-gray-600 dark:border-zinc-600 dark:text-gray-300">
-                      {(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
-                    </td>
-                    <td className="text-md whitespace-nowrap border border-gray-300 border-opacity-40 p-4 text-start font-light text-gray-500 dark:border-zinc-600 dark:text-gray-400">
-                      {item?.course_name || '-'}
-                    </td>
-                    <td className="text-md whitespace-nowrap border border-gray-300 border-opacity-40 p-4 text-start font-light text-gray-500 dark:border-zinc-600 dark:text-gray-400">
-                      {item?.branch_name || '-'}
-                    </td>
-                    <td className="text-md sticky right-0 flex justify-center gap-2 whitespace-nowrap border border-gray-300 border-opacity-40 bg-white p-4 text-center font-light transition-all duration-300 ease-in-out dark:border-zinc-600 dark:bg-zinc-900">
-                      <label
-                        htmlFor={`modal-edit${item.course_id}`}
-                        className="cursor-pointer rounded-md border-none border-yellow-500 p-1 text-yellow-500 transition duration-300 ease-in-out hover:bg-yellow-500 hover:text-white"
-                        onClick={() => {
-                          setSelectedCourseId(item.course_id)
-                          setSelectedCourseName(item.course_name)
-                          setSelectedBranchId(item.branch_id)
-                          setSelectedBranchName(String(item.branch_name))
-                        }}
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </label>
-                      <label
-                        htmlFor={`modal-delete${item.course_id}`}
-                        className="cursor-pointer rounded-md border-none border-red-500 p-1 text-red-500 transition duration-300 ease-in-out hover:bg-red-500 hover:text-white"
-                        onClick={() => {
-                          setSelectedCourseId(item.course_id)
-                          setSelectedCourseName(item.course_name)
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </label>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="w-full pt-4 md:w-auto md:pt-0">
+            <label
+              htmlFor={`modal-create`}
+              className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-md bg-success px-4 py-2.5 text-sm font-light text-white transition duration-300 ease-in-out hover:bg-success/80 md:w-52"
+            >
+              เพิ่มหลักสูตร
+              <Plus className="h-4 w-4" />
+            </label>
           </div>
         </div>
-        <div className="px-4">
-          <Pagination
-            ITEMS_PER_PAGE={ITEMS_PER_PAGE}
-            data={filteredCourse}
-            currentData={currentData}
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-          />
-        </div>
       </div>
+
+      <Table
+        data={data}
+        columns={columns}
+        loading={loading}
+        total={total}
+        currentPage={page + 1}
+        totalPages={totalPages}
+        rowsPerPage={rowsPerPage}
+        onPageChange={(newPage) => handlePageChange(newPage - 1)}
+        onRowsPerPageChange={handleRowsPerPageChange}
+        emptyMessage={'ไม่พบข้อมูล'}
+        skeletonRows={rowsPerPage}
+        stickyColumns={1}
+        sortable={true}
+        sortState={sortState}
+        onSort={handleSort}
+        rowsPerPageOptions={[10, 20, 50, 100, 200]}
+      />
       <CreateModal
-        isLoading={courseLoading || branchLoading}
+        isLoading={loading}
         handleSubmit={handleSubmit}
         formData={FormData}
         handleInputChange={handleInputChange}
@@ -448,13 +538,13 @@ function PositionTable() {
         setFormData={setFormData}
       />
       <DeleteModal
-        isLoading={courseLoading || branchLoading}
+        isLoading={loading}
         course_id={selectedCourseId}
         course_name={selectedCourseName}
         handleDelete={handleDelete}
       />
       <EditModal
-        isLoading={courseLoading || branchLoading}
+        isLoading={loading}
         course_id={selectedCourseId}
         course_name={selectedCourseName}
         branch_id={selectedBranchId}
@@ -465,4 +555,4 @@ function PositionTable() {
   )
 }
 
-export default PositionTable
+export default CourseTable

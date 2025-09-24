@@ -31,7 +31,7 @@ const useFetchData = <T>(endpoint: string): FetchResult<T> => {
 
       try {
         setLoading(true)
-        const response = await axios.get<{ data: T }>(
+        const response = await axios.get<any>(
           `${process.env.NEXT_PUBLIC_API}${endpoint}`,
           {
             headers: {
@@ -41,7 +41,14 @@ const useFetchData = <T>(endpoint: string): FetchResult<T> => {
           }
         )
 
-        setData(response.data.data)
+        // Handle different response structures
+        if (response.data.payload) {
+          setData(response.data.payload)
+        } else if (response.data.data) {
+          setData(response.data.data)
+        } else {
+          setData(response.data)
+        }
       } catch (error) {
         if (axios.isAxiosError(error)) {
           setError(

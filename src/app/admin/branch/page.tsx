@@ -346,10 +346,17 @@ function PositionTable() {
       if (!session?.accessToken) throw new Error('No access token')
       await BranchServices.deleteBranch(branch_id, session.accessToken)
 
+      // Reset to page 1 and fetch new data
+      setPage(0)
+      setParams((prev) => ({
+        ...prev,
+        page: 1,
+      }))
+      
       getBranches(
         params.search || '',
         params.limit,
-        params.page,
+        1, // Reset to page 1
         params.sort || '',
         params.order || ''
       )

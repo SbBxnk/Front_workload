@@ -6,6 +6,8 @@ export interface UserSearchParams {
   position_name?: string
   branch_name?: string
   course_name?: string
+  ex_position_name?: string
+  gender?: string
   page?: number
   limit?: number
   sort?: string
@@ -61,6 +63,8 @@ const UserServices = {
         position_name: param.position_name,
         branch_name: param.branch_name,
         course_name: param.course_name,
+        ex_position_name: param.ex_position_name,
+        gender: param.gender,
         page: param.page,
         limit: param.limit,
         sort: param.sort,

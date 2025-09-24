@@ -1,17 +1,16 @@
 'use client'
 import type React from 'react'
 import { useEffect, useState } from 'react'
-import { Edit2, Loader, Plus, Trash2 } from 'lucide-react'
-import type { ExPosition } from '@/Types'
-import SkeletonTable from '../personal-list/Personal-listComponents/SkeletonTable'
-import axios from 'axios'
+import { Edit2, Plus, Trash2 } from 'lucide-react'
+import type { ExPosition, ResponsePayload } from '@/Types'
 import CreateModal from './createModal'
 import DeleteModal from './deleteModal'
-import Pagination from '@/components/Pagination'
 import { FiX } from 'react-icons/fi'
-import SearchFilter from '@/components/SearchFilter'
 import Swal from 'sweetalert2'
 import EditModal from './editModal'
+import ExpositionServices from '@/services/exPositionServices'
+import { useSession } from 'next-auth/react'
+import Table, { TableColumn, SortState, SortOrder } from '@/components/Table'
 
 const ITEMS_PER_PAGE = 10
 
@@ -23,94 +22,195 @@ const FormDataExPosition: FormDataExPosition = {
   ex_position_name: '',
 }
 
+type Order = 'asc' | 'desc'
+
 function PositionTable() {
-  const [FormData, setFormData] =
-    useState<FormDataExPosition>(FormDataExPosition)
-  const [currentPage, setCurrentPage] = useState(1)
-  const [searchName, setSearchName] = useState<string>('')
-  const [selectedExPosition, setSelectedExPosition] = useState<string>('')
-  const [expositions, setExPositions] = useState<ExPosition[]>([])
-  const [expositionLoading, setExPositionLoading] = useState(false)
-  const [expositionError, setExPositionError] = useState<string | null>(null)
+  const { data: session } = useSession()
+  const [FormData, setFormData] = useState<FormDataExPosition>(FormDataExPosition)
+  const [loading, setLoading] = useState<boolean>(false)
+  const [order, setOrder] = useState<Order>('asc')
+  const [orderBy, setOrderBy] = useState<string>('')
+  const [page, setPage] = useState<number>(0)
+  const [rowsPerPage, setRowsPerPage] = useState<number>(10)
+  const [total, setTotal] = useState<number>(0)
+  const [data, setData] = useState<ExPosition[]>([])
+  const [params, setParams] = useState({
+    search: '',
+    page: 1,
+    limit: 10,
+    sort: '',
+    order: '',
+  })
+  const [searchInput, setSearchInput] = useState<string>('')
   const [selectedExPositionId, setSelectedExPositionId] = useState<number>(0)
-  const [selectedExPositionName, setSelectedExPositionName] =
-    useState<string>('')
+  const [selectedExPositionName, setSelectedExPositionName] = useState<string>('')
+  const [sortState, setSortState] = useState<SortState>({
+    column: null,
+    order: null,
+  })
 
   useEffect(() => {
-    fetchExPositions()
+    const urlParams = new URLSearchParams(window.location.search)
+    const searchFromUrl = urlParams.get('search') || ''
+    const pageFromUrl = parseInt(urlParams.get('page') || '1', 10)
+    const limitFromUrl = parseInt(urlParams.get('limit') || '10', 10)
+    const sortFromUrl = urlParams.get('sort') || ''
+    const orderFromUrl = urlParams.get('order') || ''
+
+    setSearchInput(searchFromUrl)
+    setParams({
+      search: searchFromUrl,
+      page: pageFromUrl,
+      limit: limitFromUrl,
+      sort: sortFromUrl,
+      order: orderFromUrl,
+    })
+    if (sortFromUrl && orderFromUrl) {
+      setOrderBy(sortFromUrl)
+      setOrder(orderFromUrl as Order)
+    }
   }, [])
 
-  const fetchExPositions = async () => {
+  const updateUrlParams = (params: {
+    search?: string
+    page?: number
+    limit?: number
+    sort?: string
+    order?: string
+  }) => {
+    const searchParams = new URLSearchParams()
+    if (params.search) searchParams.set('search', params.search)
+    if (params.page) searchParams.set('page', params.page.toString())
+    if (params.limit) searchParams.set('limit', params.limit.toString())
+    if (params.sort) {
+      searchParams.set('sort', params.sort)
+    }
+    if (params.order) {
+      searchParams.set('order', params.order)
+    }
+    window.history.replaceState({}, '', `?${searchParams.toString()}`)
+  }
+
+  const getExpositions = async (
+    search: string,
+    limit: number | undefined,
+    page: number | undefined,
+    sort: string,
+    order: string,
+    afterSuccess?: () => void
+  ) => {
+    setLoading(true)
+    setData([])
     try {
-      const token = localStorage.getItem('token')
-      if (!token) {
-        setExPositionError('ไม่พบ token กรุณาลงชื่อเข้าใช้งาน')
-        setExPositionLoading(false)
-        return
+      if (!session?.accessToken) {
+        throw new Error('No access token')
       }
 
-      const response = await axios.get(
-        process.env.NEXT_PUBLIC_API + '/ex_position',
+      const response = await ExpositionServices.getAllExpositions(
+        session.accessToken,
         {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
+          search,
+          page: page ?? 1,
+          limit: limit ?? 10,
+          sort,
+          order,
         }
       )
 
-      console.log('API Response:', response.data)
-
-      if (response.data && Array.isArray(response.data)) {
-        setExPositions(response.data)
-      } else if (
-        response.data &&
-        response.data.data &&
-        Array.isArray(response.data.data)
-      ) {
-        setExPositions(response.data.data)
+      if (response.success) {
+        const responseMeta = response.meta
+        if (responseMeta) {
+          setTotal(responseMeta.total_rows)
+          setPage(responseMeta.page - 1)
+          setRowsPerPage(responseMeta.limit)
+        }
+        setData(response.payload || [])
       } else {
-        setExPositionError('ข้อมูลที่ได้รับไม่ใช่รูปแบบที่คาดหวัง')
+        setData([])
+        setTotal(0)
+        setPage(0)
       }
-
-      setExPositionLoading(false)
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : String(err)
-      setExPositionError(`ไม่สามารถดึงข้อมูลได้: ${errorMessage}`)
-      setExPositionLoading(false)
+      if (afterSuccess) {
+        afterSuccess()
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error)
+    } finally {
+      setLoading(false)
+      updateUrlParams({
+        search,
+        page,
+        limit,
+        sort,
+        order,
+      })
     }
   }
 
+  // Auto search with debounce
+  useEffect(() => {
+    const delayDebounce = setTimeout(() => {
+      setParams((prev) => ({
+        ...prev,
+        search: searchInput.trim(),
+        page: 1,
+      }))
+    }, 500)
+    return () => clearTimeout(delayDebounce)
+  }, [searchInput])
+
+  // Fetch data when params change
+  useEffect(() => {
+    if (session?.accessToken) {
+      getExpositions(
+        params.search || '',
+        params.limit,
+        params.page,
+        params.sort || '',
+        params.order || ''
+      )
+    }
+  }, [
+    params.search,
+    params.page,
+    params.limit,
+    params.sort,
+    params.order,
+    session?.accessToken,
+  ])
+
   const clearSearch = () => {
-    setSearchName('')
+    setSearchInput('')
   }
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page)
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage)
+    setParams((prev) => ({
+      ...prev,
+      page: newPage + 1,
+    }))
   }
 
-  const handleExPositionSelect = (value: string) => {
-    setSelectedExPosition(value)
+  const handleSort = (column: string, order: SortOrder) => {
+    setSortState({ column, order })
+    setParams((prev) => ({
+      ...prev,
+      sort: order ? column : '',
+      order: order || '',
+      page: 1, // Reset to first page when sorting
+    }))
+    setPage(0) // Reset page to 0 (display page 1)
   }
 
-  const filteredExPosition = expositions.filter((exposition) => {
-    const fullName = `${exposition.ex_position_name}`.toLowerCase()
-    return (
-      fullName.includes(searchName.toLowerCase()) &&
-      (selectedExPosition
-        ? exposition.ex_position_name === selectedExPosition
-        : true)
-    )
-  })
-
-  const totalPages = Math.ceil(filteredExPosition.length / ITEMS_PER_PAGE)
-  const currentData = filteredExPosition.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  )
-  const selectedLabel =
-    expositions.find((pos) => pos.ex_position_name === selectedExPosition)
-      ?.ex_position_name || 'เลือกตำแหน่งบริหาร'
+  const handleRowsPerPageChange = (newRowsPerPage: number) => {
+    setRowsPerPage(newRowsPerPage)
+    setParams((prev) => ({
+      ...prev,
+      limit: newRowsPerPage,
+      page: 1, // Reset to first page when changing rows per page
+    }))
+    setPage(0) // Reset page to 0 (display page 1)
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -121,33 +221,37 @@ function PositionTable() {
     e: React.FormEvent<HTMLFormElement> | React.MouseEvent,
     ex_position_name: string
   ) => {
-    setExPositionLoading(true)
-    e.preventDefault()
+    setLoading(true)
     try {
-      await axios.post(
-        process.env.NEXT_PUBLIC_API + `/ex_position/add`,
+      if (!session?.accessToken) throw new Error('No access token')
+      const response = await ExpositionServices.createExposition(
         { ex_position_name },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        }
+        session.accessToken
       )
-      setFormData(FormDataExPosition)
-      fetchExPositions()
-      setExPositionLoading(false)
-      Swal.fire({
-        position: 'center',
-        icon: 'success',
-        title: 'สำเร็จ!',
-        text: `เพิ่มตำแหน่งบริหาร ${ex_position_name} สำเร็จ!`,
-        showConfirmButton: false,
-        timer: 1500,
-      })
+
+      if (response && (response as any).status === true) {
+        setFormData(FormDataExPosition)
+        getExpositions(
+          params.search || '',
+          params.limit,
+          1, // Reset to first page
+          params.sort || '',
+          params.order || ''
+        )
+        Swal.fire({
+          position: 'center',
+          icon: 'success',
+          title: 'สำเร็จ!',
+          text: `เพิ่มตำแหน่งบริหาร ${ex_position_name} สำเร็จ!`,
+          showConfirmButton: false,
+          timer: 1500,
+        })
+      } else {
+        throw new Error('ไม่สามารถสร้างตำแหน่งบริหารได้')
+      }
     } catch (error) {
-      console.error('Error adding prefix:', error)
-      setExPositionLoading(false)
+      console.error('Error adding exposition:', error)
+      setLoading(false)
       Swal.fire({
         position: 'center',
         icon: 'error',
@@ -165,19 +269,25 @@ function PositionTable() {
     ex_position_name: string
   ) => {
     e.preventDefault()
-    setExPositionLoading(true)
+    setLoading(true)
     try {
-      await axios.delete(
-        `${process.env.NEXT_PUBLIC_API}/ex_position/delete/${ex_position_id}`,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        }
+      if (!session?.accessToken) throw new Error('No access token')
+      await ExpositionServices.deleteExposition(ex_position_id, session.accessToken)
+
+      // Reset to page 1 and fetch new data
+      setPage(0)
+      setParams((prev) => ({
+        ...prev,
+        page: 1,
+      }))
+      
+      getExpositions(
+        params.search || '',
+        params.limit,
+        1, // Reset to page 1
+        params.sort || '',
+        params.order || ''
       )
-      fetchExPositions()
-      setExPositionLoading(false)
 
       Swal.fire({
         icon: 'success',
@@ -187,8 +297,8 @@ function PositionTable() {
         timer: 1500,
       })
     } catch (error) {
-      console.error('Error deleting prefix:', error)
-      setExPositionLoading(false)
+      console.error('Error deleting exposition:', error)
+      setLoading(false)
 
       Swal.fire({
         icon: 'error',
@@ -206,62 +316,137 @@ function PositionTable() {
     ex_position_name: string
   ) => {
     e.preventDefault()
-    setExPositionLoading(true)
+    setLoading(true)
     try {
-      await axios.put(
-        `${process.env.NEXT_PUBLIC_API}/ex_position/update/${ex_position_id}`,
+      if (!session?.accessToken) throw new Error('No access token')
+      const response = await ExpositionServices.updateExposition(
+        ex_position_id,
         { ex_position_name },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        }
+        session.accessToken
       )
-      fetchExPositions()
-      setExPositionLoading(false)
 
-      Swal.fire({
-        icon: 'success',
-        title: 'แก้ไขสำเร็จ!',
-        text: `แก้ไขตำแหน่งวิชาการ ${ex_position_name} สำเร็จ!`,
-        showConfirmButton: false,
-        timer: 1500,
-      })
+      if (response && (response as any).status === true) {
+        getExpositions(
+          params.search || '',
+          params.limit,
+          params.page,
+          params.sort || '',
+          params.order || ''
+        )
+
+        Swal.fire({
+          icon: 'success',
+          title: 'แก้ไขสำเร็จ!',
+          text: `แก้ไขตำแหน่งบริหาร ${ex_position_name} สำเร็จ!`,
+          showConfirmButton: false,
+          timer: 1500,
+        })
+      } else {
+        throw new Error('ไม่สามารถแก้ไขตำแหน่งบริหารได้')
+      }
     } catch (error) {
-      console.error('Error deleting prefix:', error)
-      setExPositionLoading(false)
+      console.error('Error updating exposition:', error)
+      setLoading(false)
 
       Swal.fire({
         icon: 'error',
         title: 'เกิดข้อผิดพลาด!',
-        text: 'เกิดข้อผิดพลาดในการแก้ไขตำแหน่งวิชาการ',
+        text: 'เกิดข้อผิดพลาดในการแก้ไขตำแหน่งบริหาร',
         showConfirmButton: false,
         timer: 1500,
       })
     }
   }
 
-  if (expositionLoading) {
-    return <SkeletonTable />
-  }
+  // Define table columns
+  const columns: TableColumn<ExPosition>[] = [
+    {
+      key: 'index',
+      label: '#',
+      width: '80px',
+      align: 'center',
+      render: (_, __, index) => (
+        <span className="font-regular text-sm text-gray-600 dark:text-gray-300">
+          {page * rowsPerPage + index + 1}
+        </span>
+      ),
+    },
+    {
+      key: 'ex_position_name',
+      label: 'ตำแหน่งบริหาร',
+      align: 'left',
+      sortable: true,
+      render: (value) => (
+        <span className="text-sm font-light text-gray-500 dark:text-gray-400">
+          {value || '-'}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      label: 'จัดการ',
+      width: '120px',
+      align: 'center',
+      render: (_, row , index) => (
+        <div className="w-full flex justify-center gap-2 p-0">
+          <button
+            type="button"
+            className="cursor-pointer rounded-md p-1 text-yellow-500 transition duration-300 ease-in-out hover:bg-yellow-500 hover:text-white"
+            onClick={() => {
+              setSelectedExPositionId(row.ex_position_id)
+              setSelectedExPositionName(row.ex_position_name)
+              // Trigger modal
+              const modal = document.getElementById(
+                `modal-edit`
+              ) as HTMLInputElement
+              if (modal) modal.checked = true
+            }}
+          >
+            <Edit2 className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            className="cursor-pointer rounded-md p-1 text-red-500 transition duration-300 ease-in-out hover:bg-red-500 hover:text-white"
+            onClick={() => {
+              setSelectedExPositionId(row.ex_position_id)
+              setSelectedExPositionName(row.ex_position_name)
+              // Trigger modal
+              const modal = document.getElementById(
+                `modal-delete`
+              ) as HTMLInputElement
+              if (modal) modal.checked = true
+            }}
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      ),
+    },
+  ]
 
-  if (expositionError) {
-    return <div>เกิดข้อผิดพลาดในการเชื่อมต่อข้อมูล: {expositionError}</div>
-  }
+  const totalPages = Math.ceil(total / rowsPerPage)
 
   return (
     <div className="rounded-md bg-white p-4 shadow transition-all duration-300 ease-in-out dark:bg-zinc-900 dark:text-gray-400">
-      <div className="py-4 md:flex">
-        <div className="flex w-full flex-wrap gap-4 md:w-full">
+      <div className="mb-4 flex items-end justify-between">
+        <div className="flex w-full flex-wrap items-end gap-4 md:w-auto">
+          {loading ? (
+            <div className="skeleton h-7 w-16 rounded-md"></div>
+          ) : (
+            <div className="w-auto rounded-md bg-gray-200 px-2 py-1 text-sm font-normal text-business1 dark:text-gray-400">
+              {total} รายการ
+            </div>
+          )}
+        </div>
+        <div className="flex items-center justify-end gap-4">
           <div className="relative flex w-full items-center md:w-52">
             <input
-              className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
-              placeholder="ค้นหาด้วยชื่อบุคคล"
-              value={searchName}
-              onChange={(e) => setSearchName(e.target.value)}
+              className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
+              placeholder="ค้นหาด้วยชื่อตำแหน่งบริหาร"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
             />
-            {searchName && (
+            {searchInput && (
               <button
                 onClick={clearSearch}
                 className="absolute right-3 text-gray-400 transition duration-200 hover:text-red-500"
@@ -270,112 +455,50 @@ function PositionTable() {
               </button>
             )}
           </div>
-          <SearchFilter<ExPosition, 'ex_position_name'>
-            selectedLabel={selectedLabel}
-            handleSelect={handleExPositionSelect}
-            objects={Array.isArray(expositions) ? expositions : []}
-            valueKey="ex_position_name"
-            labelKey="ex_position_name"
-            placeholder="ค้นหาตำแหน่งบริหาร"
-          />
-        </div>
-        <div className="w-full pt-4 md:w-auto md:pt-0">
-          <label
-            htmlFor={`modal-create`}
-            className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-md bg-success px-4 py-2.5 text-sm font-light text-white transition duration-300 ease-in-out hover:bg-success/80 md:w-52"
-          >
-            เพิ่มตำแหน่งบริหาร
-            <Plus className="h-4 w-4" />
-          </label>
-        </div>
-      </div>{' '}
-      <div className="rounded-md border transition-all duration-300 ease-in-out dark:border-zinc-600">
-        <div className="">
-          {expositionLoading && (
-            <div className="absolute inset-0 z-50 flex items-center justify-center bg-gray-100 bg-opacity-80">
-              <Loader className="h-12 w-12 animate-spin text-gray-600" />
-            </div>
-          )}
-          <div className="overflow-x-auto">
-            <table className="w-full overflow-x-auto md:table-auto">
-              <thead className="bg-gray-100 transition-all duration-300 ease-in-out dark:bg-zinc-800">
-                <tr>
-                  <td className="text-nowrap border border-gray-300 border-opacity-40 p-4 py-4 text-center text-sm text-gray-600 dark:border-zinc-600 dark:text-gray-300">
-                    #
-                  </td>
-                  <td className="text-nowrap border border-gray-300 border-opacity-40 p-4 py-4 text-center text-sm text-gray-600 dark:border-zinc-600 dark:text-gray-300">
-                    ตำแหน่งบริหาร
-                  </td>
-                  <td className="sticky right-0 text-nowrap border border-gray-300 border-opacity-40 bg-gray-100 p-4 py-4 text-center text-sm text-gray-600 transition-all duration-300 ease-in-out dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-300">
-                    จัดการ
-                  </td>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 bg-white transition-all duration-300 ease-in-out dark:divide-zinc-600 dark:bg-zinc-900">
-                {currentData.map((item: ExPosition, index) => (
-                  <tr
-                    key={item.ex_position_id}
-                    className="hover:bg-gray-50 dark:hover:bg-zinc-800"
-                  >
-                    <td className="text-md font-regular whitespace-nowrap border border-gray-300 border-opacity-40 p-4 text-center text-gray-600 dark:border-zinc-600 dark:text-gray-300">
-                      {(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
-                    </td>
-                    <td className="text-md whitespace-nowrap border border-gray-300 border-opacity-40 p-4 text-start font-light text-gray-500 dark:border-zinc-600 dark:text-gray-400">
-                      {item?.ex_position_name || '-'}
-                    </td>
-                    <td className="text-md sticky right-0 flex justify-center gap-2 whitespace-nowrap border border-gray-300 border-opacity-40 bg-white p-4 text-center font-light transition-all duration-300 ease-in-out dark:border-zinc-600 dark:bg-zinc-900">
-                      <label
-                        htmlFor={`modal-edit${item.ex_position_id}`}
-                        className="cursor-pointer rounded-md border-none border-yellow-500 p-1 text-yellow-500 transition duration-300 ease-in-out hover:bg-yellow-500 hover:text-white"
-                        onClick={() => {
-                          setSelectedExPositionId(item.ex_position_id)
-                          setSelectedExPositionName(item.ex_position_name)
-                        }}
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </label>
-                      <label
-                        htmlFor={`modal-delete${item.ex_position_id}`}
-                        className="cursor-pointer rounded-md border-none border-red-500 p-1 text-red-500 transition duration-300 ease-in-out hover:bg-red-500 hover:text-white"
-                        onClick={() => {
-                          setSelectedExPositionId(item.ex_position_id)
-                          setSelectedExPositionName(item.ex_position_name)
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </label>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="w-full pt-4 md:w-auto md:pt-0">
+            <label
+              htmlFor={`modal-create`}
+              className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-md bg-success px-4 py-2.5 text-sm font-light text-white transition duration-300 ease-in-out hover:bg-success/80 md:w-52"
+            >
+              เพิ่มตำแหน่งบริหาร
+              <Plus className="h-4 w-4" />
+            </label>
           </div>
         </div>
-        <div className="px-4">
-          <Pagination
-            ITEMS_PER_PAGE={ITEMS_PER_PAGE}
-            data={filteredExPosition}
-            currentData={currentData}
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-          />
-        </div>
       </div>
+
+      <Table
+        data={data}
+        columns={columns}
+        loading={loading}
+        total={total}
+        currentPage={page + 1}
+        totalPages={totalPages}
+        rowsPerPage={rowsPerPage}
+        onPageChange={(newPage) => handlePageChange(newPage - 1)}
+        onRowsPerPageChange={handleRowsPerPageChange}
+        emptyMessage={'ไม่พบข้อมูล'}
+        skeletonRows={rowsPerPage}
+        stickyColumns={1}
+        sortable={true}
+        sortState={sortState}
+        onSort={handleSort}
+        rowsPerPageOptions={[10, 20, 50, 100, 200]}
+      />
       <CreateModal
-        isLoading={expositionLoading}
+        isLoading={loading}
         handleSubmit={handleSubmit}
         formData={FormData}
         handleInputChange={handleInputChange}
       />
       <DeleteModal
-        isLoading={expositionLoading}
+        isLoading={loading}
         ex_position_id={selectedExPositionId}
         ex_position_name={selectedExPositionName}
         handleDelete={handleDelete}
       />
       <EditModal
-        isLoading={expositionLoading}
+        isLoading={loading}
         ex_position_id={selectedExPositionId}
         ex_position_name={selectedExPositionName}
         handleEdit={handleEdit}

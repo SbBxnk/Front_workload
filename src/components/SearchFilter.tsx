@@ -17,6 +17,7 @@ interface SearchFilterProps<T, K extends keyof T> {
   valueKey: K
   labelKey: K
   placeholder?: string
+  className?: string
 }
 
 export default function SearchFilter<T, K extends keyof T>({
@@ -26,6 +27,7 @@ export default function SearchFilter<T, K extends keyof T>({
   valueKey,
   labelKey,
   placeholder = 'ค้นหา',
+  className = '',
 }: SearchFilterProps<T, K>) {
   const options: Option[] = objects.map((obj) => ({
     value: String(obj[valueKey]),
@@ -50,7 +52,7 @@ export default function SearchFilter<T, K extends keyof T>({
       border: '2px solid',
       padding: '2px 4px',
       minHeight: '40px',
-      maxWidth: '200px', // จำกัดความกว้างสูงสุด
+      ...(className.includes('w-full') ? {} : { maxWidth: '200px' }), // จำกัดความกว้างเฉพาะเมื่อไม่ได้ส่ง w-full
     }),
     placeholder: (provided) => ({
       ...provided,
@@ -84,7 +86,12 @@ export default function SearchFilter<T, K extends keyof T>({
     }),
     menu: (provided) => ({
       ...provided,
-      maxWidth: '300px', // จำกัดความกว้างของ dropdown menu
+      maxWidth: '300px', 
+      zIndex: 99999, 
+    }),
+    menuPortal: (provided) => ({
+      ...provided,
+      zIndex: 99999, 
     }),
     menuList: (provided) => ({
       ...provided,
@@ -93,7 +100,7 @@ export default function SearchFilter<T, K extends keyof T>({
   }
 
   return (
-    <div className="w-full md:min-w-[200px] md:max-w-[200px] md:w-auto">
+    <div className={`w-full ${className.includes('w-full') ? '' : 'md:min-w-[200px] md:max-w-[200px] md:w-auto'}`}>
       <Select<Option, false>
         placeholder={placeholder}
         options={options}
@@ -113,6 +120,8 @@ export default function SearchFilter<T, K extends keyof T>({
         classNamePrefix="react-select"
         components={{ ClearIndicator: CustomClearIndicator }}
         styles={customStyles}
+        menuPortalTarget={document.body}
+        menuPosition="fixed"
       />
     </div>
   )

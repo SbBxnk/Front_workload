@@ -67,7 +67,7 @@ export default function EditModal({
     <div className="relative z-[100]">
       <input
         type="checkbox"
-        id={`modal-edit${course_id}`}
+        id={`modal-edit`}
         className="modal-toggle"
       />
       <div className="modal" role={`modal-edit${course_id}`}>
@@ -107,7 +107,7 @@ export default function EditModal({
                   value={editCourse}
                   onChange={(e) => setEditCourse(e.target.value)}
                   type="text"
-                  className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
+                  className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                   placeholder="กรุณากรอกหลักสูตร"
                 />
               </div>
@@ -120,15 +120,15 @@ export default function EditModal({
                 บันทึก
               </button>
               <label
-                htmlFor={`modal-edit${course_id}`}
-                className="text-md flex w-20 cursor-pointer items-center justify-center rounded-md border border-2 border-gray-200 bg-gray-200 px-4 py-2 text-gray-600 transition duration-300 ease-in-out hover:border-gray-300 hover:bg-gray-300 dark:border-zinc-700 dark:bg-zinc-700 dark:text-gray-400 dark:hover:border-zinc-600 dark:hover:bg-zinc-600"
+                htmlFor={`modal-edit`}
+                className="text-md flex w-20 cursor-pointer items-center justify-center rounded-md border-2 border-gray-200 bg-gray-200 px-4 py-2 text-gray-600 transition duration-300 ease-in-out hover:border-gray-300 hover:bg-gray-300 dark:border-zinc-700 dark:bg-zinc-700 dark:text-gray-400 dark:hover:border-zinc-600 dark:hover:bg-zinc-600"
               >
                 ยกเลิก
               </label>
             </div>
           </form>
         </div>
-        <label className="modal-backdrop" htmlFor={`modal-edit${course_id}`}>
+        <label className="modal-backdrop" htmlFor={`modal-edit`}>
           Close
         </label>
       </div>

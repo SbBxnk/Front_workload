@@ -90,7 +90,7 @@ function PrefixTable() {
               setSelectedPrefixName(row.prefix_name)
               // Trigger modal
               const modal = document.getElementById(
-                `modal-edit${row.prefix_id}`
+                `modal-edit`
               ) as HTMLInputElement
               if (modal) modal.checked = true
             }}
@@ -105,7 +105,7 @@ function PrefixTable() {
               setSelectedPrefixName(row.prefix_name)
               // Trigger modal
               const modal = document.getElementById(
-                `modal-delete${row.prefix_id}`
+                `modal-delete`
               ) as HTMLInputElement
               if (modal) modal.checked = true
             }}
