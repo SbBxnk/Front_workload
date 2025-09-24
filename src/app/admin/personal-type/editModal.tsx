@@ -1,71 +1,66 @@
-import { CircleHelp } from 'lucide-react'
+import { Users } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import type React from 'react'
 
 interface EditModalProps {
-  isLoading: boolean
-  prefix_id: number
-  prefix_name: string
+  type_p_id: number
+  type_p_name: string
   handleEdit: (
     e: React.FormEvent<HTMLFormElement> | React.MouseEvent,
-    prefix_id: number,
-    updatedPrefixName: string
+    type_p_id: number,
+    updatedTypePName: string
   ) => void
 }
 
 export default function EditModal({
-  isLoading,
-  prefix_id,
-  prefix_name,
+  type_p_id,
+  type_p_name,
   handleEdit,
 }: EditModalProps) {
-  const [editedPrefix, setEditedPrefix] = useState(prefix_name)
+  const [editTypePName, setEditTypePName] = useState(type_p_name)
   useEffect(() => {
-    setEditedPrefix(prefix_name)
-  }, [prefix_name])
-
-  if (isLoading) return null
+    setEditTypePName(type_p_name)
+  }, [type_p_name])
 
   return (
     <div className="relative z-[100]">
       <input
         type="checkbox"
-        id={`modal-edit`}
+        id="modal-edit"
         className="modal-toggle"
       />
-      <div className="modal" role={`modal-edit${prefix_id}`}>
+      <div className="modal" role="modal-edit">
         <div className="modal-box rounded-md dark:bg-zinc-800 p-0">
           <form
             onSubmit={(e) => {
               e.preventDefault()
-              handleEdit(e, prefix_id, editedPrefix)
+              handleEdit(e, type_p_id, editTypePName)
             }}
           >
             <div className="flex items-center border-b border-gray-200 p-4">
               <h3 className="font-regular flex truncate text-start text-2xl text-gray-600 dark:text-gray-400">
-                แก้ไขคำนำหน้า&nbsp;
+                แก้ไขประเภทบุคลากร&nbsp;
                 <span className="truncate font-semibold text-business1 dark:text-blue-500/80">
-                  {prefix_name}
+                  {type_p_name}
                 </span>
               </h3>
             </div>
             <div className="p-4">
               <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
-                คำนำหน้า
+                ประเภทบุคลากร
               </label>
               <input
-                name="prefix_name"
-                value={editedPrefix}
-                onChange={(e) => setEditedPrefix(e.target.value)}
+                name="type_p_name"
+                value={editTypePName}
+                onChange={(e) => setEditTypePName(e.target.value)}
                 type="text"
-                className="w-full rounded-md border border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
-                placeholder="กรุณากรอกคำนำหน้า"
+                className="w-full rounded-md border border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
+                placeholder="กรุณากรอกประเภทบุคลากร"
               />
             </div>
             <div className="flex justify-end gap-4 border-t border-gray-200 p-4">
-          
               <label
-                htmlFor={`modal-edit`}
+                htmlFor="modal-edit"
                 className="text-md z-50 flex h-10 w-20 cursor-pointer items-center justify-center rounded-md border-2 border-gray-200 bg-gray-200 px-4 text-gray-600 transition duration-300 ease-in-out hover:border-gray-300 hover:bg-gray-300 dark:border-zinc-700 dark:bg-zinc-700 dark:text-gray-400 dark:hover:border-zinc-600 dark:hover:bg-zinc-600"
               >
                 ยกเลิก
@@ -79,7 +74,7 @@ export default function EditModal({
             </div>
           </form>
         </div>
-        <label className="modal-backdrop" htmlFor={`modal-edit`}>
+        <label className="modal-backdrop" htmlFor="modal-edit">
           Close
         </label>
       </div>

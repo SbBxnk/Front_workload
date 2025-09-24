@@ -39,7 +39,7 @@ function SelectBranch({
           onClick={() =>
             setOpenDropdown(openDropdown === 'branch' ? null : 'branch')
           }
-          className="flex w-full items-center justify-between rounded-md border-2 border-gray-300 bg-white px-4 py-2 text-sm font-light text-gray-600 transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
+          className="flex w-full items-center justify-between rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-light text-gray-600 transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
         >
           {selectBranch === null
             ? 'เลือกสาขา'
@@ -50,7 +50,7 @@ function SelectBranch({
           />
         </button>
         {openDropdown === 'branch' && branches && (
-          <div className="absolute z-10 mt-2 max-h-36 w-full overflow-y-auto rounded-md border-2 border-gray-300 bg-white shadow-lg dark:border-zinc-600 dark:bg-zinc-900">
+          <div className="absolute z-10 mt-2 max-h-36 w-full overflow-y-auto rounded-md border border-gray-300 bg-white shadow-lg dark:border-zinc-600 dark:bg-zinc-900">
             {branches.map((branch) => (
               <div
                 key={branch.branch_id}

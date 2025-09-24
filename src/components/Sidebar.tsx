@@ -97,28 +97,13 @@ const adminMenuItems = [
     title: 'ข้อมูลมาสเตอร์',
     items: [
       { id: 1, label: 'คำนำหน้า', icon: CircleHelp, href: '/admin/prefix' },
-      {
-        id: 2,
-        label: 'ตำแหน่งวิชาการ',
-        icon: Armchair,
-        href: '/admin/position',
-      },
+      { id: 2, label: 'ตำแหน่งวิชาการ', icon: Armchair, href: '/admin/position' },
       { id: 3, label: 'ตำแหน่งบริหาร', icon: Sofa, href: '/admin/ex-position' },
       { id: 4, label: 'สาขา', icon: GraduationCap, href: '/admin/branch' },
       { id: 5, label: 'หลักสูตร', icon: LibraryBigIcon, href: '/admin/course' },
-      {
-        id: 6,
-        label: 'ประเภทบุคลากร',
-        icon: UserPen,
-        href: '/admin/personal-type',
-      },
-      {
-        id: 7,
-        label: 'ระดับผู้ใช้งาน',
-        icon: CircleUser,
-        href: '/admin/user-level',
-      },
-      { id: 8, label: 'รอบการประเมิน', icon: Calendar, href: '/admin/round' },
+      { id: 6, label: 'ประเภทบุคลากร', icon: UserPen,href: '/admin/personal-type' },
+      // { id: 7, label: 'ระดับผู้ใช้งาน', icon: CircleUser, href: '/admin/user-level' },
+      // { id: 8, label: 'รอบการประเมิน', icon: Calendar, href: '/admin/round' },
     ],
   },
   {

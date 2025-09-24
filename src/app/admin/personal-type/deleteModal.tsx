@@ -1,24 +1,21 @@
-import { CircleHelp } from 'lucide-react'
+import { Users } from 'lucide-react'
 import type React from 'react'
 
 interface DeleteModalProps {
-  isLoading: boolean
-  position_id: number
-  position_name: string
+  type_p_id: number
+  type_p_name: string
   handleDelete: (
     e: React.FormEvent<HTMLFormElement> | React.MouseEvent,
-    position_id: number,
-    position_name: string
+    type_p_id: number,
+    type_p_name: string
   ) => void
 }
 
 export default function DeleteModal({
-  isLoading,
-  position_id,
-  position_name,
+  type_p_id,
+  type_p_name,
   handleDelete,
 }: DeleteModalProps) {
-  if (isLoading) return null
   return (
     <div className="relative z-[100]">
       <input
@@ -31,14 +28,14 @@ export default function DeleteModal({
           <form
             onSubmit={(e) => {
               e.preventDefault()
-              handleDelete(e, position_id, position_name)
+              handleDelete(e, type_p_id, type_p_name)
             }}
           >
             <div className="flex items-center border-b border-gray-200 p-4">
               <h3 className="font-regular flex truncate text-start text-2xl text-gray-600 dark:text-gray-400">
-                ลบตำแหน่งวิชาการ&nbsp;
+                ลบประเภทบุคลากร&nbsp;
                 <span className="truncate font-semibold text-business1 dark:text-blue-500/80">
-                  {position_name}
+                  {type_p_name}
                 </span>
               </h3>
             </div>
@@ -54,7 +51,7 @@ export default function DeleteModal({
                 ยกเลิก
               </label>
               <button
-                onClick={(e) => handleDelete(e, position_id, position_name)}
+                onClick={(e) => handleDelete(e, type_p_id, type_p_name)}
                 className="text-md flex h-10 w-20 items-center justify-center text-nowrap rounded-md bg-red-500 px-4 text-white transition duration-300 ease-in-out hover:bg-red-500/80"
               >
                 ยืนยัน
@@ -62,10 +59,7 @@ export default function DeleteModal({
             </div>
           </form>
         </div>
-        <label
-          className="modal-backdrop"
-          htmlFor="modal-delete"
-        >
+        <label className="modal-backdrop" htmlFor="modal-delete">
           Close
         </label>
       </div>

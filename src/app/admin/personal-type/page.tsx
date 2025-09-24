@@ -2,40 +2,39 @@
 import type React from 'react'
 import { useEffect, useState } from 'react'
 import { Edit2, Plus, Trash2 } from 'lucide-react'
-import type { Branch, BranchSearchParams, ResponsePayload } from '@/Types'
+import type { PersonalType, PersonalTypeSearchParams, ResponsePayload } from '@/Types'
 import CreateModal from './createModal'
 import DeleteModal from './deleteModal'
 import { FiX } from 'react-icons/fi'
-import SearchFilter from '@/components/SearchFilter'
 import Swal from 'sweetalert2'
 import EditModal from './editModal'
-import BranchServices from '@/services/branchServices'
+import PersonalTypeServices from '@/services/personaltypeServices'
 import { useSession } from 'next-auth/react'
 import Table, { TableColumn, SortState, SortOrder } from '@/components/Table'
 
 const ITEMS_PER_PAGE = 10
 
-interface FormDataBranch {
-  branch_name: string
+interface FormDataPersonalType {
+  type_p_name: string
 }
 
-const FormDataBranch: FormDataBranch = {
-  branch_name: '',
+const FormDataPersonalType: FormDataPersonalType = {
+  type_p_name: '',
 }
 
 type Order = 'asc' | 'desc'
 
-function PositionTable() {
+function PersonalTypeTable() {
   const { data: session } = useSession()
-  const [FormData, setFormData] = useState<FormDataBranch>(FormDataBranch)
+  const [FormData, setFormData] = useState<FormDataPersonalType>(FormDataPersonalType)
   const [loading, setLoading] = useState<boolean>(false)
   const [order, setOrder] = useState<Order>('asc')
   const [orderBy, setOrderBy] = useState<string>('')
   const [page, setPage] = useState<number>(0)
   const [rowsPerPage, setRowsPerPage] = useState<number>(10)
   const [total, setTotal] = useState<number>(0)
-  const [data, setData] = useState<Branch[]>([])
-  const [params, setParams] = useState<BranchSearchParams>({
+  const [data, setData] = useState<PersonalType[]>([])
+  const [params, setParams] = useState<PersonalTypeSearchParams>({
     search: '',
     page: 1,
     limit: 10,
@@ -43,16 +42,16 @@ function PositionTable() {
     order: '',
   })
   const [searchInput, setSearchInput] = useState<string>('')
-  const [selectedBranch, setSelectedBranch] = useState<string>('')
-  const [selectedBranchId, setSelectedBranchId] = useState<number>(0)
-  const [selectedBranchName, setSelectedBranchName] = useState<string>('')
+  const [selectedPersonalType, setSelectedPersonalType] = useState<string>('')
+  const [selectedPersonalTypeId, setSelectedPersonalTypeId] = useState<number>(0)
+  const [selectedPersonalTypeName, setSelectedPersonalTypeName] = useState<string>('')
   const [sortState, setSortState] = useState<SortState>({
     column: null,
     order: null,
   })
 
   // Define table columns
-  const columns: TableColumn<Branch>[] = [
+  const columns: TableColumn<PersonalType>[] = [
     {
       key: 'index',
       label: '#',
@@ -65,8 +64,8 @@ function PositionTable() {
       ),
     },
     {
-      key: 'branch_name',
-      label: 'สาขา',
+      key: 'type_p_name',
+      label: 'ประเภทบุคลากร',
       align: 'left',
       sortable: true,
       render: (value) => (
@@ -80,14 +79,14 @@ function PositionTable() {
       label: 'จัดการ',
       width: '120px',
       align: 'center',
-      render: (_, row , index) => (
+      render: (_, record) => (
         <div className="w-full flex justify-center gap-2 p-0">
           <button
             type="button"
             className="cursor-pointer rounded-md p-1 text-yellow-500 transition duration-300 ease-in-out hover:bg-yellow-500 hover:text-white"
             onClick={() => {
-              setSelectedBranchId(row.branch_id)
-              setSelectedBranchName(row.branch_name)
+              setSelectedPersonalTypeId(record.type_p_id)
+              setSelectedPersonalTypeName(record.type_p_name)
               // Trigger modal
               const modal = document.getElementById(
                 `modal-edit`
@@ -101,8 +100,8 @@ function PositionTable() {
             type="button"
             className="cursor-pointer rounded-md p-1 text-red-500 transition duration-300 ease-in-out hover:bg-red-500 hover:text-white"
             onClick={() => {
-              setSelectedBranchId(row.branch_id)
-              setSelectedBranchName(row.branch_name)
+              setSelectedPersonalTypeId(record.type_p_id)
+              setSelectedPersonalTypeName(record.type_p_name)
               // Trigger modal
               const modal = document.getElementById(
                 `modal-delete`
@@ -117,54 +116,12 @@ function PositionTable() {
     },
   ]
 
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search)
-    const searchFromUrl = urlParams.get('search') || ''
-    const pageFromUrl = parseInt(urlParams.get('page') || '1', 10)
-    const limitFromUrl = parseInt(urlParams.get('limit') || '10', 10)
-    const sortFromUrl = urlParams.get('sort') || ''
-    const orderFromUrl = urlParams.get('order') || ''
-
-    setSearchInput(searchFromUrl)
-    setParams({
-      search: searchFromUrl,
-      page: pageFromUrl,
-      limit: limitFromUrl,
-      sort: sortFromUrl,
-      order: orderFromUrl,
-    })
-    if (sortFromUrl && orderFromUrl) {
-      setOrderBy(sortFromUrl)
-      setOrder(orderFromUrl as Order)
-    }
-  }, [])
-
-  const updateUrlParams = (params: {
-    search?: string
-    page?: number
-    limit?: number
-    sort?: string
-    order?: string
-  }) => {
-    const searchParams = new URLSearchParams()
-    if (params.search) searchParams.set('search', params.search)
-    if (params.page) searchParams.set('page', params.page.toString())
-    if (params.limit) searchParams.set('limit', params.limit.toString())
-    if (params.sort) {
-      searchParams.set('sort', params.sort)
-    }
-    if (params.order) {
-      searchParams.set('order', params.order)
-    }
-    window.history.replaceState({}, '', `?${searchParams.toString()}`)
-  }
-
-  const getBranches = async (
-    search: string,
-    limit: number | undefined,
-    page: number | undefined,
-    sort: string,
-    order: string,
+  const getPersonalTypes = async (
+    search: string = '',
+    limit: number = 10,
+    page: number = 1,
+    sort: string = '',
+    order: string = '',
     afterSuccess?: () => void
   ) => {
     setLoading(true)
@@ -174,29 +131,25 @@ function PositionTable() {
         throw new Error('No access token')
       }
 
-      const response = await BranchServices.getAllBranches(
-        session.accessToken,
-        {
-          search,
-          page: page ?? 1,
-          limit: limit ?? 10,
-          sort,
-          order,
-        }
-      )
+      const response = await PersonalTypeServices.getAllPersonalTypes(session.accessToken, {
+        search,
+        page,
+        limit,
+        sort,
+        order,
+      })
 
       if (response.success) {
+        const responseData = response.payload || []
         const responseMeta = response.meta
-        
-        console.log('Branch API Response:', response)
-        console.log('Branch Response Meta:', responseMeta)
-        
+
+
+        setTotal(responseMeta?.total_rows || 0)
         if (responseMeta) {
-          setTotal(responseMeta.total_rows)
           setPage(responseMeta.page - 1)
           setRowsPerPage(responseMeta.limit)
         }
-        setData(response.payload || [])
+        setData(responseData)
       } else {
         setData([])
         setTotal(0)
@@ -207,6 +160,9 @@ function PositionTable() {
       }
     } catch (error) {
       console.error('Error fetching data:', error)
+      setData([])
+      setTotal(0)
+      setPage(0)
     } finally {
       setLoading(false)
       updateUrlParams({
@@ -234,7 +190,7 @@ function PositionTable() {
   // Fetch data when params change
   useEffect(() => {
     if (session?.accessToken) {
-      getBranches(
+      getPersonalTypes(
         params.search || '',
         params.limit,
         params.page,
@@ -251,63 +207,74 @@ function PositionTable() {
     session?.accessToken,
   ])
 
-  const clearSearch = () => {
-    setSearchInput('')
+
+
+  const updateUrlParams = (newParams: any) => {
+    const url = new URL(window.location.href)
+    Object.keys(newParams).forEach((key) => {
+      if (newParams[key]) {
+        url.searchParams.set(key, newParams[key])
+      } else {
+        url.searchParams.delete(key)
+      }
+    })
+    window.history.replaceState({}, '', url.toString())
+  }
+
+  const handleSort = (column: string) => {
+    const newOrder = sortState.column === column && sortState.order === 'asc' ? 'desc' : 'asc'
+    setSortState({ column, order: newOrder })
+    setParams((prev) => ({
+      ...prev,
+      sort: column,
+      order: newOrder,
+      page: 1,
+    }))
   }
 
   const handlePageChange = (newPage: number) => {
-    setPage(newPage)
     setParams((prev) => ({
       ...prev,
       page: newPage + 1,
     }))
   }
 
-  const handleSort = (column: string, order: SortOrder) => {
-    setSortState({ column, order })
-    setParams((prev) => ({
-      ...prev,
-      sort: order ? column : '',
-      order: order || '',
-      page: 1, // Reset to first page when sorting
-    }))
-    setPage(0) // Reset page to 0 (display page 1)
-  }
-
   const handleRowsPerPageChange = (newRowsPerPage: number) => {
-    setRowsPerPage(newRowsPerPage)
     setParams((prev) => ({
       ...prev,
       limit: newRowsPerPage,
-      page: 1, // Reset to first page when changing rows per page
+      page: 1,
     }))
-    setPage(0) // Reset page to 0 (display page 1)
   }
 
-  const handleBranchSelect = (value: string) => {
-    setSelectedBranch(value)
+  const clearSearch = () => {
+    setSearchInput('')
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }))
   }
 
   const handleSubmit = async (
     e: React.FormEvent<HTMLFormElement> | React.MouseEvent,
-    branch_name: string
+    type_p_name: string
   ) => {
+    e.preventDefault()
     setLoading(true)
     try {
       if (!session?.accessToken) throw new Error('No access token')
-      const response = await BranchServices.createBranch(
-        { branch_name },
+      const response = await PersonalTypeServices.createPersonalType(
+        { type_p_name },
         session.accessToken
       )
 
       if (response && (response as any).status === true) {
-        setFormData(FormDataBranch)
-        getBranches(
+        setFormData(FormDataPersonalType)
+        getPersonalTypes(
           params.search || '',
           params.limit,
           1, // Reset to first page
@@ -318,21 +285,21 @@ function PositionTable() {
           position: 'center',
           icon: 'success',
           title: 'สำเร็จ!',
-          text: `เพิ่มสาขา ${branch_name} สำเร็จ!`,
+          text: `เพิ่มประเภทบุคลากร ${type_p_name} สำเร็จ!`,
           showConfirmButton: false,
           timer: 1500,
         })
       } else {
-        throw new Error('ไม่สามารถสร้างสาขาได้')
+        throw new Error('ไม่สามารถสร้างประเภทบุคลากรได้')
       }
     } catch (error) {
-      console.error('Error adding branchs:', error)
+      console.error('Error adding personal type:', error)
       setLoading(false)
       Swal.fire({
         position: 'center',
         icon: 'error',
         title: 'เกิดข้อผิดพลาด!',
-        text: 'เกิดข้อผิดพลาดในการเพิ่มสาขา',
+        text: 'เกิดข้อผิดพลาดในการเพิ่มประเภทบุคลากร',
         showConfirmButton: false,
         timer: 1500,
       })
@@ -341,14 +308,14 @@ function PositionTable() {
 
   const handleDelete = async (
     e: React.FormEvent<HTMLFormElement> | React.MouseEvent,
-    branch_id: number,
-    branch_name: string
+    type_p_id: number,
+    type_p_name: string
   ) => {
     e.preventDefault()
     setLoading(true)
     try {
       if (!session?.accessToken) throw new Error('No access token')
-      await BranchServices.deleteBranch(branch_id, session.accessToken)
+      await PersonalTypeServices.deletePersonalType(type_p_id, session.accessToken)
 
       // Reset to page 1 and fetch new data
       setPage(0)
@@ -357,7 +324,7 @@ function PositionTable() {
         page: 1,
       }))
       
-      getBranches(
+      getPersonalTypes(
         params.search || '',
         params.limit,
         1, // Reset to page 1
@@ -368,18 +335,18 @@ function PositionTable() {
       Swal.fire({
         icon: 'success',
         title: 'ลบสำเร็จ!',
-        text: `ลบสาขา ${branch_name} สำเร็จ!`,
+        text: `ลบประเภทบุคลากร ${type_p_name} สำเร็จ!`,
         showConfirmButton: false,
         timer: 1500,
       })
     } catch (error) {
-      console.error('Error deleting branch:', error)
+      console.error('Error deleting personal type:', error)
       setLoading(false)
 
       Swal.fire({
         icon: 'error',
         title: 'เกิดข้อผิดพลาด!',
-        text: 'เกิดข้อผิดพลาดในการลบสาขา',
+        text: 'เกิดข้อผิดพลาดในการลบประเภทบุคลากร',
         showConfirmButton: false,
         timer: 1500,
       })
@@ -388,21 +355,21 @@ function PositionTable() {
 
   const handleEdit = async (
     e: React.FormEvent<HTMLFormElement> | React.MouseEvent,
-    branch_id: number,
-    branch_name: string
+    type_p_id: number,
+    updatedTypePName: string
   ) => {
     e.preventDefault()
     setLoading(true)
     try {
       if (!session?.accessToken) throw new Error('No access token')
-      const response = await BranchServices.updateBranch(
-        branch_id,
-        { branch_name },
+      const response = await PersonalTypeServices.updatePersonalType(
+        type_p_id,
+        { type_p_name: updatedTypePName },
         session.accessToken
       )
 
       if (response && (response as any).status === true) {
-        getBranches(
+        getPersonalTypes(
           params.search || '',
           params.limit,
           params.page,
@@ -413,21 +380,21 @@ function PositionTable() {
         Swal.fire({
           icon: 'success',
           title: 'แก้ไขสำเร็จ!',
-          text: `แก้ไขสาขา ${branch_name} สำเร็จ!`,
+          text: `แก้ไขประเภทบุคลากร ${updatedTypePName} สำเร็จ!`,
           showConfirmButton: false,
           timer: 1500,
         })
       } else {
-        throw new Error('ไม่สามารถแก้ไขสาขาได้')
+        throw new Error('ไม่สามารถแก้ไขประเภทบุคลากรได้')
       }
     } catch (error) {
-      console.error('Error updating branch:', error)
+      console.error('Error updating personal type:', error)
       setLoading(false)
 
       Swal.fire({
         icon: 'error',
         title: 'เกิดข้อผิดพลาด!',
-        text: 'เกิดข้อผิดพลาดในการแก้ไขสาขา',
+        text: 'เกิดข้อผิดพลาดในการแก้ไขประเภทบุคลากร',
         showConfirmButton: false,
         timer: 1500,
       })
@@ -436,8 +403,8 @@ function PositionTable() {
 
   const totalPages = Math.ceil(total / rowsPerPage)
   const selectedLabel =
-    data.find((pos) => pos.branch_name === selectedBranch)?.branch_name ||
-    'เลือกสาขา'
+    data.find((pos) => pos.type_p_name === selectedPersonalType)?.type_p_name ||
+    'เลือกประเภทบุคลากร'
 
   return (
     <div className="rounded-md bg-white p-4 shadow transition-all duration-300 ease-in-out dark:bg-zinc-900 dark:text-gray-400">
@@ -455,7 +422,7 @@ function PositionTable() {
           <div className="relative flex w-full items-center md:w-52">
             <input
               className="w-full rounded-md border border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
-              placeholder="ค้นหาด้วยชื่อสาขา"
+              placeholder="ค้นหาด้วยชื่อประเภทบุคลากร"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
             />
@@ -473,7 +440,7 @@ function PositionTable() {
               htmlFor={`modal-create`}
               className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-md bg-success px-4 py-2.5 text-sm font-light text-white transition duration-300 ease-in-out hover:bg-success/80 md:w-52"
             >
-              เพิ่มสาขา
+              เพิ่มประเภทบุคลากร
               <Plus className="h-4 w-4" />
             </label>
           </div>
@@ -506,19 +473,17 @@ function PositionTable() {
         handleInputChange={handleInputChange}
       />
       <DeleteModal
-        isLoading={loading}
-        branch_id={selectedBranchId}
-        branch_name={selectedBranchName}
+        type_p_id={selectedPersonalTypeId}
+        type_p_name={selectedPersonalTypeName}
         handleDelete={handleDelete}
       />
       <EditModal
-        isLoading={loading}
-        branch_id={selectedBranchId}
-        branch_name={selectedBranchName}
+        type_p_id={selectedPersonalTypeId}
+        type_p_name={selectedPersonalTypeName}
         handleEdit={handleEdit}
       />
     </div>
   )
 }
 
-export default PositionTable
+export default PersonalTypeTable

@@ -758,7 +758,7 @@ function PersonalListTable() {
           <div className="flex items-center gap-4">
             <div className="relative flex w-full items-center sm:w-52">
               <input
-                className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
+                className="w-full rounded-md border border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                 placeholder="ค้นหาชื่อ, สาขา, หลักสูตร, เลขบัตร, อีเมล"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
@@ -775,7 +775,7 @@ function PersonalListTable() {
 
             <button
               onClick={openFilterDialog}
-              className="relative flex items-center gap-2 rounded-md border-2 border-business1 px-4 py-2 text-sm font-light text-business1 transition duration-300 ease-in-out hover:bg-business1 hover:text-white dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-400"
+              className="relative flex items-center gap-2 rounded-md border border-business1 px-4 py-2 text-sm font-light text-business1 transition duration-300 ease-in-out hover:bg-business1 hover:text-white dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-400"
             >
               <FiFilter className="h-4 w-4" />
               ตัวกรอง
@@ -798,7 +798,7 @@ function PersonalListTable() {
 
             <button
               onClick={clearAllFilters}
-              className="flex items-center gap-2 rounded-md border-2 border-red-500 px-4 py-2 text-sm font-light text-red-500 transition duration-300 ease-in-out hover:bg-red-500 hover:text-white dark:border-red-400 dark:text-red-400 dark:hover:bg-red-400"
+              className="flex items-center gap-2 rounded-md border border-red-500 px-4 py-2 text-sm font-light text-red-500 transition duration-300 ease-in-out hover:bg-red-500 hover:text-white dark:border-red-400 dark:text-red-400 dark:hover:bg-red-400"
             >
               <LuDelete className="h-4 w-4" />
               ล้างตัวกรอง

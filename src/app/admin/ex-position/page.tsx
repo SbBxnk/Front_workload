@@ -441,7 +441,7 @@ function PositionTable() {
         <div className="flex items-center justify-end gap-4">
           <div className="relative flex w-full items-center md:w-52">
             <input
-              className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
+              className="w-full rounded-md border border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
               placeholder="ค้นหาด้วยชื่อตำแหน่งบริหาร"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}

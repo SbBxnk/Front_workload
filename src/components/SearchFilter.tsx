@@ -49,7 +49,7 @@ export default function SearchFilter<T, K extends keyof T>({
       fontWeight: '300',
       color: '#d1d5db',
       borderRadius: '0.375rem',
-      border: '2px solid',
+      border: '1px solid',
       padding: '2px 4px',
       minHeight: '40px',
       ...(className.includes('w-full') ? {} : { maxWidth: '200px' }), // จำกัดความกว้างเฉพาะเมื่อไม่ได้ส่ง w-full

@@ -1,17 +1,17 @@
 import type React from 'react'
-import { GraduationCap } from 'lucide-react'
+import { Users } from 'lucide-react'
 
-interface FormDataBranch {
-  branch_name: string
+interface FormDataPersonalType {
+  type_p_name: string
 }
 
 interface CreateModalProps {
   isLoading: boolean
   handleSubmit: (
     e: React.FormEvent<HTMLFormElement> | React.MouseEvent,
-    branch_name: string
+    type_p_name: string
   ) => void
-  formData: FormDataBranch
+  formData: FormDataPersonalType
   handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void
 }
 
@@ -28,23 +28,23 @@ export default function CreateModal({
           <input type="checkbox" id={`modal-create`} className="modal-toggle" />
           <div className="modal" role={`modal-create`}>
             <div className="modal-box rounded-md dark:bg-zinc-800 p-0">
-              <form onSubmit={(e) => handleSubmit(e, formData.branch_name)}>
+              <form onSubmit={(e) => handleSubmit(e, formData.type_p_name)}>
                 <div className="flex items-center border-b border-gray-200 p-4">
                   <h3 className="font-regular flex truncate text-start text-2xl text-gray-600 dark:text-gray-400">
-                    เพิ่มสาขา&nbsp;
+                    เพิ่มประเภทบุคลากร&nbsp;
                   </h3>
                 </div>
                 <div className="p-4">
                   <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
-                    สาขา
+                    ประเภทบุคลากร
                   </label>
                   <input
-                    name="branch_name"
-                    value={formData.branch_name}
+                    name="type_p_name"
+                    value={formData.type_p_name}
                     onChange={handleInputChange}
                     type="text"
                     className="w-full rounded-md border border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
-                    placeholder="กรุณากรอกสาขา"
+                    placeholder="กรุณากรอกประเภทบุคลากร"
                   />
                 </div>
                 <div className="flex justify-end gap-4 border-t border-gray-200 p-4">
