@@ -261,29 +261,55 @@ export default function ResetPassword() {
                         <label className="text-md block font-medium text-gray-500">
                         รหัสผ่าน
                         </label>
-                        <input
-                          className="text-md w-full transform rounded-md border border-gray-300 px-4 py-2 font-light shadow-sm transition duration-300 ease-in-out hover:border-blue-300 focus:outline-blue-300"
-                          placeholder="รหัสผ่าน"
-                          type={showPassword ? 'text' : 'password'}
-                          name="password"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          required
-                        />
+                        <div className="relative">
+                          <input
+                            className="text-md w-full transform rounded-md border border-gray-300 px-4 py-2 pr-10 font-light shadow-sm transition duration-300 ease-in-out hover:border-blue-300 focus:outline-blue-300"
+                            placeholder="รหัสผ่าน"
+                            type={showPassword ? 'text' : 'password'}
+                            name="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-5 w-5" />
+                            ) : (
+                              <Eye className="h-5 w-5" />
+                            )}
+                          </button>
+                        </div>
                       </div>
                       <div className="space-y-2">
                         <label className="text-md block font-medium text-gray-500">
                           ยืนยันรหัสผ่าน
                         </label>
-                        <input
-                          className="text-md w-full transform rounded-md border border-gray-300 px-4 py-2 font-light shadow-sm transition duration-300 ease-in-out hover:border-blue-300 focus:outline-blue-300"
-                          placeholder="ยืนยันรหัสผ่าน"
-                          type={showConfirmPassword ? 'text' : 'password'}
-                          name="confirmPassword"
-                          value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
-                          required
-                        />
+                        <div className="relative">
+                          <input
+                            className="text-md w-full transform rounded-md border border-gray-300 px-4 py-2 pr-10 font-light shadow-sm transition duration-300 ease-in-out hover:border-blue-300 focus:outline-blue-300"
+                            placeholder="ยืนยันรหัสผ่าน"
+                            type={showConfirmPassword ? 'text' : 'password'}
+                            name="confirmPassword"
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                          >
+                            {showConfirmPassword ? (
+                              <EyeOff className="h-5 w-5" />
+                            ) : (
+                              <Eye className="h-5 w-5" />
+                            )}
+                          </button>
+                        </div>
                       </div>
                       <button
                         type="submit"

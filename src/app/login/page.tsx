@@ -9,6 +9,7 @@ import Link from 'next/link'
 import Cookies from 'js-cookie'
 import { useSession, signIn } from 'next-auth/react'
 import AuthService from '@/services/authService'
+import { Eye, EyeOff } from 'lucide-react'
 export default function Login() {
   const router = useRouter()
   const { data: session, status } = useSession()
@@ -16,6 +17,7 @@ export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   useEffect(() => {
     console.log('Login page - Status:', status, 'Session:', session)
@@ -301,15 +303,28 @@ export default function Login() {
                         <label className="text-md block font-medium text-gray-500">
                           รหัสผ่าน
                         </label>
-                        <input
-                          className="text-md w-full transform rounded-md border border-gray-300 px-4 py-2 font-light shadow-sm transition duration-300 ease-in-out hover:border-blue-300 focus:outline-blue-300"
-                          placeholder="รหัสผ่าน"
-                          type="password"
-                          name="password"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          required
-                        />
+                        <div className="relative">
+                          <input
+                            className="text-md w-full transform rounded-md border border-gray-300 px-4 py-2 pr-10 font-light shadow-sm transition duration-300 ease-in-out hover:border-blue-300 focus:outline-blue-300"
+                            placeholder="รหัสผ่าน"
+                            type={showPassword ? 'text' : 'password'}
+                            name="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-5 w-5" />
+                            ) : (
+                              <Eye className="h-5 w-5" />
+                            )}
+                          </button>
+                        </div>
                       </div>
                       <div className="space-y-2">
                         <div className="flex items-center justify-between gap-2">
