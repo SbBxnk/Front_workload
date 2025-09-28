@@ -516,7 +516,7 @@ export default function ExDetailsPage() {
 
   const handleSetExUser = (set_asses_list_id: number, assessor: Assessor) => {
     router.push(
-      `/admin/set-assessor/${round_list_id}/${set_asses_list_id}?prefix=${encodeURIComponent(assessor.prefix_name)}&fname=${encodeURIComponent(assessor.u_fname)}&lname=${encodeURIComponent(assessor.u_lname)}`
+      `/admin/set-assessor/${round_list_id}/assessor/${set_asses_list_id}`
     )
   }
 

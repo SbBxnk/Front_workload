@@ -189,7 +189,7 @@ function Table<T extends Record<string, any>>({
                 <tr>
                   <td colSpan={columns.length} className="p-8 text-center">
                     <div className="text-gray-500 dark:text-gray-400 flex justify-center items-center h-40">
-                      <div className="mb-2 text-xs font-light">{emptyMessage}</div>
+                      <div className="mb-2 text-md font-light">{emptyMessage}</div>
                     </div>
                   </td>
                 </tr>
