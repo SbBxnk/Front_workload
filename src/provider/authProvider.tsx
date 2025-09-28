@@ -8,6 +8,7 @@ import type React from 'react'
 import { jwtDecode } from 'jwt-decode'
 import axios from 'axios'
 import type { DecodedToken } from '@/Types'
+// import AssessorService from '@/services/assessorService' // ไม่ใช้แล้ว เพราะใช้ global context
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -64,6 +65,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUserRole(decodedToken.level_name)
       setIsAuthenticated(true)
       checkAuthorization(decodedToken.level_name, pathname)
+      
+      // assessor status จะถูกจัดการโดย AssessorProvider แล้ว
     } catch (error) {
       console.error('Invalid token:', error)
       signOut({ callbackUrl: '/login' })
@@ -110,6 +113,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsAuthorized(true)
     }
   }
+
+  // checkAssessorStatus function removed - now handled by AssessorProvider
 
   if (!isAuthenticated || !isAuthorized) {
     return null

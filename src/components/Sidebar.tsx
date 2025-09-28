@@ -28,6 +28,7 @@ import {
   ClipboardCheck,
 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
+import { useAssessor } from '@/hooks/useAssessor'
 
 interface DecodedToken {
   level_name: string
@@ -164,9 +165,11 @@ export default function Sidebar({ OpenSidebar, setOpenSidebar }: SidebarProps) {
   const pathname = usePathname()
   const { data: session } = useSession()
   const [menuItems, setMenuItems] = useState(adminMenuItems)
-  const [, setIsAssessor] = useState(false)
   const router = useRouter()
   const [loading, setLoading] = useState(true)
+  
+  // ใช้ hook สำหรับจัดการ assessor data
+  const { isAssessor, loading: assessorLoading } = useAssessor()
 
   useEffect(() => {
     const token = session?.accessToken
@@ -174,126 +177,27 @@ export default function Sidebar({ OpenSidebar, setOpenSidebar }: SidebarProps) {
       try {
         const decoded: DecodedToken = jwtDecode(token)
 
-        const checkIfAssessor = async () => {
-          try {
-            const headers = {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            }
-
-            const checkAssessorResponse = await fetch(
-              `${process.env.NEXT_PUBLIC_API}/check_assessor/${decoded.id}`,
-              {
-                headers,
-              }
-            )
-            const assessorCheckData = await checkAssessorResponse.json()
-            const userIsAssessor = assessorCheckData.data || false
-
-            setIsAssessor(userIsAssessor)
-
-            if (decoded.level_name === 'ผู้ดูแลระบบ') {
-              setMenuItems(adminMenuItems)
-            } else if (decoded.level_name === 'ผู้ใช้งานทั่วไป') {
-              if (userIsAssessor) {
-                setMenuItems([...baseUserMenuItems, assessorMenuItem])
-              } else {
-                setMenuItems(baseUserMenuItems)
-              }
-            }
-          } catch (error) {
-            console.error('Error checking if user is an assessor:', error)
-            if (decoded.level_name === 'ผู้ดูแลระบบ') {
-              setMenuItems(adminMenuItems)
-            } else if (decoded.level_name === 'ผู้ใช้งานทั่วไป') {
-              setMenuItems(baseUserMenuItems)
-            }
-          } finally {
-            setLoading(false)
+        // ใช้ข้อมูลจาก useAssessor hook แทนการเรียก API
+        if (decoded.level_name === 'ผู้ดูแลระบบ') {
+          setMenuItems(adminMenuItems)
+        } else if (decoded.level_name === 'ผู้ใช้งานทั่วไป') {
+          if (isAssessor) {
+            setMenuItems([...baseUserMenuItems, assessorMenuItem])
+          } else {
+            setMenuItems(baseUserMenuItems)
           }
         }
-
-        checkIfAssessor()
+        
+        setLoading(false)
       } catch (error) {
         console.error('Invalid token', error)
+        setLoading(false)
       }
     }
-  }, [session])
+  }, [session, isAssessor])
 
-  useEffect(() => {
-    const token = session?.accessToken
-    if (token) {
-      try {
-        const decoded: DecodedToken = jwtDecode(token)
-
-        if (typeof window !== 'undefined') {
-          const checkCurrentRound = async () => {
-            try {
-              const headers = {
-                Authorization: `Bearer ${token}`,
-                'Content-Type': 'application/json',
-              }
-
-              const responseRounds = await fetch(
-                `${process.env.NEXT_PUBLIC_API}/set_assessor_round`,
-                {
-                  headers,
-                }
-              )
-              const roundsData = await responseRounds.json()
-
-              const fetchedRounds = roundsData.data || []
-
-              const currentDate = new Date()
-              const activeRound = fetchedRounds.find((round: Round) => {
-                const startDate = new Date(round.date_start)
-                const endDate = new Date(round.date_end)
-                return currentDate >= startDate && currentDate <= endDate
-              })
-
-              if (activeRound) {
-                const assessorResponse = await fetch(
-                  `${process.env.NEXT_PUBLIC_API}/set_assessor/${activeRound.round_list_id}`,
-                  { headers }
-                )
-                const assessorData = await assessorResponse.json()
-
-                const isAssessorForRound = (assessorData.data || []).some(
-                  (assessor: Assessor) => assessor.as_u_id === decoded.id
-                )
-
-                console.log(
-                  'User ID:',
-                  decoded.id,
-                  'Is assessor for current round:',
-                  isAssessorForRound
-                )
-
-                const workloadResponse = await fetch(
-                  `${process.env.NEXT_PUBLIC_API}/workload_form/check_workload_group/${decoded.id}`,
-                  { headers }
-                )
-                const workloadData = await workloadResponse.json()
-
-                if (workloadData.data && workloadData.data[0]) {
-                }
-              } else {
-              
-              }
-            } catch (error) {
-              console.error('Error fetching data:', error)
-            } finally {
-              setLoading(false)
-            }
-          }
-
-          checkCurrentRound()
-        }
-      } catch (error) {
-        console.error('Invalid token', error)
-      }
-    }
-  }, [])
+  // useEffect สำหรับ check current round (ถ้าต้องการ)
+  // ตอนนี้ใช้ข้อมูลจาก useAssessor hook แทน
 
 
   return (

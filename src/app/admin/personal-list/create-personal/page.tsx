@@ -486,7 +486,7 @@ export default function CreatePersonal() {
                           value={formData.u_fname}
                           onChange={handleInputChange}
                           type="text"
-                          className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
+                          className="w-full rounded-md border border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                           placeholder="กรอกชื่อ"
                         />
                       </div>
@@ -499,7 +499,7 @@ export default function CreatePersonal() {
                           value={formData.u_lname}
                           onChange={handleInputChange}
                           type="text"
-                          className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
+                          className="w-full rounded-md border border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                           placeholder="กรอกนามสกุล"
                         />
                       </div>
@@ -512,7 +512,7 @@ export default function CreatePersonal() {
                           value={formData.age}
                           onChange={handleInputChange}
                           type="number"
-                          className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
+                          className="w-full rounded-md border border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                           placeholder="กรอกอายุ"
                           min="0"
                           step="0.01"
@@ -540,7 +540,7 @@ export default function CreatePersonal() {
                       value={formData.u_id_card}
                       onChange={handleInputChange}
                       type="text"
-                      className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
+                      className="w-full rounded-md border border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                       placeholder="6564XXXXXXX-X"
                     />
                   </div>
@@ -628,7 +628,7 @@ export default function CreatePersonal() {
                       value={formData.work_start}
                       onChange={handleInputChange}
                       type="date"
-                      className="w-full rounded-md border-2 border-gray-300 px-4 py-[7px] text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
+                      className="w-full rounded-md border border-gray-300 px-4 py-[7px] text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                       placeholder="กรอกวันรับราชการ"
                     />
                   </div>
@@ -719,7 +719,7 @@ export default function CreatePersonal() {
                       value={formData.salary}
                       onChange={handleInputChange}
                       type="number"
-                      className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
+                      className="w-full rounded-md border border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                       placeholder="กรอกจำนวนเงินเดือน"
                       min="0"
                       step="0.01"
@@ -735,7 +735,7 @@ export default function CreatePersonal() {
                       value={formData.u_tel}
                       onChange={handleInputChange}
                       type="number"
-                      className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
+                      className="w-full rounded-md border border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                       placeholder="กรอกเบอร์โทรศัพท์"
                     />
                   </div>
@@ -748,7 +748,7 @@ export default function CreatePersonal() {
                       value={formData.u_email}
                       onChange={handleInputChange}
                       type="text"
-                      className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
+                      className="w-full rounded-md border border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                       placeholder="example.live.rmutl.ac.th"
                     />
                   </div>
@@ -761,7 +761,7 @@ export default function CreatePersonal() {
                       value={formData.u_pass}
                       onChange={handleInputChange}
                       type="password"
-                      className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
+                      className="w-full rounded-md border border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                       placeholder="กรอกรหัสผ่าน"
                     />
                   </div>

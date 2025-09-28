@@ -3,6 +3,7 @@ import localFont from 'next/font/local'
 import './globals.css'
 import { SessionProvider } from '@/components/SessionProvider'
 import ReduxProvider from '@/provider/reduxProvider'
+import { AssessorProvider } from '@/contexts/AssessorContext'
 
 const geistSans = localFont({
   src: './fonts/GeistVF.woff',
@@ -31,7 +32,11 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ReduxProvider>
-          <SessionProvider>{children}</SessionProvider>
+          <SessionProvider>
+            <AssessorProvider>
+              {children}
+            </AssessorProvider>
+          </SessionProvider>
         </ReduxProvider>
       </body>
     </html>

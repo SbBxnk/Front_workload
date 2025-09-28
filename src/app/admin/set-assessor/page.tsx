@@ -12,6 +12,7 @@ import { useSession } from 'next-auth/react'
 import Table, { TableColumn, SortState } from '@/components/Table'
 import SearchFilter from '@/components/SearchFilter'
 import SetAssessorServices, { RoundList, CreateRoundListRequest, UpdateRoundListRequest } from '@/services/setAssessorServices'
+import useUtility from '@/hooks/useUtility'
 
 const ITEMS_PER_PAGE = 10
 
@@ -75,6 +76,7 @@ const isDateInRange = (startDate: string, endDate: string): boolean => {
 }
 
 function SetAssessor() {
+  const { setBreadcrumbs } = useUtility()
   const { data: session } = useSession()
   const router = useRouter()
   const [FormData, setFormData] = useState<FormDataRoundList>(FormRoundList)
@@ -98,15 +100,17 @@ function SetAssessor() {
   const [selectedRoundList, setSelectedRoundList] = useState<string>('')
   const [selectedRoundListId, setSelectedRoundListId] = useState<number>(0)
   const [selectedRoundListName, setSelectedRoundListName] = useState<string>('')
-  const [selectedRoundListYear, setSelectedRoundListYear] = useState<string>('')
-  const [selectedRoundListRound, setSelectedRoundListRound] = useState<number>(0)
-  const [selectedRoundListDateStart, setSelectedRoundListDateStart] = useState<string>('')
-  const [selectedRoundListDateEnd, setSelectedRoundListDateEnd] = useState<string>('')
   const [roundsWithAssessorData, setRoundsWithAssessorData] = useState<number[]>([])
   const [sortState, setSortState] = useState<SortState>({
     column: null,
     order: null,
   })
+
+  useEffect(() => {
+    setBreadcrumbs(
+      [{ text: 'รอบประเมินภาระงาน', path: '/admin/set-assessor' },
+    ])
+  }, [setBreadcrumbs])
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
@@ -335,6 +339,24 @@ function SetAssessor() {
     }
   }
 
+  const handleRoundChange = (round: number) => {
+    if (round === 0) {
+      // เมื่อกด X หรือล้างข้อมูล ให้ล้างข้อมูลทั้งหมด
+      setFormData({
+        round_list_id: 0,
+        round_list_name: '',
+        date_start: '',
+        date_end: '',
+        year: '',
+        round: 0,
+      })
+    } else {
+      setFormData((prev) => ({ ...prev, round }))
+    }
+  }
+
+  
+
   const handleSubmit = async (
     e: React.FormEvent<HTMLFormElement> | React.MouseEvent
   ) => {
@@ -527,17 +549,20 @@ function SetAssessor() {
                 type="button"
                 className="cursor-pointer rounded-md p-1 text-yellow-500 transition duration-300 ease-in-out hover:bg-yellow-500 hover:text-white"
                             onClick={() => {
+                  console.log('Edit button clicked for round_list_id:', record.round_list_id)
                   setSelectedRoundListId(record.round_list_id)
-                  setSelectedRoundListName(record.round_list_name)
-                  setSelectedRoundListYear(record.year)
-                  setSelectedRoundListRound(record.round)
-                  setSelectedRoundListDateStart(record.date_start)
-                  setSelectedRoundListDateEnd(record.date_end)
-                  // Trigger modal
-                  const modal = document.getElementById(
-                    `modal-edit`
-                  ) as HTMLInputElement
-                  if (modal) modal.checked = true
+                  // Use setTimeout to ensure state is updated before opening modal
+                  setTimeout(() => {
+                    const modal = document.getElementById(
+                      `modal-edit`
+                    ) as HTMLInputElement
+                    if (modal) {
+                      console.log('Opening edit modal')
+                      modal.checked = true
+                    } else {
+                      console.log('Modal element not found')
+                    }
+                  }, 0)
                             }}
                           >
                             <Edit2 className="h-4 w-4" />
@@ -700,6 +725,7 @@ function SetAssessor() {
             handleSubmit={handleSubmit}
             formData={FormData}
             handleInputChange={handleInputChange}
+            handleRoundChange={handleRoundChange}
           />
           <DeleteModal
             isLoading={loading}
@@ -711,11 +737,6 @@ function SetAssessor() {
             isLoading={loading}
             handleEdit={handleEdit}
             round_list_id={selectedRoundListId}
-            round_list_name={selectedRoundListName}
-            year={selectedRoundListYear}
-            round={selectedRoundListRound}
-            date_start={selectedRoundListDateStart}
-            date_end={selectedRoundListDateEnd}
           />
     </div>
   )

@@ -53,7 +53,7 @@ export interface UpdateUserRequest {
 }
 
 const UserServices = {
-  getAllUsers: (accessToken: string, param: UserSearchParams): Promise<any> => {
+  getAllUsers: (accessToken: string, param: UserSearchParams): Promise<ResponsePayload<Personal>> => {
     return http.get('/user', {
       headers: {
         Authorization: `Bearer ${accessToken}`,

@@ -63,9 +63,6 @@ function PersonalListTable() {
   const [selectedLevel, setSelectedLevel] = useState<string>('')
   const [selectedUserId, setSelectedUserId] = useState<number>(0)
   const [selectedUserName, setSelectedUserName] = useState<string>('')
-  const [selectedUserData, setSelectedUserData] = useState<Personal | null>(
-    null
-  )
   const [sortState, setSortState] = useState<SortState>({
     column: null,
     order: null,
@@ -406,7 +403,7 @@ function PersonalListTable() {
         gender: params.gender || '',
       })
 
-      if (response && response.status) {
+      if (response.success) {
         const responseMeta = response.meta
         if (responseMeta) {
           setTotal(responseMeta.total_rows)

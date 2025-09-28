@@ -188,8 +188,6 @@ function PositionTable() {
       if (response.success) {
         const responseMeta = response.meta
         
-        console.log('Branch API Response:', response)
-        console.log('Branch Response Meta:', responseMeta)
         
         if (responseMeta) {
           setTotal(responseMeta.total_rows)

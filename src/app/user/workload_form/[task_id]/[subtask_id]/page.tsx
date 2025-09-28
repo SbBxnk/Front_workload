@@ -481,7 +481,6 @@ function WorkloadSubtaskInfo() {
           },
         }
       )
-      console.log('API Response:', response.data)
 
       const apiForm: ApiFormData = response.data.data[0]
 

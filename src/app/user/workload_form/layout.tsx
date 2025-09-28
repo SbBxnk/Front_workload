@@ -6,6 +6,7 @@ import type { Terms, WorkloadGroup } from '@/Types'
 import useAuthHeaders from '@/hooks/Header'
 import { jwtDecode } from 'jwt-decode'
 import { useSession } from 'next-auth/react'
+import { useAssessor } from '@/hooks/useAssessor'
 import {
   Loader,
   CalendarClock,
@@ -78,7 +79,8 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const [, setRounds] = useState<Round[]>([])
   const [currentRound, setCurrentRound] = useState<Round | null>(null)
   const [loading, setLoading] = useState(true)
-  const [isUserAssessor, setIsUserAssessor] = useState(false)
+  // ใช้ useAssessor hook แทน state และ API call
+  const { isAssessor: isUserAssessor } = useAssessor()
   const [workloadGroupInfo, setWorkloadGroupInfo] =
     useState<CheckWorkloadGroupResponse | null>(null)
   const [userId, setUserId] = useState<number | null>(null)
@@ -156,23 +158,10 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
 
         setCurrentRound(activeRound || null)
 
-        if (activeRound && userId) {
-          try {
-            const assessorResponse = await axios.get(
-              `${process.env.NEXT_PUBLIC_API}/set_assessor/${activeRound.round_list_id}`,
-              { headers }
-            )
-            console.log(activeRound.round_list_id)
-            const assessorData = assessorResponse.data.data || []
-
-            // หาผู้ประเมินที่มีสิทธิ์ในรอบปัจจุบัน โดยจะต้องมีผู้ตรวจอย่างน้อย 1 คนถึงจะสามารถประเมินได้
-            const isAssessor = assessorData.some(
-              (assessor: Assessor) => assessor.as_u_id === userId
-            )
-            setIsUserAssessor(isAssessor)
-          } catch (error) {
-            console.error('Error fetching assessor data:', error)
-          }
+        // ใช้ข้อมูลจาก useAssessor hook แทนการเรียก API
+        // isUserAssessor จะถูกจัดการโดย useAssessor hook แล้ว
+        if (activeRound) {
+          console.log('Active round:', activeRound.round_list_id)
         } else {
           console.log('ไม่พบรอบการประเมินที่ตรงกับวันที่ปัจจุบัน')
         }

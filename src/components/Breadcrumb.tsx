@@ -41,7 +41,6 @@ export default function Breadcrumb() {
             },
           }
         )
-        console.log('API response:', response) // ตรวจสอบข้อมูลจาก API
         if (response.data && response.data.data.task_name) {
           setTaskName(response.data.data)
         } else {

@@ -65,7 +65,7 @@ export default function SelectDropdown({
       fontWeight: '300',
       color: '#d1d5db',
       borderRadius: '0.375rem',
-      border: '2px solid',
+      border: '1px solid',
       padding: '2px 4px',
     }),
     placeholder: (provided) => ({
@@ -117,6 +117,7 @@ export default function SelectDropdown({
         noOptionsMessage={() => noOptionsMessage()}
         theme={(theme) => ({
           ...theme,
+          fontSize: '14px',
           colors: {
             ...theme.colors,
             primary: '#3b82f6',

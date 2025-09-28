@@ -74,7 +74,6 @@ export default function Topbar({
             },
           }
         )
-        console.log('API response:', response)
         if (response.data && response.data.data.task_name) {
           setTaskName(response.data.data)
         } else {
