@@ -1,7 +1,8 @@
 'use client'
 import type React from 'react'
 import { useEffect, useState } from 'react'
-import { Edit2, Plus, Trash2 } from 'lucide-react'
+import { Edit2, Plus, Trash2, FileText } from 'lucide-react'
+
 import type { Personal, Position, Branch, Course, UserLevel, ExPosition } from '@/Types'
 import { UserSearchParams } from '@/services/userServices'
 import { FiFilter  } from 'react-icons/fi'
@@ -131,7 +132,7 @@ function PersonalListTable() {
           <img
             src={`/images/${row?.u_img || 'default.png'}`}
             alt="User Image"
-            className="h-10 w-10 rounded-full border-2 object-cover"
+            className="h-10 w-10 rounded-md border-2 object-cover"
           />
         </div>
       ),
@@ -271,16 +272,7 @@ function PersonalListTable() {
             type="button"
             className="cursor-pointer rounded-md p-1 text-yellow-500 transition duration-300 ease-in-out hover:bg-yellow-500 hover:text-white"
             onClick={() => {
-              setSelectedUserId(row.u_id)
-              setSelectedUserName(
-                `${row.prefix_name}${row.u_fname} ${row.u_lname}`
-              )
-              setSelectedUserData(row)
-              // Trigger modal
-              const modal = document.getElementById(
-                `modal-edit${row.u_id}`
-              ) as HTMLInputElement
-              if (modal) modal.checked = true
+              router.push(`/admin/personal-list/${row.u_id}/edit-personal`)
             }}
           >
             <Edit2 className="h-4 w-4" />
@@ -741,6 +733,60 @@ function PersonalListTable() {
   ]
 
 
+  const exportData = async () => {
+    if (!session?.accessToken) {
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: 'ไม่พบข้อมูลการเข้าสู่ระบบ',
+      })
+      return
+    }
+
+    try {
+      
+      Swal.fire({
+        title: 'กำลังส่งออกข้อมูล...',
+        text: 'กรุณารอสักครู่',
+        allowOutsideClick: false,
+        showConfirmButton: false,
+      })
+
+      // Wait for 3 seconds before calling the API
+      await new Promise(resolve => setTimeout(resolve, 3000))
+
+      // Call the export API
+      const blob = await UserServices.exportUsersToExcel(session.accessToken, params)
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `users_export_${new Date().toISOString().split('T')[0]}.xlsx`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+
+      // Show success message
+      Swal.fire({
+        icon: 'success',
+        title: 'ส่งออกข้อมูลสำเร็จ',
+        text: 'ไฟล์ Excel ได้ถูกดาวน์โหลดแล้ว',
+        timer: 2000,
+        showConfirmButton: false
+      })
+
+    } catch (error) {
+      console.error('Export error:', error)
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: 'ไม่สามารถส่งออกข้อมูลได้ กรุณาลองใหม่อีกครั้ง',
+      })
+    } finally {
+    }
+  }
   return (
     <div className="rounded-md bg-white p-4 shadow transition-all duration-300 ease-in-out dark:bg-zinc-900 dark:text-gray-400">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
@@ -805,6 +851,13 @@ function PersonalListTable() {
             </button>
           </div>
 
+          <button
+            onClick={exportData}
+            className="flex items-center gap-2 rounded-md border border-success px-4 py-2 text-sm font-light text-success transition duration-300 ease-in-out hover:bg-success hover:text-white dark:border-success dark:text-success dark:hover:bg-success"
+          >
+            ส่งออกข้อมูล
+            <FileText className="h-4 w-4" />
+          </button>
           <button
             onClick={createPersonal}
             className="flex w-full items-center justify-between gap-2 rounded-md bg-success px-4 py-2.5 text-sm font-light text-white transition duration-300 ease-in-out hover:bg-success/80 sm:w-52"

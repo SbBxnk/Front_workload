@@ -27,10 +27,11 @@ export default function SelectDropdown<T, K extends keyof T>({
   labelKey,
   placeholder = 'ค้นหา',
 }: SelectDropdownProps<T, K>) {
-  const options: Option[] = objects.map((obj) => ({
+  const options: Option[] = Array.isArray(objects) ? objects.map((obj) => ({
     value: Number(obj[valueKey]),
     label: String(obj[labelKey]),
-  }))
+  })) : []
+  
 
   const CustomClearIndicator = (props: ClearIndicatorProps<Option, false>) => {
     return (
@@ -47,7 +48,7 @@ export default function SelectDropdown<T, K extends keyof T>({
       fontWeight: '300',
       color: '#d1d5db',
       borderRadius: '0.375rem',
-      border: '2px solid',
+      border: '1px solid',
       padding: '0px 4px',
     }),
     placeholder: (provided) => ({
@@ -70,7 +71,7 @@ export default function SelectDropdown<T, K extends keyof T>({
   }
 
   return (
-    <div className="w-full md:w-52">
+    <div className="w-full h-10">
       <Select<Option, false>
         placeholder={placeholder}
         options={options}
@@ -85,7 +86,7 @@ export default function SelectDropdown<T, K extends keyof T>({
         value={
           selectedLabel
             ? options.find(
-                (option) => option.value.toString() === selectedLabel
+                (option) => option.label === selectedLabel
               )
             : null
         }

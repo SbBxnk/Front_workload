@@ -27,7 +27,6 @@ export default function Breadcrumb() {
   useEffect(() => {
     const fetchTaskName = async () => {
       if (!task_id || !session?.accessToken) {
-        console.log('Task ID or session token is not available')
         return
       }
 

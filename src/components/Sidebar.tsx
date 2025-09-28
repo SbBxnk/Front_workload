@@ -189,7 +189,6 @@ export default function Sidebar({ OpenSidebar, setOpenSidebar }: SidebarProps) {
             )
             const assessorCheckData = await checkAssessorResponse.json()
             const userIsAssessor = assessorCheckData.data || false
-            console.log('Is user an assessor?', userIsAssessor)
 
             setIsAssessor(userIsAssessor)
 
@@ -279,9 +278,7 @@ export default function Sidebar({ OpenSidebar, setOpenSidebar }: SidebarProps) {
                 if (workloadData.data && workloadData.data[0]) {
                 }
               } else {
-                console.log(
-                  'No active assessment round found for the current date'
-                )
+              
               }
             } catch (error) {
               console.error('Error fetching data:', error)

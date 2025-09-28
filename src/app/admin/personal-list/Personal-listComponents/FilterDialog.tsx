@@ -68,7 +68,6 @@ export default function FilterDialog({
           <div className="modal-box max-w-xl w-full rounded-md dark:bg-zinc-800 p-0">
               <form onSubmit={(e) => { e.preventDefault(); onApplyFilters(); }}>
                 <div className="flex items-center p-4 border-b border-gray-200 dark:border-zinc-600">
-                  <FiFilter className="mr-2 h-7 w-7 text-business1 dark:text-blue-500/80" />
                   <h3 className="font-regular flex truncate text-start text-2xl text-gray-600 dark:text-gray-400">
                     ค้นหาขั้นสูง
                   </h3>

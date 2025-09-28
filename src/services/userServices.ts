@@ -76,7 +76,7 @@ const UserServices = {
   createUser: (
     data: CreateUserRequest,
     accessToken: string
-  ): Promise<Personal> => {
+  ): Promise<ResponsePayload<Personal>> => {
     return http.post('/user/add', data, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
@@ -84,23 +84,45 @@ const UserServices = {
 
   updateUser: (
     userId: number,
-    data: UpdateUserRequest,
+    data: UpdateUserRequest | FormData,
     accessToken: string
-  ): Promise<Personal> => {
-    return http.put(`/user/update/${userId}`, data, {
-      headers: { Authorization: `Bearer ${accessToken}` },
+  ): Promise<ResponsePayload<Personal>> => {
+    return http.patch(`/user/update/${userId}`, data, {
+      headers: { 
+        Authorization: `Bearer ${accessToken}`,
+        ...(data instanceof FormData ? {} : { 'Content-Type': 'application/json' })
+      },
     })
   },
 
-  deleteUser: (userId: number, accessToken: string): Promise<void> => {
+  deleteUser: (userId: number, accessToken: string): Promise<ResponsePayload<void>> => {
     return http.delete(`/user/delete/${userId}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
   },
 
-  getUserById: (userId: number, accessToken: string): Promise<Personal> => {
+  getUserById: (userId: number, accessToken: string): Promise<ResponsePayload<Personal>> => {
     return http.get(`/user/${userId}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
+    })
+  },
+
+  exportUsersToExcel: (accessToken: string, params: UserSearchParams): Promise<Blob> => {
+    return http.get('/user/export', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      params: {
+        search: params.search,
+        position_name: params.position_name,
+        branch_name: params.branch_name,
+        course_name: params.course_name,
+        ex_position_name: params.ex_position_name,
+        gender: params.gender,
+        sort: params.sort,
+        order: params.order,
+      },
+      responseType: 'blob', // Important for file downloads
     })
   },
 }
