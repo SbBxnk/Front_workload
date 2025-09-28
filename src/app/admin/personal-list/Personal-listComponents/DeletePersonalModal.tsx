@@ -9,13 +9,7 @@ interface DeleteModalProps {
     u_lname: string
   }[]
   isLoading: boolean
-  handleDeletePost: (
-    e: React.MouseEvent,
-    prefix_name: string,
-    fname: string,
-    lname: string,
-    id: number
-  ) => void
+  handleDeletePost: (e: React.MouseEvent, userId: number, userName: string) => void
 }
 export default function DeletePersonalModal({
   currentData,
@@ -52,27 +46,20 @@ export default function DeletePersonalModal({
                         ข้อมูลจะไม่สามารถกลับมาแก้ไขได้ คุณแน่ใจหรือไม่?
                       </p>
                       <div className="flex justify-end gap-4">
-                        <button
-                          onClick={(e) =>
-                            handleDeletePost(
-                              e,
-                              item.prefix_name,
-                              item.u_fname,
-                              item.u_lname,
-                              item.u_id
-                            )
-                          }
-                          className="text-md flex w-20 items-center justify-center rounded-md  border-red-500 bg-transparent px-4 py-2 text-red-500 transition duration-300 ease-in-out hover:border-red-500 hover:bg-red-500 hover:text-white"
-                        >
-                          ยืนยัน
-                        </button>
-
                         <label
                           htmlFor={`modal-delete${item.u_id}`}
                           className="text-md z-50 flex w-20 cursor-pointer items-center justify-center rounded-md  border-gray-200 bg-gray-200 px-4 py-2 text-gray-600 transition duration-300 ease-in-out hover:border-gray-300 hover:bg-gray-300 dark:border-zinc-700 dark:bg-zinc-700 dark:text-gray-400 dark:hover:border-zinc-600 dark:hover:bg-zinc-600"
                         >
                           ยกเลิก
                         </label>
+                        <button
+                          onClick={(e) => handleDeletePost(e, item.u_id, item.prefix_name + item.u_fname + item.u_lname)}
+                          className="text-md flex h-10 w-20 items-center justify-center text-nowrap rounded-md bg-red-500 px-4 text-white transition duration-300 ease-in-out hover:bg-red-500/80"
+                        >
+                          ยืนยัน
+                        </button>
+
+
                       </div>
                     </div>
                     <label

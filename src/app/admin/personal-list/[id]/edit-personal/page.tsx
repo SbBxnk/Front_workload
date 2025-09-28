@@ -386,7 +386,7 @@ export default function CreatePersonal() {
 
       console.log('Update response:', response)
 
-      if ( response.success) {
+      if (response.success) {
         Swal.fire({
           title: 'สำเร็จ!',
           text: 'อัปเดตข้อมูลบุคลากรเรียบร้อยแล้ว',
@@ -676,7 +676,7 @@ export default function CreatePersonal() {
                 <div className="flex flex-col gap-4 md:flex-row">
                   <div className="flex-1">
                     <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
-                      วันรับราขการ
+                      วันรับราชการ
                     </label>
                     <input
                       name="work_start"
@@ -690,7 +690,7 @@ export default function CreatePersonal() {
                       onChange={handleInputChange}
                       type="date"
                       className="w-full rounded-md border border-gray-300 px-4 py-[7px] text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
-                      placeholder="กรอกวันรับราขการ"
+                      placeholder="กรอกวันรับราชการ"
                     />
                   </div>
                   <div className="flex-1">

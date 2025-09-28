@@ -263,10 +263,10 @@ export default function CreatePersonalModal() {
                   placeholder="กรอกเงินเดือน"
                 />
               </div>
-              {/* วันรับราขการ */}
+              {/* วันรับราชการ */}
               <div className="flex-1">
                 <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
-                  วันรับราขการ
+                  วันรับราชการ
                 </label>
                 <input
                   type="date"

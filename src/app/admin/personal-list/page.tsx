@@ -889,9 +889,7 @@ function PersonalListTable() {
 
       <DeleteModal
         currentData={data}
-        handleDeletePost={(e, prefix, fname, lname, id) =>
-          handleDelete(e, id, `${prefix}${fname} ${lname}`)
-        }
+        handleDeletePost={(e, userId: number, userName: string) => handleDelete(e, userId, userName) }
         isLoading={loading}
       />
       <UpdatePersonalModal

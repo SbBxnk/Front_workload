@@ -4,18 +4,20 @@ import { useState, useRef, useEffect } from 'react'
 import { Upload, X } from 'lucide-react'
 import { useDropzone } from 'react-dropzone'
 import Image from 'next/image'
-import SelectUserLevel from './Create-personalComponents/SelectUserLevel'
-import SelectBranch from './Create-personalComponents/SelectBranch'
-import SelectPosition from './Create-personalComponents/SelectPosition'
-import SelectPersonalType from './Create-personalComponents/SelectPersonalType'
-import SelectCourse from './Create-personalComponents/SelectCourse'
-import SelectExPosition from './Create-personalComponents/SelectExPosition'
-import SelectPrefix from './Create-personalComponents/SelectPrefix'
+import SelectDropdown from '@/components/SelectDropdown'
 import type { User } from '@/Types'
 import axios from 'axios'
 import Swal from 'sweetalert2'
 import { useRouter } from 'next/navigation'
 import useUtility from '@/hooks/useUtility'
+import { useSession } from 'next-auth/react'
+import PrefixServices from '@/services/prefixServices'
+import PositionServices from '@/services/positionServices'
+import ExPositionServices from '@/services/exPositionServices'
+import PersonaltypeServices from '@/services/personaltypeServices'
+import BranchServices from '@/services/branchServices'
+import CourseServices from '@/services/courseServices'
+import UserLevelServices from '@/services/userLevelServices'
 
 const FormDataPersonal: User = {
   u_id: 0,
@@ -48,6 +50,7 @@ const FormDataPersonal: User = {
 
 export default function CreatePersonal() {
   const { setBreadcrumbs } = useUtility()
+  const { data: session } = useSession()
   const [formData, setFormData] = useState<User>(FormDataPersonal)
   const router = useRouter()
   const [selectPrefix, setSelectPrefix] = useState<string | null>(null)
@@ -61,48 +64,143 @@ export default function CreatePersonal() {
   const [selectLevel, setSelectedLevel] = useState<string | null>(null)
   const [selectedBranchId, setSelectedBranchId] = useState<number | null>(null)
 
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  
+  // Data for dropdowns
+  const [prefixes, setPrefixes] = useState<any[]>([])
+  const [positions, setPositions] = useState<any[]>([])
+  const [exPositions, setExPositions] = useState<any[]>([])
+  const [personalTypes, setPersonalTypes] = useState<any[]>([])
+  const [branches, setBranches] = useState<any[]>([])
+  const [courses, setCourses] = useState<any[]>([])
+  const [userLevels, setUserLevels] = useState<any[]>([])
+  const [loadingCourses, setLoadingCourses] = useState<boolean>(false)
 
-  const prefixDropdownRef = useRef<HTMLDivElement>(null)
-  const positionDropdownRef = useRef<HTMLDivElement>(null)
-  const exPositionDropdownRef = useRef<HTMLDivElement>(null)
-  const branchDropdownRef = useRef<HTMLDivElement>(null)
-  const courseDropdownRef = useRef<HTMLDivElement>(null)
-  const userLevelDropdownRef = useRef<HTMLDivElement>(null)
-  const personalTypeDropdownRef = useRef<HTMLDivElement>(null)
+  const loadDropdownData = async () => {
+    if (!session?.accessToken) return
+
+    try {
+      // Load prefixes
+      const prefixResponse = await PrefixServices.getAllPrefixes(session.accessToken, {
+        search: '',
+        page: 1,
+        limit: 100,
+        sort: 'prefix_name',
+        order: 'asc'
+      })
+      if (prefixResponse.success) {
+        setPrefixes(Array.isArray(prefixResponse.payload) ? prefixResponse.payload : [])
+      }
+
+      // Load positions
+      const positionResponse = await PositionServices.getAllPositions(session.accessToken, {
+        search: '',
+        page: 1,
+        limit: 100,
+        sort: 'position_name',
+        order: 'asc'
+      })
+      if (positionResponse.success) {
+        setPositions(Array.isArray(positionResponse.payload) ? positionResponse.payload : [])
+      }
+
+      // Load ex positions
+      const exPositionResponse = await ExPositionServices.getAllExpositions(session.accessToken, {
+        search: '',
+        page: 1,
+        limit: 100,
+        sort: 'ex_position_name',
+        order: 'asc'
+      })
+      if (exPositionResponse.success) {
+        setExPositions(Array.isArray(exPositionResponse.payload) ? exPositionResponse.payload : [])
+      }
+
+      // Load personal types
+      const personalTypeResponse = await PersonaltypeServices.getAllPersonalTypes(session.accessToken, {
+        search: '',
+        page: 1,
+        limit: 100,
+        sort: 'type_p_name',
+        order: 'asc'
+      })
+      if (personalTypeResponse.success) {
+        setPersonalTypes(Array.isArray(personalTypeResponse.payload) ? personalTypeResponse.payload : [])
+      }
+
+      // Load branches
+      const branchResponse = await BranchServices.getAllBranches(session.accessToken, {
+        search: '',
+        page: 1,
+        limit: 100,
+        sort: 'branch_name',
+        order: 'asc'
+      })
+      if (branchResponse.success) {
+        setBranches(Array.isArray(branchResponse.payload) ? branchResponse.payload : [])
+      }
+
+      // Load all courses initially
+      const courseResponse = await CourseServices.getAllCoursesSimple(session.accessToken)
+      if (courseResponse.success && courseResponse.payload) {
+        setCourses(Array.isArray(courseResponse.payload) ? courseResponse.payload : [])
+      } else {
+        setCourses([])
+      }
+
+      // Load user levels
+      const userLevelResponse = await UserLevelServices.getAllUserLevels(session.accessToken)
+      if (userLevelResponse.success && userLevelResponse.payload) {
+        setUserLevels(Array.isArray(userLevelResponse.payload) ? userLevelResponse.payload : [])
+      } else {
+        setUserLevels([])
+      }
+    } catch (error) {
+      console.error('Error loading dropdown data:', error)
+    }
+  }
+
+  const loadCoursesByBranch = async (branchId: number) => {
+    setLoadingCourses(true)
+    
+    try {
+      if (!session?.accessToken || !branchId) {
+        // If no branch selected, load all courses
+        const courseResponse = await CourseServices.getAllCoursesSimple(session?.accessToken || '')
+        if (courseResponse.success && courseResponse.payload) {
+          setCourses(Array.isArray(courseResponse.payload) ? courseResponse.payload : [])
+        } else {
+          setCourses([])
+        }
+        return
+      }
+
+      const courseResponse = await CourseServices.getCoursesByBranch(branchId, session.accessToken)
+      if (courseResponse.success && courseResponse.payload) {
+        setCourses(Array.isArray(courseResponse.payload) ? courseResponse.payload : [])
+      } else {
+        setCourses([])
+      }
+    } catch (error) {
+      console.error('Error loading courses by branch:', error)
+      setCourses([])
+    } finally {
+      setLoadingCourses(false)
+    }
+  }
 
   useEffect(() => {
     setBreadcrumbs([
       { text: "รายชื่อบุคลากร", path: "/admin/personal-list" },
       { text: "เพิ่มบุคลากร", path: "/admin/personal-list/create-personal" },
     ])
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        prefixDropdownRef.current &&
-        !prefixDropdownRef.current.contains(event.target as Node) &&
-        positionDropdownRef.current &&
-        !positionDropdownRef.current.contains(event.target as Node) &&
-        exPositionDropdownRef.current &&
-        !exPositionDropdownRef.current.contains(event.target as Node) &&
-        branchDropdownRef.current &&
-        !branchDropdownRef.current.contains(event.target as Node) &&
-        courseDropdownRef.current &&
-        !courseDropdownRef.current.contains(event.target as Node) &&
-        userLevelDropdownRef.current &&
-        !userLevelDropdownRef.current.contains(event.target as Node) &&
-        personalTypeDropdownRef.current &&
-        !personalTypeDropdownRef.current.contains(event.target as Node)
-      ) {
-        setOpenDropdown(null)
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
   }, [])
+
+  useEffect(() => {
+    if (session?.accessToken) {
+      loadDropdownData()
+    }
+  }, [session?.accessToken])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: (acceptedFiles) => {
@@ -174,19 +272,23 @@ export default function CreatePersonal() {
     }))
   }
 
-  const handleOnChangeBranch = (branch_id: number, branch_name: string) => {
+  const handleOnChangeBranch = async (branch_id: number, branch_name: string) => {
     setSelectedBranch(branch_name)
     setSelectedBranchId(branch_id)
     setFormData((prevData) => ({
       ...prevData,
       branch_id: Number(branch_id),
     }))
+    
     // Reset course when branch changes
     setSelectedCourse(null)
     setFormData((prevData) => ({
       ...prevData,
       course_id: 0,
     }))
+    
+    // Load courses for the selected branch
+    await loadCoursesByBranch(branch_id)
   }
 
   const handleOnChangeCourse = (course_id: number, course_name: string) => {
@@ -263,7 +365,7 @@ export default function CreatePersonal() {
                   <div className="flex flex-row items-center justify-center">
                     <div
                       {...getRootProps()}
-                      className="h-48 w-48 cursor-pointer overflow-hidden rounded-md border-2 border-dashed border-gray-400 bg-gray-100 transition-all transition-colors duration-200 duration-300 ease-in-out hover:border-gray-500 dark:border-gray-600 dark:bg-zinc-700 dark:hover:border-gray-500"
+                      className="h-48 w-48 cursor-pointer overflow-hidden rounded-md border-2 border-dashed border-gray-400 bg-gray-100 transition-all duration-300 ease-in-out hover:border-gray-500 dark:border-gray-600 dark:bg-zinc-700 dark:hover:border-gray-500"
                     >
                       <input
                         {...getInputProps()}
@@ -312,15 +414,27 @@ export default function CreatePersonal() {
                   <div className="mt-2 flex w-full flex-col justify-end gap-4 md:mt-0">
                     <div className="flex flex-col gap-4 md:flex-row">
                       <div className="flex-1">
-                        <SelectPrefix
-                          prefix_id={0}
-                          prefix_name={''}
-                          openDropdown={openDropdown}
-                          setOpenDropdown={setOpenDropdown}
-                          prefixDropdownRef={prefixDropdownRef}
-                          selectPrefix={selectPrefix}
-                          setSelectPrefix={setSelectPrefix}
-                          handleOnChangePrefix={handleOnChangePrefix}
+                        <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
+                          เลือกคำนำหน้า
+                        </label>
+                        <SelectDropdown
+                          selectedLabel={selectPrefix || ''}
+                          handleSelect={(value) => {
+                            if (value) {
+                              const prefix = prefixes.find(p => p.prefix_id.toString() === value)
+                              if (prefix) {
+                                handleOnChangePrefix(prefix.prefix_id)
+                                setSelectPrefix(prefix.prefix_name)
+                              }
+                            } else {
+                              setSelectPrefix(null)
+                              setFormData(prev => ({ ...prev, prefix_id: 0 }))
+                            }
+                          }}
+                          objects={prefixes}
+                          valueKey="prefix_id"
+                          labelKey="prefix_name"
+                          placeholder="เลือกคำนำหน้า"
                         />
                       </div>
 
@@ -372,7 +486,7 @@ export default function CreatePersonal() {
                           value={formData.u_fname}
                           onChange={handleInputChange}
                           type="text"
-                          className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
+                          className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                           placeholder="กรอกชื่อ"
                         />
                       </div>
@@ -385,7 +499,7 @@ export default function CreatePersonal() {
                           value={formData.u_lname}
                           onChange={handleInputChange}
                           type="text"
-                          className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
+                          className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                           placeholder="กรอกนามสกุล"
                         />
                       </div>
@@ -398,7 +512,7 @@ export default function CreatePersonal() {
                           value={formData.age}
                           onChange={handleInputChange}
                           type="number"
-                          className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
+                          className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                           placeholder="กรอกอายุ"
                           min="0"
                           step="0.01"
@@ -426,44 +540,80 @@ export default function CreatePersonal() {
                       value={formData.u_id_card}
                       onChange={handleInputChange}
                       type="text"
-                      className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
+                      className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                       placeholder="6564XXXXXXX-X"
                     />
                   </div>
                   <div className="flex-1">
-                    <SelectPosition
-                      position_id={0}
-                      position_name={''}
-                      openDropdown={openDropdown}
-                      setOpenDropdown={setOpenDropdown}
-                      positionDropdownRef={positionDropdownRef}
-                      selectPosition={selectPosition}
-                      setSelectPosition={setSelectPosition}
-                      handleOnChangePosition={handleOnChangePosition}
+                    <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
+                      ตำแหน่ง
+                    </label>
+                    <SelectDropdown
+                      selectedLabel={selectPosition || ''}
+                      handleSelect={(value) => {
+                        if (value) {
+                          const position = positions.find(p => p.position_id.toString() === value)
+                          if (position) {
+                            handleOnChangePosition(position.position_id)
+                            setSelectPosition(position.position_name)
+                          }
+                        } else {
+                          setSelectPosition(null)
+                          setFormData(prev => ({ ...prev, position_id: 0 }))
+                        }
+                      }}
+                      objects={positions}
+                      valueKey="position_id"
+                      labelKey="position_name"
+                      placeholder="เลือกตำแหน่ง"
                     />
                   </div>
                   <div className="flex-1">
-                    <SelectExPosition
-                      ex_position_id={0}
-                      ex_position_name={''}
-                      openDropdown={openDropdown}
-                      setOpenDropdown={setOpenDropdown}
-                      exPositionDropdownRef={exPositionDropdownRef}
-                      selectExPosition={selectExPosition}
-                      setSelectExPosition={setSelectExPosition}
-                      handleOnChangeExPosition={handleOnChangeExPosition}
+                    <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
+                      ตำแหน่งพิเศษ
+                    </label>
+                    <SelectDropdown
+                      selectedLabel={selectExPosition || ''}
+                      handleSelect={(value) => {
+                        if (value) {
+                          const exPosition = exPositions.find(p => p.ex_position_id.toString() === value)
+                          if (exPosition) {
+                            handleOnChangeExPosition(exPosition.ex_position_id)
+                            setSelectExPosition(exPosition.ex_position_name)
+                          }
+                        } else {
+                          setSelectExPosition(null)
+                          setFormData(prev => ({ ...prev, ex_position_id: 0 }))
+                        }
+                      }}
+                      objects={exPositions}
+                      valueKey="ex_position_id"
+                      labelKey="ex_position_name"
+                      placeholder="เลือกตำแหน่งพิเศษ"
                     />
                   </div>
                   <div className="flex-1">
-                    <SelectPersonalType
-                      type_p_id={0}
-                      type_p_name={''}
-                      openDropdown={openDropdown}
-                      setOpenDropdown={setOpenDropdown}
-                      personalTypeDropdownRef={personalTypeDropdownRef}
-                      selectPersonalType={selectPersonalType}
-                      setSelectPersonalType={setSelectPersonalType}
-                      handleOnChangePersonalType={handleOnChangePersonalType}
+                    <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
+                      ประเภทบุคลากร
+                    </label>
+                    <SelectDropdown
+                      selectedLabel={selectPersonalType || ''}
+                      handleSelect={(value) => {
+                        if (value) {
+                          const personalType = personalTypes.find(p => p.type_p_id.toString() === value)
+                          if (personalType) {
+                            handleOnChangePersonalType(personalType.type_p_id)
+                            setSelectPersonalType(personalType.type_p_name)
+                          }
+                        } else {
+                          setSelectPersonalType(null)
+                          setFormData(prev => ({ ...prev, type_p_id: 0 }))
+                        }
+                      }}
+                      objects={personalTypes}
+                      valueKey="type_p_id"
+                      labelKey="type_p_name"
+                      placeholder="เลือกประเภทบุคลากร"
                     />
                   </div>
                 </div>
@@ -471,50 +621,90 @@ export default function CreatePersonal() {
                 <div className="flex flex-col gap-4 md:flex-row">
                   <div className="flex-1">
                     <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
-                      วันรับราขการ
+                      วันรับราชการ
                     </label>
                     <input
                       name="work_start"
                       value={formData.work_start}
                       onChange={handleInputChange}
                       type="date"
-                      className="w-full rounded-md border-2 border-gray-300 px-4 py-[7px] text-sm font-light text-gray-600 transition-all transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
-                      placeholder="กรอกวันรับราขการ"
+                      className="w-full rounded-md border-2 border-gray-300 px-4 py-[7px] text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
+                      placeholder="กรอกวันรับราชการ"
                     />
                   </div>
                   <div className="flex-1">
-                    <SelectBranch
-                      openDropdown={openDropdown}
-                      setOpenDropdown={setOpenDropdown}
-                      branchDropdownRef={branchDropdownRef}
-                      handleOnChangeBranch={handleOnChangeBranch}
-                      selectBranch={selectBranch}
-                      setSelectedBranch={setSelectedBranch}
+                    <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
+                      สาขา
+                    </label>
+                    <SelectDropdown
+                      selectedLabel={selectBranch || ''}
+                      handleSelect={async (value) => {
+                        if (value) {
+                          const branch = branches.find(b => b.branch_id.toString() === value)
+                          if (branch) {
+                            await handleOnChangeBranch(branch.branch_id, branch.branch_name)
+                          }
+                        } else {
+                          setSelectedBranch(null)
+                          setSelectedBranchId(null)
+                          setFormData(prev => ({ ...prev, branch_id: 0 }))
+                          // Load all courses when no branch is selected
+                          await loadCoursesByBranch(0)
+                        }
+                      }}
+                      objects={branches}
+                      valueKey="branch_id"
+                      labelKey="branch_name"
+                      placeholder="เลือกสาขา"
                     />
                   </div>
                   <div className="flex-1">
-                    <SelectCourse
-                      openDropdown={openDropdown}
-                      setOpenDropdown={setOpenDropdown}
-                      courseDropdownRef={courseDropdownRef}
-                      handleOnChangeCourse={handleOnChangeCourse}
-                      selectCourse={selectCourse}
-                      setSelectedCourse={setSelectedCourse}
-                      branch_id={selectedBranchId}
+                    <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
+                      หลักสูตร
+                    </label>
+                    <SelectDropdown
+                      selectedLabel={selectCourse || ''}
+                      handleSelect={(value) => {
+                        if (value) {
+                          const course = courses.find(c => c.course_id.toString() === value)
+                          if (course) {
+                            handleOnChangeCourse(course.course_id, course.course_name)
+                          }
+                        } else {
+                          setSelectedCourse(null)
+                          setFormData(prev => ({ ...prev, course_id: 0 }))
+                        }
+                      }}
+                      objects={courses}
+                      valueKey="course_id"
+                      labelKey="course_name"
+                      placeholder={loadingCourses ? "กำลังโหลด..." : "เลือกหลักสูตร"}
                     />
                   </div>
 
                   {/* ระดับผู้ใช้งาน */}
                   <div className="flex-1">
-                    <SelectUserLevel
-                      userLevelDropdownRef={userLevelDropdownRef}
-                      setOpenDropdown={setOpenDropdown}
-                      openDropdown={openDropdown}
-                      level_id={0}
-                      level_name={''}
-                      setSelectedLevel={setSelectedLevel}
-                      selectLevel={selectLevel}
-                      handleOnChangeUserLevel={handleOnChangeUserLevel}
+                    <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
+                      ระดับผู้ใช้งาน
+                    </label>
+                    <SelectDropdown
+                      selectedLabel={selectLevel || ''}
+                      handleSelect={(value) => {
+                        if (value) {
+                          const userLevel = userLevels.find(l => l.level_id.toString() === value)
+                          if (userLevel) {
+                            handleOnChangeUserLevel(userLevel.level_id)
+                            setSelectedLevel(userLevel.level_name)
+                          }
+                        } else {
+                          setSelectedLevel(null)
+                          setFormData(prev => ({ ...prev, level_id: 0 }))
+                        }
+                      }}
+                      objects={userLevels}
+                      valueKey="level_id"
+                      labelKey="level_name"
+                      placeholder="เลือกระดับผู้ใช้งาน"
                     />
                   </div>
                 </div>
@@ -529,7 +719,7 @@ export default function CreatePersonal() {
                       value={formData.salary}
                       onChange={handleInputChange}
                       type="number"
-                      className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
+                      className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                       placeholder="กรอกจำนวนเงินเดือน"
                       min="0"
                       step="0.01"
@@ -545,7 +735,7 @@ export default function CreatePersonal() {
                       value={formData.u_tel}
                       onChange={handleInputChange}
                       type="number"
-                      className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
+                      className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                       placeholder="กรอกเบอร์โทรศัพท์"
                     />
                   </div>
@@ -558,7 +748,7 @@ export default function CreatePersonal() {
                       value={formData.u_email}
                       onChange={handleInputChange}
                       type="text"
-                      className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
+                      className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                       placeholder="example.live.rmutl.ac.th"
                     />
                   </div>
@@ -571,7 +761,7 @@ export default function CreatePersonal() {
                       value={formData.u_pass}
                       onChange={handleInputChange}
                       type="password"
-                      className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
+                      className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                       placeholder="กรอกรหัสผ่าน"
                     />
                   </div>

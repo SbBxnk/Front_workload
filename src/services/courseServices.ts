@@ -66,7 +66,7 @@ const CourseServices = {
     })
   },
 
-  getCoursesByBranch:  (branchId: number, accessToken: string): Promise<Course[]> => {
+  getCoursesByBranch: (branchId: number, accessToken: string): Promise<ResponsePayload<Course>> => {
     return http.get(`/course/branch/${branchId}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
