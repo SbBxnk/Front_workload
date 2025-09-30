@@ -61,7 +61,7 @@ export default function ExDetailsPage() {
   const routeParams = useParams()
   const router = useRouter()
   const round_list_id = routeParams.round_list_id
-  const [FormData, setFormData] = useState({ round_list_id: 0, as_u_id: 0 })
+  const [FormData, setFormData] = useState({ round_list_id: 0, as_u_id: [] as number[] })
   const [rounds, setRound] = useState<Round>()
   const [assessors, setAssessors] = useState<Assessor[]>([])
   const [expositons, setExPosition] = useState<ExPosition[]>([])
@@ -527,18 +527,19 @@ export default function ExDetailsPage() {
     e.preventDefault()
 
     try {
-      const dataToSubmit: CreateSetAssessorListRequest = {
-        round_list_id: Number(FormData.round_list_id),
-        as_u_id: Number(FormData.as_u_id),
-      }
-
-      if (!dataToSubmit.as_u_id) {
+      if (!FormData.as_u_id || FormData.as_u_id.length === 0) {
         alert('กรุณาเลือกผู้ถูกประเมิน')
         setLoading(false)
         return
       }
 
-      await SetAssessorServices.createSetAssessorList(dataToSubmit, session.accessToken)
+      // ส่งข้อมูลแบบ array ไปยัง backend
+      const dataToSubmit = {
+        round_list_id: Number(FormData.round_list_id),
+        as_u_id: FormData.as_u_id,
+      }
+
+      const createResponse = await SetAssessorServices.createSetAssessorListMultiple(dataToSubmit, session.accessToken)
 
       // Get the latest assessor list to find the maximum set_asses_list_id
       const response = await SetAssessorServices.getSetAssessorListByRound(
@@ -550,31 +551,30 @@ export default function ExDetailsPage() {
         const dataAssesDetail = response.payload as Assessor[]
         setAssessors(dataAssesDetail)
 
-        // Find the maximum set_asses_list_id
-        const maxIdAssessor = dataAssesDetail.reduce(
-          (max: number, assessor: Assessor) =>
-            assessor.set_asses_list_id > max ? assessor.set_asses_list_id : max,
-          0
-        )
+        // Find the newly created assessors and add them to workload form
+        if (createResponse.payload && Array.isArray(createResponse.payload)) {
+          const successfulInserts = createResponse.payload.filter((item: any) => item.success)
+          
+          if (successfulInserts.length > 0) {
+            // สร้าง array ของ workload form data
+            const workloadFormDataArray: WorkloadFormList[] = successfulInserts.map((insert: any) => ({
+              set_asses_list_id: insert.result.insertId || insert.result.set_asses_list_id,
+              status_id: 0,
+            }))
 
-        // Add to workload form with the maximum set_asses_list_id
-        if (maxIdAssessor > 0) {
-          const workloadFormData: WorkloadFormList = {
-            set_asses_list_id: maxIdAssessor,
-            status_id: 0,
+            // ส่งข้อมูลแบบ bulk
+            await axios.post(
+              `${process.env.NEXT_PUBLIC_API}/workload_form/add_bulk`,
+              workloadFormDataArray,
+              { headers }
+            )
           }
-
-          await axios.post(
-            `${process.env.NEXT_PUBLIC_API}/workload_form/add`,
-            workloadFormData,
-            { headers }
-          )
         }
       }
 
       setFormData({
         round_list_id: Number(round_list_id),
-        as_u_id: 0,
+        as_u_id: [],
       })
 
       // อัปเดตรายชื่อผู้ใช้ที่สามารถเลือกได้
@@ -594,13 +594,26 @@ export default function ExDetailsPage() {
 
       setLoading(false)
 
+      // แสดงผลลัพธ์การเพิ่มข้อมูล
+      const successCount = (createResponse.meta as any)?.success || 0
+      const duplicateCount = (createResponse.meta as any)?.duplicate || 0
+      const errorCount = (createResponse.meta as any)?.error || 0
+      
+      let message = `เพิ่มผู้ถูกประเมินเสร็จสิ้น: สำเร็จ ${successCount} รายการ`
+      if (duplicateCount > 0) {
+        message += `, ซ้ำ ${duplicateCount} รายการ`
+      }
+      if (errorCount > 0) {
+        message += `, ผิดพลาด ${errorCount} รายการ`
+      }
+
       Swal.fire({
         position: 'center',
-        icon: 'success',
-        title: 'สำเร็จ!',
-        text: `เพิ่มผู้ถูกประเมิน สำเร็จ!`,
+        icon: successCount > 0 ? 'success' : 'warning',
+        title: successCount > 0 ? 'สำเร็จ!' : 'คำเตือน',
+        text: message,
         showConfirmButton: false,
-        timer: 1500,
+        timer: 2000,
       })
     } catch (error) {
       setLoading(false)

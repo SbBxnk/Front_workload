@@ -5,6 +5,82 @@
 @tailwind components;
 @tailwind utilities;
 
+/* React Select Custom Styles */
+.react-select-container .react-select__control {
+  @apply border-gray-300 dark:border-zinc-600 dark:bg-zinc-800;
+  @apply h-10 rounded-md;
+  font-size: 16px;
+  font-weight: 300;
+}
+
+.react-select-container .react-select__control:hover {
+  @apply border-gray-400 dark:border-zinc-500;
+}
+
+.react-select-container .react-select__control--is-focused {
+  @apply border-blue-500 shadow-sm ring-1 ring-blue-500;
+}
+
+.react-select-container .react-select__value-container {
+  @apply px-3 py-1;
+  font-size: 16px;
+  font-weight: 300;
+}
+
+.react-select-container .react-select__input {
+  font-size: 16px;
+  font-weight: 300;
+}
+
+.react-select-container .react-select__placeholder {
+  @apply text-gray-500 dark:text-gray-400;
+  font-size: 16px;
+  font-weight: 300;
+}
+
+.react-select-container .react-select__single-value {
+  @apply text-gray-700 dark:text-gray-300;
+  font-size: 16px;
+  font-weight: 300;
+}
+
+.react-select-container .react-select__multi-value {
+  @apply bg-gray-100 dark:bg-zinc-700 rounded-md;
+}
+
+.react-select-container .react-select__multi-value__label {
+  @apply text-gray-700 dark:text-gray-300;
+  font-size: 13px;
+  font-weight: 300;
+}
+
+.react-select-container .react-select__multi-value__remove {
+  @apply text-gray-500 hover:bg-gray-200 dark:hover:bg-zinc-600;
+}
+
+.react-select-container .react-select__menu {
+  @apply border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 rounded-md shadow-lg;
+  z-index: 9999 !important;
+}
+
+.react-select-container .react-select__menu-portal {
+  z-index: 9999 !important;
+}
+
+.react-select-container .react-select__option {
+  @apply text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700;
+  font-size: 16px;
+  font-weight: 300;
+}
+
+.react-select-container .react-select__option--is-focused {
+  @apply bg-blue-50 dark:bg-blue-900/20;
+}
+
+.react-select-container .react-select__option--is-selected {
+  @apply bg-blue-100 dark:bg-blue-900/40;
+}
+
 * {
   font-family: 'Kanit', sans-serif;
   scrollbar-color: #f1f1f1 #e5e5e5;

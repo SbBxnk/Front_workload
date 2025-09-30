@@ -101,8 +101,11 @@ export default function AsDetailsPage() {
   const [page, setPage] = useState<number>(0)
   const [selectedSetAssesInfoId, setSelectedSetAssesInfoId] =
     useState<number>(0)
-  const [FormData, setFormData] = useState({
-    ex_u_id: 0,
+  const [FormData, setFormData] = useState<{
+    ex_u_id: number[]
+    set_asses_list_id: number
+  }>({
+    ex_u_id: [],
     set_asses_list_id: set_asses_list_id,
   })
   const [sortState, setSortState] = useState<SortState>({
@@ -462,27 +465,24 @@ export default function AsDetailsPage() {
     try {
       const dataToSubmit = {
         set_asses_list_id: Number(FormData.set_asses_list_id),
-        ex_u_id: Number(FormData.ex_u_id),
+        ex_u_id: FormData.ex_u_id,
       }
 
-      if (!dataToSubmit.ex_u_id) {
+      if (!dataToSubmit.ex_u_id || dataToSubmit.ex_u_id.length === 0) {
         alert('กรุณาเลือกผู้ตรวจประเมิน')
         setLoading(false)
         return
       }
 
-      // เพิ่มผู้ตรวจประเมิน
-      await axios.post(
-        `${process.env.NEXT_PUBLIC_API}/set_assessor_info/add`,
+      // เพิ่มผู้ตรวจประเมินแบบ multiple
+      await SetAssessorServices.createSetAssessorInfoMultiple(
         dataToSubmit,
-        {
-          headers,
-        }
+        headers.Authorization?.replace('Bearer ', '') || ''
       )
 
       setFormData({
         set_asses_list_id: set_asses_list_id,
-        ex_u_id: 0,
+        ex_u_id: [],
       })
       
       // Refresh data
@@ -500,16 +500,14 @@ export default function AsDetailsPage() {
       setLoading(false)
       console.error('Error in handleSubmit:', error)
 
-      if (axios.isAxiosError(error)) {
-        Swal.fire({
-          position: 'center',
-          icon: 'error',
-          title: 'เกิดข้อผิดพลาด!',
-          text: 'เกิดข้อผิดพลาดในการเพิ่มผู้ตรวจประเมิน',
-          showConfirmButton: false,
-          timer: 1500,
-        })
-      }
+      Swal.fire({
+        position: 'center',
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด!',
+        text: 'เกิดข้อผิดพลาดในการเพิ่มผู้ตรวจประเมิน',
+        showConfirmButton: false,
+        timer: 1500,
+      })
     }
   }
 

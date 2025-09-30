@@ -48,6 +48,11 @@ export interface CreateSetAssessorListRequest {
   round_list_id: number
 }
 
+export interface CreateSetAssessorListMultipleRequest {
+  as_u_id: number[]
+  round_list_id: number
+}
+
 export interface SetAssessorInfo {
   set_asses_info_id: number
   ex_u_id: number
@@ -58,6 +63,11 @@ export interface SetAssessorInfo {
 
 export interface CreateSetAssessorInfoRequest {
   ex_u_id: number
+  set_asses_list_id: number
+}
+
+export interface CreateSetAssessorInfoMultipleRequest {
+  ex_u_id: number[]
   set_asses_list_id: number
 }
 
@@ -163,6 +173,15 @@ const SetAssessorServices = {
     })
   },
 
+  createSetAssessorListMultiple: (
+    data: CreateSetAssessorListMultipleRequest,
+    accessToken: string
+  ): Promise<ResponsePayload<SetAssessorList>> => {
+    return http.post('/set_assessor_list/add_multiple', data, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+  },
+
   deleteSetAssessorList: (setAssesListId: number, accessToken: string): Promise<ResponsePayload<any>> => {
     return http.delete(`/set_assessor_list/delete/${setAssesListId}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -200,6 +219,15 @@ const SetAssessorServices = {
     accessToken: string
   ): Promise<ResponsePayload<SetAssessorInfo>> => {
     return http.post('/set_assessor_info/add', data, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+  },
+
+  createSetAssessorInfoMultiple: (
+    data: CreateSetAssessorInfoMultipleRequest,
+    accessToken: string
+  ): Promise<ResponsePayload<SetAssessorInfo>> => {
+    return http.post('/set_assessor_info/add_multiple', data, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
   },

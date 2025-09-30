@@ -7,9 +7,10 @@ import useAuthHeaders from '@/hooks/Header'
 import type { ExPosition, User } from '@/Types'
 import SelectDropdown, { type SelectOption } from '@/components/SelectValue'
 import SetAssessorServices from '@/services/setAssessorServices'
+import Select, { MultiValue } from 'react-select'
 
 interface FormDataFormList {
-  ex_u_id: number
+  ex_u_id: number[]
   set_asses_list_id: number
 }
 
@@ -37,7 +38,7 @@ export default function CreateModal({
   const [isLoadingUsers, setIsLoadingUsers] = useState<boolean>(false)
   const [noUsersAvailable, setNoUsersAvailable] = useState<boolean>(false)
   const [userOptions, setUserOptions] = useState<SelectOption[]>([])
-  const [selectedUser, setSelectedUser] = useState<SelectOption | null>(null)
+  const [selectedInputValue, setSelectedInputValue] = useState<SelectOption | null>(null)
   const headers = useAuthHeaders()
 
   // Function to refresh users list
@@ -93,8 +94,8 @@ export default function CreateModal({
     if (users.length > 0) {
       const options = users.map((user) => ({
         value: user.u_id,
-        label: `${user.prefix_name || ''}${user.u_fname || ''} ${user.u_lname || ''} ${user.u_id} ${
-          user.ex_position_name ? `(${user.ex_position_name})` : ''
+        label: `${user.prefix_name || ''}${user.u_fname || ''} ${user.u_lname || ''}${
+          user.ex_position_name ? ` (${user.ex_position_name})` : ''
         }`,
       }))
       setUserOptions(options)
@@ -103,29 +104,44 @@ export default function CreateModal({
     }
   }, [users])
 
-  // Update selectedUser when formData.ex_u_id changes
-  useEffect(() => {
-    if (formData.ex_u_id && userOptions.length > 0) {
-      const option =
-        userOptions.find((opt) => opt.value === formData.ex_u_id) || null
-      setSelectedUser(option)
-    } else {
-      setSelectedUser(null)
-    }
-  }, [formData.ex_u_id, userOptions])
-
   // Handle react-select change
   const handleSelectChange = (selectedOption: SelectOption | null) => {
-    setSelectedUser(selectedOption)
     if (selectedOption) {
+      const userId = Number(selectedOption.value)
+
+      // ตรวจสอบว่าผู้ใช้นี้ยังไม่เคยถูกเลือก
+      if (!formData.ex_u_id.includes(userId)) {
+        // เพิ่มรายการใหม่
       setFormData((prev) => ({
         ...prev,
-        ex_u_id: Number(selectedOption.value),
+          ex_u_id: [...prev.ex_u_id, userId],
       }))
+
+        // Clear input หลังจากเลือก
+        setSelectedInputValue(null)
     } else {
-      setFormData((prev) => ({ ...prev, ex_u_id: 0 }))
+        // Clear input แม้ว่าจะเลือกซ้ำ
+        setSelectedInputValue(null)
+      }
     }
   }
+
+  const handleRemoveUser = (userIdToRemove: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      ex_u_id: prev.ex_u_id.filter(id => id !== userIdToRemove),
+    }))
+  }
+
+  // สร้าง selectedOptions จาก users data
+  const selectedOptions = users
+    .filter((user) => formData.ex_u_id.includes(user.u_id))
+    .map((user) => ({
+      value: user.u_id,
+      label: `${user.prefix_name || ''}${user.u_fname || ''} ${user.u_lname || ''}${
+        user.ex_position_name ? ` (${user.ex_position_name})` : ''
+      }`,
+    }))
 
   // Custom handle submit that refreshes the list after success
   const handleCustomSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -145,8 +161,8 @@ export default function CreateModal({
       await refreshUsers()
       
       // Reset form
-      setFormData(prev => ({ ...prev, ex_u_id: 0 }))
-      setSelectedUser(null)
+      setFormData(prev => ({ ...prev, ex_u_id: [] }))
+      setSelectedInputValue(null)
       
       // Call onSuccess callback if provided
       if (onSuccess) {
@@ -170,31 +186,158 @@ export default function CreateModal({
                 </h3>
               </div>
               <div className="p-4">
+                  <div className="flex flex-row">
+                    <div className="flex w-full flex-col">
                 <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
-                  เลือกผู้ประเมิน
+                        เลือกผู้ตรวจประเมิน (สามารถเลือกได้หลายคน)
                 </label>
-
+                      <div className="flex w-full flex-row gap-4">
                 {isLoadingUsers ? (
                   <div className="py-2 text-sm text-gray-600 dark:text-gray-400">
                     กำลังโหลดข้อมูล...
                   </div>
                 ) : noUsersAvailable ? (
                   <div className="rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm font-light text-amber-500">
-                    ผู้ใช้ทั้งหมดถูกกำหนดเป็นผู้ประเมินในรอบนี้แล้ว
+                            ผู้ใช้ทั้งหมดถูกกำหนดเป็นผู้ตรวจประเมินในรอบนี้แล้ว
                     ไม่มีผู้ใช้ที่สามารถเลือกได้
                   </div>
                 ) : (
-                  <SelectDropdown
+                          <Select
                     options={userOptions}
-                    value={selectedUser}
+                            value={selectedInputValue}
                     onChange={handleSelectChange}
-                    placeholder="เลือกผู้ประเมิน"
-                    isLoading={isLoadingUsers}
-                    noOptionsMessage={() =>
-                      'ไม่พบผู้ประเมินที่สามารถเลือกได้'
-                    }
-                  />
-                )}
+                            placeholder="เลือกผู้ตรวจประเมิน"
+                            noOptionsMessage={() => 'ไม่พบข้อมูลผู้ตรวจประเมิน'}
+                            isMulti={false}
+                            isClearable
+                            isSearchable
+                            className="react-select-container w-full"
+                            classNamePrefix="react-select"
+                            styles={{
+                              control: (base, state) => ({
+                                ...base,
+                                borderColor: state.isFocused ? '#3b82f6' : '#d1d5db',
+                                borderWidth: '1px',
+                                borderRadius: '6px',
+                                padding: '2px',
+                                backgroundColor: 'transparent',
+                                minHeight: '40px',
+                                height: '40px',
+                                boxShadow: state.isFocused ? '0 0 0 1px #3b82f6' : 'none',
+                                fontSize: '14px',
+                                fontWeight: '300',
+                              }),
+                              valueContainer: (base) => ({
+                                ...base,
+                                fontSize: '14px',
+                                fontWeight: '300',
+                                padding: '0 8px',
+                              }),
+                              input: (base) => ({
+                                ...base,
+                                fontSize: '14px',
+                                fontWeight: '300',
+                                margin: '0',
+                                padding: '0',
+                              }),
+                              placeholder: (base) => ({
+                                ...base,
+                                fontSize: '14px',
+                                fontWeight: '300',
+                                color: '#6b7280',
+                              }),
+                              singleValue: (base) => ({
+                                ...base,
+                                fontSize: '14px',
+                                fontWeight: '300',
+                                color: '#374151',
+                              }),
+                              menu: (base) => ({
+                                ...base,
+                                zIndex: 9999,
+                              }),
+                              menuPortal: (base) => ({
+                                ...base,
+                                zIndex: 9999,
+                              }),
+                              option: (base) => ({
+                                ...base,
+                                fontSize: '16px',
+                                fontWeight: '300',
+                              }),
+                            }}
+                            menuPortalTarget={document.body}
+                            menuPosition="fixed"
+                          />
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            // เพิ่มทุกคนที่ยังไม่ได้เลือก
+                            const allAvailableIds = users
+                              .filter((user) => {
+                                const isNotSelected = !formData.ex_u_id.includes(user.u_id)
+                                return isNotSelected
+                              })
+                              .map((user) => user.u_id)
+
+                            if (allAvailableIds.length > 0) {
+                              setFormData((prev) => ({
+                                ...prev,
+                                ex_u_id: [...prev.ex_u_id, ...allAvailableIds],
+                              }))
+                            }
+                          }}
+                          disabled={users.filter((user) => {
+                            const isNotSelected = !formData.ex_u_id.includes(user.u_id)
+                            return isNotSelected
+                          }).length === 0}
+                          className="px-3 w-fit py-1 text-md font-light bg-blue-500 text-white text-nowrap rounded-md hover:bg-blue-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors"
+                        >
+                          เลือกทั้งหมด
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <div className="flex flex-row items-end justify-between mb-4">
+                      <p className="text-md text-gray-500 font-light dark:text-gray-400 m-0">
+                        รายชื่อที่เลือกไว้
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <label className="w-fit px-2 py-1 rounded-md font-regular block text-sm text-business1 bg-gray-200 dark:text-gray-400">
+                          {selectedOptions.length} รายการ
+                        </label>
+                      </div>
+                    </div>
+                    <div className="max-h-32 overflow-y-auto rounded-md border border-gray-200 bg-gray-50 p-3 dark:border-zinc-600 dark:bg-zinc-700">
+                      {selectedOptions.length > 0 ? (
+                        selectedOptions.map((option, index) => (
+                          <div key={option.value} className="flex items-center justify-between py-2 px-3 mb-2 bg-white dark:bg-zinc-800 rounded-md border border-gray-200 dark:border-zinc-600">
+                            <span className="text-sm text-gray-700 dark:text-gray-300 flex-1">
+                              {index + 1}. {option.label}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveUser(Number(option.value))}
+                              className="ml-3 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                              title="ลบรายการนี้"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-8">
+                          <span className="text-sm text-gray-500 dark:text-gray-400">
+                            ยังไม่ได้เลือกผู้ตรวจประเมิน
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
 
                 <input
                   name="set_asses_list_id"
@@ -221,7 +364,7 @@ export default function CreateModal({
                       isLoading ||
                       userOptions.length === 0 ||
                       noUsersAvailable ||
-                      !formData.ex_u_id
+                      formData.ex_u_id.length === 0
                     }
                   >
                     {isLoading ? 'กำลังบันทึก...' : 'ยืนยัน'}

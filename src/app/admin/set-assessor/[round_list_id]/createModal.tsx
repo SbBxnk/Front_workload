@@ -10,9 +10,10 @@ import SelectDropdown, { type SelectOption } from '@/components/SelectValue'
 import PrefixServices from '@/services/prefixServices'
 import { useSession } from 'next-auth/react'
 import SearchFilter from '@/components/SearchFilter'
+import Select, { MultiValue } from 'react-select'
 
 interface FormDataFormList {
-  as_u_id: number
+  as_u_id: number[]
   round_list_id: number
 }
 
@@ -47,8 +48,9 @@ export default function CreateModal({
   const [, setPrefixes] = useState<Prefix[]>([])
   const [existingAssessors, setExistingAssessors] = useState<number[]>([])
   const [userOptions, setUserOptions] = useState<SelectOption[]>([])
+  const [selectedInputValue, setSelectedInputValue] = useState<SelectOption | null>(null)
   const headers = useAuthHeaders()
-  const { data: session } = useSession()  
+  const { data: session } = useSession()
 
   useEffect(() => {
     const fetchPrefixes = async () => {
@@ -122,42 +124,68 @@ export default function CreateModal({
     if (formData.round_list_id) {
       fetchExistingAssessors(formData.round_list_id)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData.round_list_id, formData.as_u_id, refreshTrigger])
+  }, [formData.round_list_id, refreshTrigger])
 
   useEffect(() => {
-    
+
     const filteredUsers = users.filter(
       (user) => {
         const isNotExisting = !existingAssessors.includes(user.u_id)
-        return isNotExisting
+
+        const isNotSelected = !formData.as_u_id.includes(user.u_id)
+
+        return isNotExisting && isNotSelected
       }
     )
-    
+
+
     const options = filteredUsers.map((user) => ({
       value: user.u_id,
       label: `${user.prefix_name || ''}${user.u_fname || ''} ${user.u_lname || ''} ${user.ex_position_id ? `(${user.ex_position_id})` : ''}`,
     }))
     setUserOptions(options)
-  }, [users, existingAssessors])
+  }, [users, existingAssessors, formData.as_u_id])
 
   const handleSelectChange = (selectedOption: SelectOption | null) => {
     if (selectedOption) {
-      setFormData((prev) => {
-        const newData = {
-          ...prev,
-          as_u_id: Number(selectedOption.value),
-        }
-        return newData
-      })
-    } else {
-      setFormData((prev) => ({ ...prev, as_u_id: 0 }))
+      const userId = Number(selectedOption.value)
+
+      // ตรวจสอบว่าผู้ใช้นี้ยังไม่เคยถูกเลือก
+      if (!formData.as_u_id.includes(userId)) {
+
+        const newIds = [...formData.as_u_id, userId]
+
+        // เพิ่มรายการใหม่
+        setFormData((prev) => {
+          const newData = {
+            ...prev,
+            as_u_id: [...prev.as_u_id, userId],
+          }
+          return newData
+        })
+
+        // Clear input หลังจากเลือก
+        setSelectedInputValue(null)
+      } else {
+        // Clear input แม้ว่าจะเลือกซ้ำ
+        setSelectedInputValue(null)
+      }
     }
   }
 
-  const selectedOption =
-    userOptions.find((option) => option.value === formData.as_u_id) || null
-  
+  const handleRemoveUser = (userIdToRemove: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      as_u_id: prev.as_u_id.filter(id => id !== userIdToRemove),
+    }))
+  }
+
+  const selectedOptions = users
+    .filter((user) => formData.as_u_id.includes(user.u_id))
+    .map((user) => ({
+      value: user.u_id,
+      label: `${user.prefix_name || ''}${user.u_fname || ''} ${user.u_lname || ''} ${user.ex_position_id ? `(${user.ex_position_id})` : ''}`,
+    }))
 
   useEffect(() => {
     const modalCheckbox = document.getElementById(
@@ -199,16 +227,153 @@ export default function CreateModal({
                   </h3>
                 </div>
                 <div className="p-4">
-                  <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
-                    เลือกผู้ประเมิน
-                  </label>
-                  <SelectDropdown
-                    options={userOptions}
-                    value={selectedOption}
-                    onChange={handleSelectChange}
-                    placeholder="เลือกผู้ประเมิน"
-                    noOptionsMessage={() => 'ไม่พบข้อมูลผู้ประเมิน'}
-                  />
+                  <div className="flex flex-row">
+                    <div className="flex w-full flex-col">
+                      <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
+                        เลือกผู้ประเมิน (สามารถเลือกได้หลายคน)
+                      </label>
+                      <div className="flex w-full flex-row gap-4">
+                        <Select
+                          options={userOptions}
+                          value={selectedInputValue}
+                          onChange={handleSelectChange}
+                          placeholder="เลือกผู้ประเมิน"
+                          noOptionsMessage={() => 'ไม่พบข้อมูลผู้ประเมิน'}
+                          isMulti={false} // เปลี่ยนเป็น single select
+                          isClearable
+                          isSearchable
+                          className="react-select-container w-full"
+                          classNamePrefix="react-select"
+                          styles={{
+                            control: (base, state) => ({
+                              ...base,
+                              borderColor: state.isFocused ? '#3b82f6' : '#d1d5db',
+                              borderWidth: '1px',
+                              borderRadius: '6px',
+                              padding: '2px',
+                              backgroundColor: 'transparent',
+                              minHeight: '40px',
+                              height: '40px',
+                              boxShadow: state.isFocused ? '0 0 0 1px #3b82f6' : 'none',
+                              fontSize: '16px',
+                              fontWeight: '300',
+                            }),
+                            valueContainer: (base) => ({
+                              ...base,
+                              fontSize: '16px',
+                              fontWeight: '300',
+                              padding: '0 8px',
+                            }),
+                            input: (base) => ({
+                              ...base,
+                              fontSize: '16px',
+                              fontWeight: '300',
+                              margin: '0',
+                              padding: '0',
+                            }),
+                            placeholder: (base) => ({
+                              ...base,
+                              fontSize: '16px',
+                              fontWeight: '300',
+                              color: '#6b7280',
+                            }),
+                            singleValue: (base) => ({
+                              ...base,
+                              fontSize: '16px',
+                              fontWeight: '300',
+                              color: '#374151',
+                            }),
+                            menu: (base) => ({
+                              ...base,
+                              zIndex: 9999, // สูงกว่า modal (z-index: 100)
+                            }),
+                            menuPortal: (base) => ({
+                              ...base,
+                              zIndex: 9999,
+                            }),
+                            option: (base) => ({
+                              ...base,
+                              fontSize: '16px',
+                              fontWeight: '300',
+                            }),
+                          }}
+                          menuPortalTarget={document.body}
+                          menuPosition="fixed"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            // เพิ่มทุกคนที่ยังไม่ได้เลือก
+                            const allAvailableIds = users
+                              .filter((user) => {
+                                const isNotExisting = !existingAssessors.includes(user.u_id)
+                                const isNotSelected = !formData.as_u_id.includes(user.u_id)
+                                return isNotExisting && isNotSelected
+                              })
+                              .map((user) => user.u_id)
+
+                            if (allAvailableIds.length > 0) {
+                              setFormData((prev) => ({
+                                ...prev,
+                                as_u_id: [...prev.as_u_id, ...allAvailableIds],
+                              }))
+                            }
+                          }}
+                          disabled={users.filter((user) => {
+                            const isNotExisting = !existingAssessors.includes(user.u_id)
+                            const isNotSelected = !formData.as_u_id.includes(user.u_id)
+                            return isNotExisting && isNotSelected
+                          }).length === 0}
+                          className="px-3 w-fit py-1 text-md font-light bg-blue-500 text-white text-nowrap rounded-md hover:bg-blue-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors"
+                        >
+                          เลือกทั้งหมด
+                        </button>
+                      </div>
+                    </div>
+
+
+                  </div>
+                  <div className="mt-3">
+                    <div className="flex flex-row items-end justify-between mb-4">
+                      <p className="text-md text-gray-500 font-light dark:text-gray-400 m-0">
+                        รายชื่อที่เลือกไว้
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <label className="w-fit px-2 py-1 rounded-md font-regular block text-sm text-business1 bg-gray-200 dark:text-gray-400">
+                          {selectedOptions.length} รายการ
+                        </label>
+
+                      </div>
+                    </div>
+                    <div className="max-h-32 overflow-y-auto rounded-md border border-gray-200 bg-gray-50 p-3 dark:border-zinc-600 dark:bg-zinc-700">
+                      {selectedOptions.length > 0 ? (
+                        selectedOptions.map((option, index) => (
+                          <div key={option.value} className="flex items-center justify-between py-2 px-3 mb-2 bg-white dark:bg-zinc-800 rounded-md border border-gray-200 dark:border-zinc-600">
+                            <span className="text-sm text-gray-700 dark:text-gray-300 flex-1">
+                              {index + 1}. {option.label}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveUser(Number(option.value))}
+                              className="ml-3 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                              title="ลบรายการนี้"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-8">
+                          <span className="text-sm text-gray-500 dark:text-gray-400">
+                            ยังไม่ได้เลือกผู้ประเมิน
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   <input
                     name="round_list_id"
                     value={formData.round_list_id}
@@ -229,7 +394,7 @@ export default function CreateModal({
                   <button
                     type="submit"
                     className="text-md flex h-10 w-20 items-center justify-center rounded-md bg-success px-4 font-light text-white transition duration-300 ease-in-out hover:bg-success/80"
-                    disabled={isLoading || !formData.as_u_id}
+                    disabled={isLoading || formData.as_u_id.length === 0}
                     onClick={() => {
                     }}
                   >
