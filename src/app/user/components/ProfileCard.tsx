@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { jwtDecode } from 'jwt-decode'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useSession } from 'next-auth/react'
 
 interface UserLoginData {
   prefix: string
@@ -22,16 +23,18 @@ interface UserLoginData {
 
 function ProfileCard() {
   const [user, setUser] = useState<UserLoginData | null>(null)
+  const { data: session } = useSession()
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('token')
-      if (token) {
-        const decoded: UserLoginData = jwtDecode(token)
+    if (session?.accessToken) {
+      try {
+        const decoded: UserLoginData = jwtDecode(session.accessToken)
         setUser(decoded)
+      } catch (error) {
+        console.error('Error decoding token:', error)
       }
     }
-  }, [])
+  }, [session?.accessToken])
 
   return (
     <Link

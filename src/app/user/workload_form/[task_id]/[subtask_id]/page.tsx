@@ -18,6 +18,7 @@ import useAuthHeaders from '@/hooks/Header'
 import axios from 'axios'
 import { jwtDecode } from 'jwt-decode'
 import Swal from 'sweetalert2'
+import { useSession } from 'next-auth/react'
 import CreateModal from './createModal'
 import DeleteModal from './deleteModal'
 import EditModal from './editModal'
@@ -162,17 +163,18 @@ function WorkloadSubtaskInfo() {
     }
   }, [])
 
+  const { data: session } = useSession()
+
   useEffect(() => {
-    const token = localStorage.getItem('token')
-    if (token) {
+    if (session?.accessToken) {
       try {
-        const decoded = jwtDecode<DecodedToken>(token)
+        const decoded = jwtDecode<DecodedToken>(session.accessToken)
         setUserId(decoded.id)
       } catch (error) {
         console.error('Error decoding token:', error)
       }
     }
-  }, [])
+  }, [session?.accessToken])
 
   useEffect(() => {
     const checkWorkloadGroup = async () => {

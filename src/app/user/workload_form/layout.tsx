@@ -7,6 +7,7 @@ import useAuthHeaders from '@/hooks/Header'
 import { jwtDecode } from 'jwt-decode'
 import { useSession } from 'next-auth/react'
 import { useAssessor } from '@/hooks/useAssessor'
+import SetAssessorServices from '@/services/setAssessorServices'
 import {
   Loader,
   CalendarClock,
@@ -23,7 +24,7 @@ import InfoHoverModal from './infoTermModal'
 interface Round {
   round_list_id: number
   round_list_name: string
-  year: number
+  year: string
   round: number
   date_start: string
   date_end: string
@@ -111,7 +112,6 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
             { headers }
           )
           setWorkloadGroupInfo(response.data.data[0] || null)
-          console.log(response.data.data[0].formlist_id)
         } catch (error: unknown) {
           if (axios.isAxiosError(error) && error.response?.status === 404) {
             setWorkloadGroupInfo(null)
@@ -138,33 +138,22 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
           `${process.env.NEXT_PUBLIC_API}/workload_group`,
           { headers }
         )
-        const responseRounds = await axios.get(
-          `${process.env.NEXT_PUBLIC_API}/set_assessor_round`,
-          { headers }
-        )
+        const responseRounds = await SetAssessorServices.getAllRounds(session?.accessToken || '')
 
         setWorkloadGroups(responseWorkloadGroups.data.data)
         setTerms(responseTerms.data.data)
 
-        const fetchedRounds = responseRounds.data.data || []
-        setRounds(fetchedRounds)
+        const fetchedRounds = Array.isArray(responseRounds.payload) ? responseRounds.payload : []
+        setRounds(fetchedRounds as unknown as Round[])
 
         const currentDate = new Date()
-        const activeRound = fetchedRounds.find((round: Round) => {
+        const activeRound = fetchedRounds.find((round: any) => {
           const startDate = new Date(round.date_start)
           const endDate = new Date(round.date_end)
           return currentDate >= startDate && currentDate <= endDate
         })
 
-        setCurrentRound(activeRound || null)
-
-        // ใช้ข้อมูลจาก useAssessor hook แทนการเรียก API
-        // isUserAssessor จะถูกจัดการโดย useAssessor hook แล้ว
-        if (activeRound) {
-          console.log('Active round:', activeRound.round_list_id)
-        } else {
-          console.log('ไม่พบรอบการประเมินที่ตรงกับวันที่ปัจจุบัน')
-        }
+        setCurrentRound(activeRound as unknown as Round || null)
       } catch (error) {
         console.error('Error fetching data:', error)
       } finally {

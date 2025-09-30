@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { ChevronDown } from 'lucide-react'
 import axios from 'axios'
+import { useSession } from 'next-auth/react'
 interface SelectPersonalTypeProps {
   type_p_id: number
   type_p_name: string
@@ -25,12 +26,12 @@ function SelectPersonalType({
   )
   const [, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
+  const { data: session } = useSession()
 
   useEffect(() => {
     const fetchPersonalType = async () => {
       try {
-        const token = localStorage.getItem('token')
-        if (!token) {
+        if (!session?.accessToken) {
           throw new Error('No token found. Please log in.')
         }
 
@@ -39,7 +40,7 @@ function SelectPersonalType({
           {
             headers: {
               'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
+              Authorization: `Bearer ${session.accessToken}`,
             },
           }
         )
@@ -69,7 +70,7 @@ function SelectPersonalType({
     }
 
     fetchPersonalType()
-  }, [])
+  }, [session?.accessToken])
 
   const handleSelectPersonalType = (type_p_id: number, type_p_name: string) => {
     setSelectPersonalType(type_p_name)

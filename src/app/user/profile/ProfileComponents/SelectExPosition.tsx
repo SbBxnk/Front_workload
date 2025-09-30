@@ -2,6 +2,7 @@ import type React from 'react'
 import { useState, useEffect } from 'react'
 import { ChevronDown } from 'lucide-react'
 import axios from 'axios'
+import { useSession } from 'next-auth/react'
 
 interface ExPosition {
   ex_position_id: number
@@ -29,13 +30,13 @@ function SelectPrefix({
   const [error, setError] = useState<string | null>(null)
   const [displayPosition, setDisplayExPosition] =
     useState<string>('เลือกคำนำหน้า')
+  const { data: session } = useSession()
 
   useEffect(() => {
     const fetchExPosition = async () => {
       setError(null)
       try {
-        const token = localStorage.getItem('token')
-        if (!token) {
+        if (!session?.accessToken) {
           throw new Error('No token found. Please log in.')
         }
         const response = await axios.get(
@@ -43,7 +44,7 @@ function SelectPrefix({
           {
             headers: {
               'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
+              Authorization: `Bearer ${session.accessToken}`,
             },
           }
         )
@@ -76,7 +77,7 @@ function SelectPrefix({
     }
 
     fetchExPosition()
-  }, [initialExPositionName, setSelectExPosition])
+  }, [session?.accessToken, initialExPositionName, setSelectExPosition])
 
   const handleSelectExPosition = (
     ex_position_id: number,
