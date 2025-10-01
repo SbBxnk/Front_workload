@@ -1,7 +1,6 @@
 'use client'
 
 import type React from 'react'
-import { CalendarClock } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import axios from 'axios'
 import useAuthHeaders from '@/hooks/Header'
@@ -26,12 +25,6 @@ interface CreateModalProps {
   refreshTrigger: number
 }
 
-interface AssessorData {
-  round_list_id: number
-  as_u_id: number
-  date_save: string
-}
-
 interface Prefix {
   prefix_id: number
   prefix_name: string
@@ -46,13 +39,17 @@ export default function CreateModal({
 }: CreateModalProps) {
   const [users, setUsers] = useState<User[]>([])
   const [, setPrefixes] = useState<Prefix[]>([])
-  const [existingAssessors, setExistingAssessors] = useState<number[]>([])
   const [userOptions, setUserOptions] = useState<SelectOption[]>([])
   const [selectedInputValue, setSelectedInputValue] = useState<SelectOption | null>(null)
   const headers = useAuthHeaders()
   const { data: session } = useSession()
 
   useEffect(() => {
+    // Don't fetch if round_list_id is invalid (0 or undefined) or no session
+    if (!formData.round_list_id || formData.round_list_id === 0 || !session?.accessToken) {
+      return
+    }
+
     const fetchPrefixes = async () => {
       try {
         const resPrefix = await PrefixServices.getAllPrefixes(session?.accessToken as string,
@@ -90,61 +87,24 @@ export default function CreateModal({
       }
     }
 
-    const fetchExistingAssessors = async (round_list_id: number) => {
-      try {
-        const resAssesDetail = await axios.get(
-          `${process.env.NEXT_PUBLIC_API}/set_assessor_list/${round_list_id}`,
-          {
-            headers,
-          }
-        )
-        if (resAssesDetail.data && resAssesDetail.data.data) {
-          const existingIds = resAssesDetail.data.data
-            .filter(
-              (item: AssessorData) => item.round_list_id === round_list_id
-            )
-            .map((item: AssessorData) => item.as_u_id)
-
-          setExistingAssessors(existingIds)
-        }
-      } catch (error) {
-        if (axios.isAxiosError(error) && error.response?.status === 404) {
-          console.log('No existing assessors found (404)')
-          setExistingAssessors([])
-        } else {
-          console.error('Error fetching existing assessors:', error)
-          setExistingAssessors([])
-        }
-      }
-    }
-
     fetchPrefixes()
     fetchUsers()
-
-    if (formData.round_list_id) {
-      fetchExistingAssessors(formData.round_list_id)
-    }
-  }, [formData.round_list_id, refreshTrigger])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.round_list_id, refreshTrigger, session?.accessToken])
 
   useEffect(() => {
-
+    // Backend already filters out users in tb_set_assessorlist for this round
+    // We only need to filter out users that are currently selected in the form
     const filteredUsers = users.filter(
-      (user) => {
-        const isNotExisting = !existingAssessors.includes(user.u_id)
-
-        const isNotSelected = !formData.as_u_id.includes(user.u_id)
-
-        return isNotExisting && isNotSelected
-      }
+      (user) => !formData.as_u_id.includes(user.u_id)
     )
-
 
     const options = filteredUsers.map((user) => ({
       value: user.u_id,
       label: `${user.prefix_name || ''}${user.u_fname || ''} ${user.u_lname || ''} ${user.ex_position_id ? `(${user.ex_position_id})` : ''}`,
     }))
     setUserOptions(options)
-  }, [users, existingAssessors, formData.as_u_id])
+  }, [users, formData.as_u_id])
 
   const handleSelectChange = (selectedOption: SelectOption | null) => {
     if (selectedOption) {
@@ -303,13 +263,9 @@ export default function CreateModal({
                         <button
                           type="button"
                           onClick={() => {
-                            // เพิ่มทุกคนที่ยังไม่ได้เลือก
+                            // เพิ่มทุกคนที่ยังไม่ได้เลือก (backend กรองคนที่เพิ่มไปแล้วให้เรียบร้อย)
                             const allAvailableIds = users
-                              .filter((user) => {
-                                const isNotExisting = !existingAssessors.includes(user.u_id)
-                                const isNotSelected = !formData.as_u_id.includes(user.u_id)
-                                return isNotExisting && isNotSelected
-                              })
+                              .filter((user) => !formData.as_u_id.includes(user.u_id))
                               .map((user) => user.u_id)
 
                             if (allAvailableIds.length > 0) {
@@ -319,11 +275,7 @@ export default function CreateModal({
                               }))
                             }
                           }}
-                          disabled={users.filter((user) => {
-                            const isNotExisting = !existingAssessors.includes(user.u_id)
-                            const isNotSelected = !formData.as_u_id.includes(user.u_id)
-                            return isNotExisting && isNotSelected
-                          }).length === 0}
+                          disabled={users.filter((user) => !formData.as_u_id.includes(user.u_id)).length === 0}
                           className="px-3 w-fit py-1 text-md font-light bg-blue-500 text-white text-nowrap rounded-md hover:bg-blue-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors"
                         >
                           เลือกทั้งหมด

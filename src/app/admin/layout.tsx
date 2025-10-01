@@ -7,7 +7,6 @@ import Topbar from '../../components/Topbar'
 import { ThemeProvider } from '../../provider/themeContext'
 import { useRouter } from 'next/navigation'
 import { AuthProvider } from '../../provider/authProvider'
-import AuthGuard from '../../components/AuthGuard'
 
 export default function RootLayout({
   children,
@@ -16,9 +15,6 @@ export default function RootLayout({
   const [isMobile, setIsMobile] = useState(false)
   const router = useRouter()
 
-  const handleProfile = async () => {
-    router.push('/admin/profile')
-  }
 
   useEffect(() => {
     const handleResize = () => {

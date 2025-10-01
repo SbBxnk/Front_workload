@@ -1,6 +1,5 @@
 'use client'
 import React from 'react'
-import { FiFilter } from 'react-icons/fi'
 import SearchFilter from '@/components/SearchFilter'
 import type { Position, Branch, Course, ExPosition } from '@/Types'
 

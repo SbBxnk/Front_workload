@@ -1,8 +1,8 @@
 'use client'
 import type React from 'react'
-import { Edit2, Plus, Trash2, Eye, Loader } from 'lucide-react'
+import { Edit2, Plus, Trash2, Eye } from 'lucide-react'
 import { FiX } from 'react-icons/fi'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import CreateModal from './createModal'
 import DeleteModal from './deleteModal'
 import EditModal from './editModal'
@@ -105,6 +105,10 @@ function SetAssessor() {
     column: null,
     order: null,
   })
+  
+  const hasFetchedInitial = useRef(false)
+  const isFirstRender = useRef(true)
+  const prevParamsRef = useRef<string>('')
 
   useEffect(() => {
     setBreadcrumbs(
@@ -113,6 +117,8 @@ function SetAssessor() {
   }, [setBreadcrumbs])
 
   useEffect(() => {
+    if (!session?.accessToken) return
+    
     const urlParams = new URLSearchParams(window.location.search)
     const searchFromUrl = urlParams.get('search') || ''
     const pageFromUrl = parseInt(urlParams.get('page') || '1', 10)
@@ -122,22 +128,39 @@ function SetAssessor() {
     const yearFromUrl = urlParams.get('year') || ''
 
     setSearchInput(searchFromUrl)
-    setParams({
+    
+    const initialParams = {
       search: searchFromUrl,
       page: pageFromUrl,
       limit: limitFromUrl,
       sort: sortFromUrl,
       order: orderFromUrl,
       year: yearFromUrl,
-    })
+    }
+    
     if (sortFromUrl && orderFromUrl) {
       setOrderBy(sortFromUrl)
       setOrder(orderFromUrl as Order)
     }
-  }, [])
+
+    // Mark as initialized and set params
+    if (!hasFetchedInitial.current) {
+      hasFetchedInitial.current = true
+    }
+    
+    // Set params - this will trigger fetch in the params change useEffect
+    setParams(initialParams)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.accessToken])
 
   // Auto search with debounce
   useEffect(() => {
+    // Skip on first render to prevent duplicate API call
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+    
     const delayDebounce = setTimeout(() => {
       setParams((prev) => ({
         ...prev,
@@ -150,9 +173,26 @@ function SetAssessor() {
 
   // Fetch data when params change
   useEffect(() => {
-    if (session?.accessToken) {
+    if (!session?.accessToken || !hasFetchedInitial.current) {
+      return
+    }
+    
+    // Create a string representation of current params to compare
+    const currentParamsString = JSON.stringify({
+      search: params.search,
+      page: params.page,
+      limit: params.limit,
+      sort: params.sort,
+      order: params.order,
+      year: params.year,
+    })
+    
+    // Only fetch if params actually changed
+    if (currentParamsString !== prevParamsRef.current) {
+      prevParamsRef.current = currentParamsString
       fetchRoundListData()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     params.search,
     params.page,

@@ -1,4 +1,4 @@
-import { useAssessorContext } from '@/contexts/AssessorContext'
+import { useAssessorContext } from '@/provider/AssessorProvider'
 
 /**
  * Hook สำหรับจัดการข้อมูล assessor

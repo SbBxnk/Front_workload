@@ -1,5 +1,4 @@
 import type React from 'react'
-import { GraduationCap } from 'lucide-react'
 
 interface FormDataBranch {
   branch_name: string

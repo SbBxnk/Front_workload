@@ -2,11 +2,10 @@
 import type React from 'react'
 import { useEffect, useState } from 'react'
 import { Edit2, Plus, Trash2 } from 'lucide-react'
-import type { Branch, BranchSearchParams, ResponsePayload } from '@/Types'
+import type { Branch, BranchSearchParams } from '@/Types'
 import CreateModal from './createModal'
 import DeleteModal from './deleteModal'
 import { FiX } from 'react-icons/fi'
-import SearchFilter from '@/components/SearchFilter'
 import Swal from 'sweetalert2'
 import EditModal from './editModal'
 import BranchServices from '@/services/branchServices'
@@ -247,6 +246,7 @@ function PositionTable() {
     params.sort,
     params.order,
     session?.accessToken,
+    getBranches,
   ])
 
   const clearSearch = () => {

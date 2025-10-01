@@ -1,12 +1,10 @@
 'use client'
 import type React from 'react'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Upload, X } from 'lucide-react'
-import { useDropzone } from 'react-dropzone'
 import Image from 'next/image'
 import SelectDropdown from '@/components/SelectDropdown'
 import type { User } from '@/Types'
-import axios from 'axios'
 import Swal from 'sweetalert2'
 import { useRouter } from 'next/navigation'
 import useUtility from '@/hooks/useUtility'
@@ -18,6 +16,8 @@ import PersonaltypeServices from '@/services/personaltypeServices'
 import BranchServices from '@/services/branchServices'
 import CourseServices from '@/services/courseServices'
 import UserLevelServices from '@/services/userLevelServices'
+import axios from 'axios'
+import { useDropzone } from 'react-dropzone'
 
 const FormDataPersonal: User = {
   u_id: 0,
@@ -203,7 +203,7 @@ export default function CreatePersonal() {
   }, [session?.accessToken])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop: (acceptedFiles) => {
+    onDrop: (acceptedFiles: File[]) => {
       const file = acceptedFiles[0]
       const imageUrl = URL.createObjectURL(file)
       setPreviewUrl(imageUrl)

@@ -1,5 +1,4 @@
 import type React from 'react'
-import { LibraryBigIcon } from 'lucide-react'
 import SelectBranch from './courseComponents/SelectBranch'
 import { useEffect, useRef, useState } from 'react'
 

@@ -3,7 +3,7 @@ import localFont from 'next/font/local'
 import './globals.css'
 import { SessionProvider } from '@/components/SessionProvider'
 import ReduxProvider from '@/provider/reduxProvider'
-import { AssessorProvider } from '@/contexts/AssessorContext'
+import { AssessorProvider } from '@/provider/AssessorProvider'
 
 const geistSans = localFont({
   src: './fonts/GeistVF.woff',

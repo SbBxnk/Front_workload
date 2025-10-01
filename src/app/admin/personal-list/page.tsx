@@ -7,7 +7,6 @@ import type { Personal, Position, Branch, Course, UserLevel, ExPosition } from '
 import { UserSearchParams } from '@/services/userServices'
 import { FiFilter  } from 'react-icons/fi'
 import { LuDelete } from "react-icons/lu";
-import SearchFilter from '@/components/SearchFilter'
 import Swal from 'sweetalert2'
 import UserServices from '@/services/userServices'
 import { useSession } from 'next-auth/react'
@@ -333,7 +332,7 @@ function PersonalListTable() {
       setOrderBy(sortFromUrl)
       setOrder(orderFromUrl as Order)
     }
-  }, [])
+  }, [setBreadcrumbs])
 
   const updateUrlParams = (params: {
     search?: string
@@ -477,6 +476,7 @@ function PersonalListTable() {
     params.ex_position_name,
     params.gender,
     session?.accessToken,
+    getUsers,
   ])
 
   const clearSearch = () => {

@@ -2,7 +2,7 @@
 import type React from 'react'
 import { useEffect, useState } from 'react'
 import { Edit2, Plus, Trash2 } from 'lucide-react'
-import type { ExPosition, ResponsePayload } from '@/Types'
+import type { ExPosition } from '@/Types'
 import CreateModal from './createModal'
 import DeleteModal from './deleteModal'
 import { FiX } from 'react-icons/fi'
@@ -177,6 +177,7 @@ function PositionTable() {
     params.sort,
     params.order,
     session?.accessToken,
+    getExpositions,
   ])
 
   const clearSearch = () => {

@@ -1,7 +1,7 @@
 'use client'
 
 import type React from 'react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import axios from 'axios'
 import { Loader, Trash2, Plus, Eye } from 'lucide-react'
@@ -47,12 +47,26 @@ export default function AsDetailsPage() {
   const headers = useAuthHeaders()
   const searchParams = useSearchParams()
 
+  const round_list_id = Number(Array.isArray(routeParams.round_list_id) ? routeParams.round_list_id[0] : routeParams.round_list_id)
+  const set_asses_list_id = routeParams.set_asses_list_id
+    ? Number(Array.isArray(routeParams.set_asses_list_id) ? routeParams.set_asses_list_id[0] : routeParams.set_asses_list_id)
+    : routeParams.ex_u_id
+      ? Number(Array.isArray(routeParams.ex_u_id) ? routeParams.ex_u_id[0] : routeParams.ex_u_id)
+      : 0
+
   // Function to check if there are available examiners
-  const checkAvailableExaminers = async () => {
+  const checkAvailableExaminers = useCallback(async () => {
     try {
+      setIsCheckingExaminers(true)
+      const accessToken = headers.Authorization?.replace('Bearer ', '') || ''
+      if (!accessToken || !set_asses_list_id) {
+        setIsCheckingExaminers(false)
+        return
+      }
+      
       const response = await SetAssessorServices.getAllExUsers(
         set_asses_list_id,
-        headers.Authorization?.replace('Bearer ', '') || ''
+        accessToken
       )
       
       console.log('checkAvailableExaminers response:', response)
@@ -80,14 +94,10 @@ export default function AsDetailsPage() {
     } catch (error) {
       console.error('Error checking available examiners:', error)
       setHasAvailableExaminers(false)
+    } finally {
+      setIsCheckingExaminers(false)
     }
-  }
-  const round_list_id = Number(Array.isArray(routeParams.round_list_id) ? routeParams.round_list_id[0] : routeParams.round_list_id)
-  const set_asses_list_id = routeParams.set_asses_list_id
-    ? Number(Array.isArray(routeParams.set_asses_list_id) ? routeParams.set_asses_list_id[0] : routeParams.set_asses_list_id)
-    : routeParams.ex_u_id
-      ? Number(Array.isArray(routeParams.ex_u_id) ? routeParams.ex_u_id[0] : routeParams.ex_u_id)
-      : 0
+  }, [set_asses_list_id])
 
   const [assessors, setAssessors] = useState<Assessor[]>([])
   const [expositons, setExPosition] = useState<ExPosition[]>([])
@@ -112,7 +122,12 @@ export default function AsDetailsPage() {
     column: null,
     order: null,
   })
-  const [hasAvailableExaminers, setHasAvailableExaminers] = useState<boolean>(true)
+  const [hasAvailableExaminers, setHasAvailableExaminers] = useState<boolean>(false)
+  const [isCheckingExaminers, setIsCheckingExaminers] = useState<boolean>(true)
+  
+  const hasFetchedInitial = useRef(false)
+  const isFirstRender = useRef(true)
+  const prevParamsRef = useRef<string>('')
   
   // Debug: Log when hasAvailableExaminers changes
   useEffect(() => {
@@ -142,6 +157,8 @@ export default function AsDetailsPage() {
   }, [setBreadcrumbs, round_list_id])
 
   useEffect(() => {
+    if (!set_asses_list_id) return
+    
     const urlParams = new URLSearchParams(window.location.search)
     const searchFromUrl = urlParams.get('search') || ''
     const pageFromUrl = parseInt(urlParams.get('page') || '1', 10)
@@ -153,17 +170,22 @@ export default function AsDetailsPage() {
     setSearchInput(searchFromUrl)
     setSearchName(searchFromUrl)
     setSelectedAssessor(exPositionFromUrl)
-    setParams({
+    
+    const initialParams = {
       search: searchFromUrl,
       page: pageFromUrl,
       limit: limitFromUrl,
       sort: sortFromUrl,
       order: orderFromUrl,
       ex_position_name: exPositionFromUrl,
-    })
+    }
+    
+    setParams(initialParams)
+    
     if (sortFromUrl && orderFromUrl) {
       setSortState({ column: sortFromUrl, order: orderFromUrl as any })
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const updateUrlParams = (params: {
@@ -190,7 +212,7 @@ export default function AsDetailsPage() {
     window.history.replaceState({}, '', `?${searchParams.toString()}`)
   }
 
-  const fetchAssessorData = async (
+  const fetchAssessorData = useCallback(async (
     search: string,
     limit: number | undefined,
     page: number | undefined,
@@ -276,10 +298,16 @@ export default function AsDetailsPage() {
         ex_position_name,
       })
     }
-  }
+  }, [set_asses_list_id])
 
   // Auto search with debounce
   useEffect(() => {
+    // Skip on first render to prevent duplicate API call
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+    
     const delayDebounce = setTimeout(() => {
       setParams((prev) => ({
         ...prev,
@@ -290,9 +318,26 @@ export default function AsDetailsPage() {
     return () => clearTimeout(delayDebounce)
   }, [searchInput])
 
-  // Fetch data when params change
+  // Initialize from URL
   useEffect(() => {
-    if (set_asses_list_id) {
+    if (!set_asses_list_id) return
+    
+    const initialParams = {
+      search: params.search,
+      page: params.page,
+      limit: params.limit,
+      sort: params.sort,
+      order: params.order,
+      ex_position_name: params.ex_position_name,
+    }
+    
+    if (!hasFetchedInitial.current) {
+      hasFetchedInitial.current = true
+      
+      // Set initial params ref
+      prevParamsRef.current = JSON.stringify(initialParams)
+      
+      // Fetch initial data
       fetchAssessorData(
         params.search || '',
         params.limit,
@@ -301,9 +346,41 @@ export default function AsDetailsPage() {
         params.order || '',
         params.ex_position_name || ''
       )
-      // Check available examiners
       checkAvailableExaminers()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [set_asses_list_id])
+
+  // Fetch data when params change
+  useEffect(() => {
+    if (!set_asses_list_id || !hasFetchedInitial.current) {
+      return
+    }
+    
+    // Create a string representation of current params to compare
+    const currentParamsString = JSON.stringify({
+      search: params.search,
+      page: params.page,
+      limit: params.limit,
+      sort: params.sort,
+      order: params.order,
+      ex_position_name: params.ex_position_name,
+    })
+    
+    // Only fetch if params actually changed
+    if (currentParamsString !== prevParamsRef.current) {
+      prevParamsRef.current = currentParamsString
+      fetchAssessorData(
+        params.search || '',
+        params.limit,
+        params.page,
+        params.sort || '',
+        params.order || '',
+        params.ex_position_name || ''
+      )
+      checkAvailableExaminers()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     params.search,
     params.page,
@@ -607,14 +684,21 @@ export default function AsDetailsPage() {
           />
           <div className="w-full pt-4 md:w-auto md:pt-0">
             <label
-              htmlFor={hasAvailableExaminers ? "modal-create" : undefined}
-              className={`flex w-full items-center justify-between gap-2 rounded-md px-4 py-2.5 text-sm font-light text-white transition duration-300 ease-in-out md:w-52 ${
-                hasAvailableExaminers 
-                  ? "cursor-pointer bg-success hover:bg-success/80" 
-                  : "cursor-not-allowed bg-gray-400 opacity-50"
+              htmlFor={hasAvailableExaminers && !isCheckingExaminers ? "modal-create" : undefined}
+              className={`flex w-full items-center justify-between gap-2 rounded-md px-4 py-2.5 text-sm font-light transition duration-300 ease-in-out md:w-52 ${
+                hasAvailableExaminers && !isCheckingExaminers
+                  ? "cursor-pointer bg-success text-white hover:bg-success/80" 
+                  : "cursor-default bg-gray-200 text-gray-400"
               }`}
+              title={
+                isCheckingExaminers 
+                  ? "กำลังตรวจสอบ..." 
+                  : hasAvailableExaminers 
+                    ? "เพิ่มผู้ตรวจประเมิน" 
+                    : "ไม่มีผู้ตรวจประเมินที่สามารถเพิ่มได้"
+              }
             >
-              {hasAvailableExaminers ? "เพิ่มผู้ตรวจประเมิน" : "เพิ่มผู้ตรวจประเมิน"}
+              {isCheckingExaminers ? "เพิ่มผู้ตรวจประเมิน" : "เพิ่มผู้ตรวจประเมิน"}
               <Plus className="h-4 w-4" />
             </label>
           </div>

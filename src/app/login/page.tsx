@@ -22,6 +22,11 @@ export default function Login() {
   useEffect(() => {
     console.log('Login page - Status:', status, 'Session:', session)
 
+    // Clear sessionStorage when on login page
+    sessionStorage.removeItem('assessorData')
+    sessionStorage.removeItem('assessorEvaluations')
+    console.log('🗑️ Login page - Cleared sessionStorage')
+
     // Load remembered credentials
     const savedEmail = Cookies.get('rememberedEmail')
     const savedPassword = Cookies.get('rememberedPassword')

@@ -1,5 +1,4 @@
 import type React from 'react'
-import { CircleHelp } from 'lucide-react'
 
 interface FormDataPosition {
   position_name: string

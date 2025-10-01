@@ -1,7 +1,7 @@
 'use client'
 
 import type React from 'react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import axios from 'axios'
@@ -41,6 +41,8 @@ interface Round {
   round_list_name: string
   round: number
   year: string
+  date_start: string
+  date_end: string
 }
 
 interface Delete {
@@ -53,6 +55,17 @@ interface WorkloadFormList {
 }
 
 const ITEMS_PER_PAGE = 10
+
+const isDateInRange = (startDate: string, endDate: string): boolean => {
+  if (!startDate || !endDate) return false
+
+  const currentDate = new Date()
+  const start = new Date(startDate)
+  const end = new Date(endDate)
+
+  // Allow if current date is within the date range (between start and end)
+  return currentDate >= start && currentDate <= end
+}
 
 export default function ExDetailsPage() {
   const { data: session } = useSession()
@@ -99,6 +112,10 @@ export default function ExDetailsPage() {
     column: null,
     order: null,
   })
+  
+  const hasFetchedInitial = useRef(false)
+  const isFirstRender = useRef(true)
+  const prevParamsRef = useRef<string>('')
 
   useEffect(() => {
     setBreadcrumbs(
@@ -108,7 +125,7 @@ export default function ExDetailsPage() {
   }, [setBreadcrumbs, round_list_id])
 
 
-  const fetchAllData = async (
+  const fetchAllData = useCallback(async (
     search: string,
     limit: number | undefined,
     page: number | undefined,
@@ -130,11 +147,16 @@ export default function ExDetailsPage() {
 
       setFormData((prev) => ({ ...prev, round_list_id: Number(Array.isArray(round_list_id) ? round_list_id[0] : round_list_id) }))
 
+      // Create headers inside the function to avoid stale closure
+      const requestHeaders = {
+        Authorization: `Bearer ${session.accessToken}`,
+      }
+
       // Fetch all data in parallel
       const [resExposition, resRoundTitle, resUsers, resAssessors] = await Promise.all([
         ExpositionServices.getAllExpositions(session.accessToken),
         SetAssessorServices.getRoundListById(Number(Array.isArray(round_list_id) ? round_list_id[0] : round_list_id), session.accessToken),
-        axios.get(`${process.env.NEXT_PUBLIC_API}/as_user/${Array.isArray(round_list_id) ? round_list_id[0] : round_list_id}`, { headers }),
+        axios.get(`${process.env.NEXT_PUBLIC_API}/as_user/${Array.isArray(round_list_id) ? round_list_id[0] : round_list_id}`, { headers: requestHeaders }),
         SetAssessorServices.getSetAssessorListByRound(
           Number(Array.isArray(round_list_id) ? round_list_id[0] : round_list_id),
           session.accessToken,
@@ -234,9 +256,11 @@ export default function ExDetailsPage() {
         ex_position_name,
       })
     }
-  }
+  }, [session?.accessToken, round_list_id])
 
   useEffect(() => {
+    if (!session?.accessToken || !round_list_id) return
+    
     const urlParams = new URLSearchParams(window.location.search)
     const searchFromUrl = urlParams.get('search') || ''
     const pageFromUrl = parseInt(urlParams.get('page') || '1', 10)
@@ -247,18 +271,28 @@ export default function ExDetailsPage() {
 
     setSearchInput(searchFromUrl)
     setSelectedExPosition(exPositionFromUrl)
-    setParams({
+    
+    const initialParams = {
       search: searchFromUrl,
       page: pageFromUrl,
       limit: limitFromUrl,
       sort: sortFromUrl,
       order: orderFromUrl,
       ex_position_name: exPositionFromUrl,
-    })
+    }
+    
     if (sortFromUrl && orderFromUrl) {
       setSortState({ column: sortFromUrl, order: orderFromUrl as any })
     }
-  }, [])
+    
+    // Mark as initialized and set params
+    if (!hasFetchedInitial.current) {
+      hasFetchedInitial.current = true
+    }
+    
+    setParams(initialParams)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.accessToken, round_list_id])
 
   const updateUrlParams = (params: {
     search?: string
@@ -286,6 +320,12 @@ export default function ExDetailsPage() {
 
   // Auto search with debounce
   useEffect(() => {
+    // Skip on first render to prevent duplicate API call
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+    
     const delayDebounce = setTimeout(() => {
       setParams((prev) => ({
         ...prev,
@@ -298,7 +338,23 @@ export default function ExDetailsPage() {
 
   // Fetch data when params change
   useEffect(() => {
-    if (round_list_id && session?.accessToken) {
+    if (!round_list_id || !session?.accessToken || !hasFetchedInitial.current) {
+      return
+    }
+    
+    // Create a string representation of current params to compare
+    const currentParamsString = JSON.stringify({
+      search: params.search,
+      page: params.page,
+      limit: params.limit,
+      sort: params.sort,
+      order: params.order,
+      ex_position_name: params.ex_position_name,
+    })
+    
+    // Only fetch if params actually changed
+    if (currentParamsString !== prevParamsRef.current) {
+      prevParamsRef.current = currentParamsString
       fetchAllData(
         params.search || '',
         params.limit,
@@ -308,6 +364,7 @@ export default function ExDetailsPage() {
         params.ex_position_name || ''
       )
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     params.search,
     params.page,
@@ -693,10 +750,10 @@ export default function ExDetailsPage() {
   return (
     <div className="rounded-md bg-white p-4 shadow transition-all duration-300 ease-in-out dark:bg-zinc-900 dark:text-gray-400">
       <div className="pb-4">
-        <h1 className="text-xl text-gray-500">
-          ผู้ถูกประเมิน{' '}
-          <span className="text-business1">{rounds?.round_list_name}</span>
-        </h1>
+          <h1 className="text-xl text-gray-500">
+            ผู้ถูกประเมิน{' '}
+            <span className="text-business1">{rounds?.round_list_name}</span>
+          </h1>
       </div>
       <div className="mb-4 flex items-end justify-between">
         <div className="flex w-full flex-wrap items-end gap-4 md:w-auto">
@@ -735,17 +792,28 @@ export default function ExDetailsPage() {
             placeholder={expositons && expositons.length > 0 ? "เลือกตำแหน่งบริหาร" : "กำลังโหลด..."}
           />
           <div className="w-full pt-4 md:w-auto md:pt-0">
-            <label
-              htmlFor={users.length === 0 ? "" : "modal-create"}
-              className={`flex w-full items-center justify-between gap-2 rounded-md px-4 py-2.5 text-sm font-light transition duration-300 ease-in-out md:w-52 ${
-                users.length === 0
-                  ? "cursor-default bg-gray-200 text-gray-400"
-                  : "cursor-pointer bg-success text-white hover:bg-success/80"
-              }`}
-            >
-              {users.length === 0 ? "เพิ่มผู้ถูกประเมิน" : "เพิ่มผู้ถูกประเมิน"}
-              <Plus className="h-4 w-4" />
-            </label>
+            {rounds && isDateInRange(rounds.date_start, rounds.date_end) ? (
+              <label
+                htmlFor={users.length === 0 ? "" : "modal-create"}
+                className={`flex w-full items-center justify-between gap-2 rounded-md px-4 py-2.5 text-sm font-light transition duration-300 ease-in-out md:w-52 ${
+                  users.length === 0
+                    ? "cursor-default bg-gray-200 text-gray-400"
+                    : "cursor-pointer bg-success text-white hover:bg-success/80"
+                }`}
+                title={users.length === 0 ? "เพิ่มผู้ถูกประเมิน" : "เพิ่มผู้ถูกประเมิน"}
+              >
+                เพิ่มผู้ถูกประเมิน
+                <Plus className="h-4 w-4" />
+              </label>
+            ) : (
+              <div
+                className="flex w-full items-center justify-between gap-2 rounded-md px-4 py-2.5 text-sm font-light cursor-not-allowed bg-gray-200 text-gray-400 md:w-52"
+                title="ไม่สามารถเพิ่มได้เนื่องจากอยู่นอกช่วงเวลาที่กำหนด"
+              >
+                เพิ่มผู้ถูกประเมิน
+                <Plus className="h-4 w-4" />
+              </div>
+            )}
           </div>
         </div>
       </div>

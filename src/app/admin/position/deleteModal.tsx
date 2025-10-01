@@ -1,4 +1,3 @@
-import { CircleHelp } from 'lucide-react'
 import type React from 'react'
 
 interface DeleteModalProps {

@@ -2,7 +2,7 @@
 import type React from 'react'
 import { useEffect, useState } from 'react'
 import { Edit2, Plus, Trash2 } from 'lucide-react'
-import type { PersonalType, PersonalTypeSearchParams, ResponsePayload } from '@/Types'
+import type { PersonalType, PersonalTypeSearchParams } from '@/Types'
 import CreateModal from './createModal'
 import DeleteModal from './deleteModal'
 import { FiX } from 'react-icons/fi'
@@ -10,7 +10,7 @@ import Swal from 'sweetalert2'
 import EditModal from './editModal'
 import PersonalTypeServices from '@/services/personaltypeServices'
 import { useSession } from 'next-auth/react'
-import Table, { TableColumn, SortState, SortOrder } from '@/components/Table'
+import Table, { TableColumn, SortState } from '@/components/Table'
 
 const ITEMS_PER_PAGE = 10
 
@@ -205,6 +205,7 @@ function PersonalTypeTable() {
     params.sort,
     params.order,
     session?.accessToken,
+    getPersonalTypes,
   ])
 
 
