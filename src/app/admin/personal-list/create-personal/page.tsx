@@ -324,7 +324,7 @@ export default function CreatePersonal() {
         {
           headers: {
             'Content-Type': 'multipart/form-data',
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            Authorization: `Bearer ${session?.accessToken}`,
           },
         }
       )

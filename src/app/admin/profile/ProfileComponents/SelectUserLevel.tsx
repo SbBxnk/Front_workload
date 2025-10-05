@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { ChevronDown } from 'lucide-react'
 import axios from 'axios'
+import { useSession } from 'next-auth/react'
 interface SelectedUserLevelProps {
   level_id: number
   level_name: string
@@ -23,12 +24,12 @@ function SelectedUserLevel({
   const [userLevels, setUserLevels] = useState<SelectedUserLevelProps[]>([])
   const [, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
+  const { data: session } = useSession()
 
   useEffect(() => {
     const fetchUserLevels = async () => {
       try {
-        const token = localStorage.getItem('token')
-        if (!token) {
+        if (!session?.accessToken) {
           throw new Error('No token found. Please log in.')
         }
 
@@ -37,7 +38,7 @@ function SelectedUserLevel({
           {
             headers: {
               'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
+              Authorization: `Bearer ${session.accessToken}`,
             },
           }
         )
@@ -64,8 +65,10 @@ function SelectedUserLevel({
       }
     }
 
-    fetchUserLevels()
-  }, [])
+    if (session?.accessToken) {
+      fetchUserLevels()
+    }
+  }, [session?.accessToken])
 
   const handleSelectLevel = (level_id: number, level_name: string) => {
     setSelectedLevel(level_name)

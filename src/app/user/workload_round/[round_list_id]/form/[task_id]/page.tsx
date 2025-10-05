@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react'
 import axios from 'axios'
 import useAuthHeaders from '@/hooks/Header'
 import { useRouter } from 'next/navigation'
-import { Loader } from 'lucide-react'
 import useUtility from '@/hooks/useUtility'
 
 interface SubTaskDetail {
@@ -31,7 +30,7 @@ export default function WorkloadSubtask() {
         { text: 'ภาระงานหลัก', path: `/user/workload_round/${round_list_id}/form` },
         { text: 'ภาระงานย่อย', path: `/user/workload_round/${round_list_id}/form/${task_id}` },
       ])
-  }, [setBreadcrumbs])
+  }, [])
 
   useEffect(() => {
     const fetchTaskAndSubtasks = async () => {
@@ -61,10 +60,20 @@ export default function WorkloadSubtask() {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center rounded-md bg-base-100">
-        <div className="flex items-center justify-center space-x-4">
-          <Loader className="h-12 w-12 animate-spin font-semibold text-primary" />
-          <p className="font-regular text-4xl text-primary">Loading...</p>
+      <div className="animate-pulse">
+        <div className="mb-4 rounded-md bg-white p-4 shadow dark:bg-zinc-900">
+          <div className="space-y-4">
+            {[1, 2, 3, 4,5,6,7].map((item) => (
+              <div
+                key={item}
+                className="flex w-full items-center justify-start gap-4 rounded-md border border-gray-200 px-4 py-2"
+              >
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gray-200 dark:bg-zinc-700">
+                </div>
+                <div className="h-4 w-48 bg-gray-200 rounded dark:bg-zinc-700"></div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     )
@@ -84,7 +93,7 @@ export default function WorkloadSubtask() {
               onClick={() => handleSubTaskClick(subtask.subtask_id, round_list_id)}
               className="flex w-full cursor-pointer items-center justify-start gap-4 text-nowrap rounded-md border border-gray-200 px-4 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800"
             >
-              <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-business1 text-white">
+              <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-business1/60 text-white">
                 <span className="flex h-full w-full items-center justify-center text-sm">
                   {index + 1}
                 </span>

@@ -80,7 +80,11 @@ const checkError = (error: unknown) => {
   return Promise.reject(new Error('Network timeout'))
 }
 
-const onSuccessRequest = (response: AxiosResponse) => response.data
+const onSuccessRequest = (response: AxiosResponse) => {
+  // Backend ส่ง ResponsePayload format มาทั้งหมด
+  // ไม่ต้อง extract .data เพราะ response.data คือ ResponsePayload object แล้ว
+  return response.data
+}
 const onSuccessRequestServer = (response: AxiosResponse) => response.data
 
 export const server = axios.create({

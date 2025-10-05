@@ -450,7 +450,7 @@ export default function EditModal({
                         type="text"
                         placeholder="ภาระงาน/กิจกรรม/โครงการ/งาน"
                         defaultValue={formDetail.form_title}
-                        className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
+                        className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                         required
                       />
                     </div>
@@ -463,7 +463,7 @@ export default function EditModal({
                         name="description"
                         placeholder="คำอธิบาย"
                         defaultValue={formDetail.description}
-                        className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
+                        className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                       />
                     </div>
 
@@ -476,7 +476,7 @@ export default function EditModal({
                         type="number"
                         placeholder="จำนวน"
                         defaultValue={formDetail.quality}
-                        className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
+                        className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                         required
                       />
                     </div>
@@ -490,7 +490,7 @@ export default function EditModal({
                         type="number"
                         placeholder="ภาระงาน"
                         defaultValue={formDetail.workload}
-                        className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
+                        className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                         required
                       />
                     </div>
@@ -571,7 +571,7 @@ export default function EditModal({
                                       e.target.value
                                     )
                                   }
-                                  className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
+                                  className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                                 />
                                 <input
                                   type="url"
@@ -584,7 +584,7 @@ export default function EditModal({
                                       e.target.value
                                     )
                                   }
-                                  className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
+                                  className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                                 />
                                 {link.link_id && (
                                   <input
@@ -599,7 +599,7 @@ export default function EditModal({
                           <button
                             type="button"
                             onClick={handleAddLink}
-                            className="flex w-full cursor-pointer items-center justify-center rounded-lg border border-blue-300 py-2 text-sm font-medium text-blue-600 transition-colors duration-150 hover:border-blue-400 hover:text-blue-700 dark:border-blue-800 dark:text-blue-400 dark:hover:border-blue-700"
+                            className="flex w-full cursor-pointer items-center justify-center rounded-lg border border-blue-300 py-2 text-sm font-medium text-blue-600 duration-150 hover:border-blue-400 hover:text-blue-700 dark:border-blue-800 dark:text-blue-400 dark:hover:border-blue-700"
                           >
                             <Plus className="mr-2 h-4 w-4" />
                             เพิ่มลิงก์
@@ -733,7 +733,7 @@ export default function EditModal({
                               placeholder="ชื่อที่ต้องการแสดง"
                               value={fileName}
                               onChange={(e) => setFileName(e.target.value)}
-                              className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
+                              className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                             />
                           </div>
                           <input
@@ -742,7 +742,7 @@ export default function EditModal({
                             placeholder="Enter file path or ID"
                             value={fileInSystem}
                             onChange={(e) => setFileInSystem(e.target.value)}
-                            className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
+                            className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                           />
                         </>
                       )}
@@ -758,7 +758,7 @@ export default function EditModal({
                     <label
                       htmlFor={`edit-modal-${form_id}`}
                       onClick={handleCancel}
-                      className="text-md z-50 flex w-20 cursor-pointer items-center justify-center rounded-md border border-2 border-gray-200 bg-gray-200 px-4 py-2 text-gray-600 transition duration-300 ease-in-out hover:border-gray-300 hover:bg-gray-300 dark:border-zinc-700 dark:bg-zinc-700 dark:text-gray-400 dark:hover:border-zinc-600 dark:hover:bg-zinc-600"
+                      className="text-md z-50 flex w-20 cursor-pointer items-center justify-center rounded-md border-2 border-gray-200 bg-gray-200 px-4 py-2 text-gray-600 transition duration-300 ease-in-out hover:border-gray-300 hover:bg-gray-300 dark:border-zinc-700 dark:bg-zinc-700 dark:text-gray-400 dark:hover:border-zinc-600 dark:hover:bg-zinc-600"
                     >
                       ยกเลิก
                     </label>

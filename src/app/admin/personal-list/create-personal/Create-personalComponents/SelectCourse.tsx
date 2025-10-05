@@ -3,6 +3,7 @@ import { ChevronDown } from 'lucide-react'
 import type { Course } from '@/Types'
 import { useEffect, useState } from 'react'
 import axios from 'axios'
+import { useSession } from 'next-auth/react'
 
 interface SelectCourseProps {
   openDropdown: string | null
@@ -26,6 +27,7 @@ function SelectCourse({
   const [courses, setCourses] = useState<Course[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(false)
+  const { data: session } = useSession()
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -39,7 +41,7 @@ function SelectCourse({
           {
             headers: {
               'Content-Type': 'application/json',
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
+              Authorization: `Bearer ${session?.accessToken}`,
             },
           }
         )
@@ -57,8 +59,10 @@ function SelectCourse({
       }
     }
 
-    fetchCourses()
-  }, [branch_id])
+    if (session?.accessToken && branch_id) {
+      fetchCourses()
+    }
+  }, [branch_id, session?.accessToken])
 
   const handleSelectCourse = (course_id: number, course_name: string) => {
     handleOnChangeCourse(course_id, course_name)

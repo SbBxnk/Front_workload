@@ -14,7 +14,6 @@ import {
   PenSquare,
   ImageIcon,
 } from 'lucide-react'
-import useAuthHeaders from '@/hooks/Header'
 import axios from 'axios'
 import { jwtDecode } from 'jwt-decode'
 import Swal from 'sweetalert2'
@@ -23,30 +22,19 @@ import CreateModal from './createModal'
 import DeleteModal from './deleteModal'
 import EditModal from './editModal'
 import useUtility from '@/hooks/useUtility'
+import WorkloadFormServices, { 
+  type WorkloadFormData, 
+  type WorkloadFormDetail 
+} from '@/services/workloadFormServices'
 
-interface ApiFormData {
+interface ApiFormData extends WorkloadFormData {
   subtask_name: string
   task_name: string
-  as_u_id: number
   u_fname: string
   u_lname: string
   prefix_name: string
-  formlist_id: number
-  form_title: string
-  description: string
-  workload: number
-  quality: number
-  file_type: 'link' | 'external file' | 'file in system'
   link: string
   link_name: string
-  ex_score: number
-  form_id: number
-  files: FileData[]
-  links?: {
-    link_id: number
-    link_path: string
-    link_name: string
-  }[]
 }
 
 interface FileData {
@@ -110,7 +98,11 @@ const isImageFile = (fileName: string | null | undefined): boolean => {
 
 function WorkloadSubtaskInfo() {
   const { subtask_id, task_id, round_list_id } = useParams()
-  const headers = useAuthHeaders()
+  const { data: session } = useSession()
+  const headers = {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${session?.accessToken}`,
+  }
   const [subtask, setSubtask] = useState<Subtask | null>(null)
   const [subtaskIndex, setSubtaskIndex] = useState<string>('')
   const [loading, setLoading] = useState(true)
@@ -173,7 +165,6 @@ const {setBreadcrumbs} = useUtility()
     }
   }, [])
 
-  const { data: session } = useSession()
 
   useEffect(() => {
     if (session?.accessToken) {
@@ -188,18 +179,17 @@ const {setBreadcrumbs} = useUtility()
 
   useEffect(() => {
     const checkWorkloadGroup = async () => {
-      if (userId) {
+      if (userId && session?.accessToken) {
         try {
-          const response = await axios.get(
-            `${process.env.NEXT_PUBLIC_API}/workload_form/check_workload_group/${userId}`,
-            { headers }
-          )
-          setWorkloadGroupInfo(response.data.data[0] || null)
+          const response = await WorkloadFormServices.checkWorkloadGroup(userId, session.accessToken)
+          
+          // ใช้ legacy format เหมือนเดิม
+          const data = response.data
+          setWorkloadGroupInfo(data?.[0] || null)
         } catch (error: unknown) {
+          console.error('checkWorkloadGroup error:', error)
           if (axios.isAxiosError(error) && error.response?.status === 404) {
             setWorkloadGroupInfo(null)
-          } else {
-            console.error('Error checking workload group:', error)
           }
         }
       }
@@ -207,7 +197,7 @@ const {setBreadcrumbs} = useUtility()
 
     checkWorkloadGroup()
     // eslint-disable-next-line
-  }, [userId])
+  }, [userId, session?.accessToken])
 
   useEffect(() => {
     const fetchData = async () => {
@@ -250,15 +240,20 @@ const {setBreadcrumbs} = useUtility()
 
   useEffect(() => {
     const fetchFormInfo = async () => {
-      if (workloadGroupInfo?.formlist_id && subtask_id) {
+      if (workloadGroupInfo?.formlist_id && subtask_id && session?.accessToken) {
         try {
           // เพิ่ม userId ในการเรียก API
-          const response = await axios.get(
-            `${process.env.NEXT_PUBLIC_API}/workload_form/form_info/${workloadGroupInfo.formlist_id}/${subtask_id}?as_u_id=${userId}`,
-            { headers }
+          const response = await WorkloadFormServices.getFormInfo(
+            workloadGroupInfo.formlist_id,
+            Number(subtask_id),
+            userId || 0,
+            session.accessToken
           )
 
-          const apiForms: ApiFormData[] = response.data.data
+          
+          // ใช้ legacy format เหมือนเดิม
+          const data = response.data
+          const apiForms: ApiFormData[] = (data || []) as ApiFormData[]
 
           const newForms: (FormInfo & { total_score: number })[] = apiForms.map(
             (apiForm) => ({
@@ -347,33 +342,17 @@ const {setBreadcrumbs} = useUtility()
 
     fetchFormInfo()
     // eslint-disable-next-line
-  }, [workloadGroupInfo?.formlist_id, subtask_id, userId])
+  }, [workloadGroupInfo?.formlist_id, subtask_id, userId, session?.accessToken])
 
-  // เพิ่มฟังก์ชันนี้เพื่อตรวจสอบข้อมูล
-  useEffect(() => {
-    // ตรวจสอบข้อมูลเมื่อโหลดเสร็จ
-    if (!loading && formList.length > 0) {
-      console.log('Form List:', formList)
-      formList.forEach((form) => {
-        console.log(`Form ID ${form.form_id}:`, {
-          title: form.form_title,
-          file_type: form.file_type,
-          has_links: formLinks[form.form_id]?.length > 0,
-          has_files: formFiles[form.form_id]?.length > 0,
-          links: formLinks[form.form_id],
-          files: formFiles[form.form_id],
-        })
-      })
-    }
-  }, [loading, formList, formLinks, formFiles])
 
   const fetchFilesForForm = async (formlist_id: number) => {
+    if (!session?.accessToken) return
+    
     try {
-      const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_API}/workload_form/file_info/${workloadGroupInfo?.formlist_id}`,
-        { headers }
-      )
-      const files: FileInfo[] = response.data.data
+      const response = await WorkloadFormServices.getFileInfo(workloadGroupInfo?.formlist_id || 0, session.accessToken)
+      // ใช้ legacy format เหมือนเดิม
+      const data = response.data
+      const files: FileInfo[] = data || []
       setFileInfos((prev) => ({ ...prev, [formlist_id]: files }))
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 404) {
@@ -458,43 +437,19 @@ const {setBreadcrumbs} = useUtility()
     if (evidenceType === 'external file' || evidenceType === 'file in system') {
       uploadedFiles.forEach((file) => {
         apiFormData.append('files', file)
-        console.log(
-          `Adding file: ${file.name} (${file.size} bytes, ${file.type})`
-        )
       })
     }
 
-    // แสดงข้อมูลที่จะส่งไปยัง API
-    console.log('Sending to API:', {
-      as_u_id: userId,
-      formlist_id: workloadGroupInfo?.formlist_id,
-      subtask_id: subtask_id,
-      form_title: formData.get('form_title'),
-      description: formData.get('description'),
-      quality: formData.get('quality'),
-      workload: formData.get('workload'),
-      file_type: evidenceType,
-      files: uploadedFiles.map((f) => ({
-        name: f.name,
-        size: f.size,
-        type: f.type,
-      })),
-      links: evidenceType === 'link' ? links : undefined,
-    })
 
     try {
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API}/workload_form/form_info/add`,
-        apiFormData,
-        {
-          headers: {
-            ...headers,
-            'Content-Type': 'multipart/form-data',
-          },
-        }
-      )
+      if (!session?.accessToken) {
+        throw new Error('No access token available')
+      }
 
-      const apiForm: ApiFormData = response.data.data[0]
+      const response = await WorkloadFormServices.addFormInfo(apiFormData, session.accessToken)
+      // ใช้ legacy format เหมือนเดิม
+      const data = response.data
+      const apiForm: ApiFormData = (data?.[0] || {}) as ApiFormData
 
       const newForm: FormInfo & { total_score: number } = {
         form_id: apiForm.form_id,
@@ -571,6 +526,14 @@ const {setBreadcrumbs} = useUtility()
         showConfirmButton: false,
       })
 
+      // Reset form after successful submission
+      setTimeout(() => {
+        const form = document.getElementById('modal-forminfo')?.closest('.modal')?.querySelector('form')
+        if (form) {
+          form.reset()
+        }
+      }, 100)
+
       // Scroll to the newly added item
       setTimeout(() => {
         const newItemIndex = formList.length
@@ -634,20 +597,10 @@ const {setBreadcrumbs} = useUtility()
     apiFormData.append('workload', formData.get('workload') as string)
     apiFormData.append('file_type', evidenceType)
 
-    // แสดงข้อมูลที่จะส่งไปยัง backend
-    console.log('Preparing to send form data:', {
-      form_id,
-      form_title: formData.get('form_title'),
-      description: formData.get('description'),
-      quality: formData.get('quality'),
-      workload: formData.get('workload'),
-      file_type: evidenceType,
-    })
 
     if (evidenceType === 'link' && links && links.length > 0) {
       // Add links as JSON string
       apiFormData.append('links', JSON.stringify(links))
-      console.log('Links to send:', links)
 
       // เพิ่ม existing_links สำหรับลิงก์ที่มีอยู่แล้ว
       const existingLinkIds = links
@@ -659,7 +612,6 @@ const {setBreadcrumbs} = useUtility()
         existingLinkIds.forEach((linkId) => {
           apiFormData.append('existing_links', String(linkId))
         })
-        console.log('Existing link IDs:', existingLinkIds)
       }
     } else if (evidenceType === 'file in system' && fileInSystem) {
       apiFormData.append('link', fileInSystem)
@@ -674,9 +626,6 @@ const {setBreadcrumbs} = useUtility()
       existingFiles.forEach((file) => {
         if (file.fileinfo_id) {
           apiFormData.append('existing_files', String(file.fileinfo_id))
-          console.log(
-            `Keeping file: ${file.file_name} (ID: ${file.fileinfo_id})`
-          )
         }
       })
     }
@@ -685,7 +634,6 @@ const {setBreadcrumbs} = useUtility()
     if (filesToDelete && filesToDelete.length > 0) {
       filesToDelete.forEach((fileId) => {
         apiFormData.append('files_to_delete', String(fileId))
-        console.log(`Marking file ID ${fileId} for deletion`)
       })
     }
 
@@ -698,7 +646,6 @@ const {setBreadcrumbs} = useUtility()
       formLinksToDelete.forEach((linkId) => {
         apiFormData.append('links_to_delete', linkId)
       })
-      console.log('Links to delete:', formLinksToDelete)
     }
 
     // Add new files
@@ -708,38 +655,20 @@ const {setBreadcrumbs} = useUtility()
     ) {
       uploadedFiles.forEach((file) => {
         apiFormData.append('files', file)
-        console.log(`Adding new file: ${file.name}`)
       })
     }
 
     try {
-      console.log(
-        'Sending form data:',
-        Object.fromEntries(apiFormData.entries())
-      )
-
-      const response = await axios.put(
-        `${process.env.NEXT_PUBLIC_API}/workload_form/form_info/update`,
-        apiFormData,
-        {
-          headers: {
-            ...headers,
-            'Content-Type': 'multipart/form-data',
-          },
-        }
-      )
-
-      const updatedForm = response.data.data
-
-      // Log which files were deleted
-      if (response.data.deletedFiles && response.data.deletedFiles.length > 0) {
-        console.log('Files deleted from database:', response.data.deletedFiles)
+      if (!session?.accessToken) {
+        throw new Error('No access token available')
       }
 
-      // Log which links were deleted
-      if (response.data.deletedLinks && response.data.deletedLinks.length > 0) {
-        console.log('Links deleted from database:', response.data.deletedLinks)
-      }
+
+      const response = await WorkloadFormServices.updateFormInfo(apiFormData, session.accessToken)
+      // ใช้ legacy format เหมือนเดิม
+      const data = response.data
+      const updatedForm = data?.[0] || {}
+
 
       // Update form in state
       setFormList((prev) =>
@@ -788,16 +717,16 @@ const {setBreadcrumbs} = useUtility()
         }))
       } else if (
         updatedForm.file_type === 'link' &&
-        updatedForm.link &&
-        updatedForm.link !== '-'
+        updatedForm.links &&
+        updatedForm.links.length > 0
       ) {
         // Fallback for single link
         setFormLinks((prev) => ({
           ...prev,
           [form_id]: [
             {
-              link_path: updatedForm.link,
-              link_name: updatedForm.link_name || updatedForm.link,
+              link_path: updatedForm.links[0].link_path,
+              link_name: updatedForm.links[0].link_name,
               form_id: form_id,
             },
           ],
@@ -842,7 +771,8 @@ const {setBreadcrumbs} = useUtility()
   }
 
   const handleViewEvidence = (fileInfo: FileInfo) => {
-    window.open(`/files/${fileInfo.file_name}`, '_blank')
+    const baseUrl = process.env.NEXT_PUBLIC_API?.replace('/api', '') || 'http://localhost:3333'
+    window.open(`${baseUrl}/files/${fileInfo.file_name}`, '_blank')
   }
 
   const toggleForm = (index: number) => {
@@ -864,15 +794,17 @@ const {setBreadcrumbs} = useUtility()
   }
 
   const fetchFormDetail = async (id: number) => {
+    if (!session?.accessToken) return
+    
     try {
       // เพิ่ม userId ในการเรียก API
-      const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_API}/workload_form/form_info_detail/${id}?as_u_id=${userId}`,
-        { headers }
-      )
+      const response = await WorkloadFormServices.getFormDetail(id, userId || 0, session.accessToken)
 
-      if (response.data.status && response.data.data) {
-        setFormDetail(response.data.data)
+      // ใช้ legacy format เหมือนเดิม
+      const data = response.data
+      const isSuccess = response.status
+      if (isSuccess && data && data.length > 0) {
+        setFormDetail(data[0])
       }
     } catch (err) {
       console.error('Error fetching form data:', err)
@@ -900,6 +832,8 @@ const {setBreadcrumbs} = useUtility()
   }
 
   const comfirmDelete = async (form_id: number) => {
+    if (!session?.accessToken) return
+    
     try {
       // Close the modal first
       const checkbox = document.getElementById(
@@ -909,14 +843,11 @@ const {setBreadcrumbs} = useUtility()
         checkbox.checked = false
       }
 
-      const response = await axios.delete(
-        `${process.env.NEXT_PUBLIC_API}/workload_form/form_info/${form_id}`,
-        {
-          headers,
-        }
-      )
+      const response = await WorkloadFormServices.deleteFormInfo(form_id, session.accessToken)
 
-      if (response.status === 200) {
+      // ใช้ legacy format เหมือนเดิม
+      const isSuccess = response.status
+      if (isSuccess) {
         // Update state after successful deletion
         setFormList((prev) => prev.filter((form) => form.form_id !== form_id))
         setFormFiles((prev) => {
@@ -1004,10 +935,117 @@ const {setBreadcrumbs} = useUtility()
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center rounded-md bg-base-100">
-        <div className="flex items-center justify-center space-x-4">
-          <Loader className="h-12 w-12 animate-spin font-semibold text-primary" />
-          <p className="font-regular text-4xl text-primary">Loading...</p>
+      <div className="animate-pulse">
+        {/* Header skeleton */}
+        <div className="rounded-t-lg bg-white p-4 shadow-lg dark:bg-zinc-900">
+          <div className="space-y-6">
+            {/* Title skeleton */}
+            <div className="h-8 w-64 bg-gray-200 rounded dark:bg-zinc-700"></div>
+            
+            {/* Form items skeleton */}
+            <div className="space-y-4">
+              {[1, 2, 3].map((item) => (
+                <div
+                  key={item}
+                  className="border-l-4 border-gray-200 bg-gray-50 p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800"
+                >
+                  {/* Form header skeleton */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center">
+                      <div className="h-5 w-5 bg-gray-200 rounded mr-2 dark:bg-zinc-700"></div>
+                      <div className="h-6 w-48 bg-gray-200 rounded dark:bg-zinc-700"></div>
+                    </div>
+                    <div className="h-5 w-5 bg-gray-200 rounded dark:bg-zinc-700"></div>
+                  </div>
+
+                  {/* Form content skeleton */}
+                  <div className="ml-4 grid grid-cols-1 gap-2 rounded-xl bg-gray-50 dark:bg-gray-800 md:grid-cols-3">
+                    <div className="grid gap-2 md:col-span-2">
+                      {/* Description skeleton */}
+                      <div className="rounded-lg bg-white p-4 dark:bg-gray-900">
+                        <div className="h-4 w-16 bg-gray-200 rounded mb-2 dark:bg-zinc-700"></div>
+                        <div className="h-4 w-full bg-gray-200 rounded dark:bg-zinc-700"></div>
+                      </div>
+                      
+                      {/* Workload and Quality skeleton */}
+                      <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                        <div className="rounded-lg bg-white p-4 dark:bg-gray-900">
+                          <div className="h-4 w-16 bg-gray-200 rounded mb-2 dark:bg-zinc-700"></div>
+                          <div className="h-4 w-8 bg-gray-200 rounded dark:bg-zinc-700"></div>
+                        </div>
+                        <div className="rounded-lg bg-white p-4 dark:bg-gray-900">
+                          <div className="h-4 w-12 bg-gray-200 rounded mb-2 dark:bg-zinc-700"></div>
+                          <div className="h-4 w-8 bg-gray-200 rounded dark:bg-zinc-700"></div>
+                        </div>
+                      </div>
+                      
+                      {/* Total workload skeleton */}
+                      <div className="rounded-lg bg-white p-4 dark:bg-gray-900">
+                        <div className="h-4 w-20 bg-gray-200 rounded mb-2 dark:bg-zinc-700"></div>
+                        <div className="h-6 w-8 bg-gray-200 rounded dark:bg-zinc-700"></div>
+                      </div>
+                    </div>
+                    
+                    {/* Evidence file skeleton */}
+                    <div className="h-full">
+                      <div className="flex flex-col gap-4 h-full rounded-lg bg-white p-4 dark:bg-gray-900">
+                        <div className="">
+                          <div className="h-4 w-20 bg-gray-200 rounded mb-2 dark:bg-zinc-700"></div>
+                          <div className="space-y-2">
+                            <div className="flex items-center">
+                              <div className="h-5 w-5 bg-gray-200 rounded mr-2 dark:bg-zinc-700"></div>
+                              <div className="h-4 w-32 bg-gray-200 rounded dark:bg-zinc-700"></div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="">
+                          <div className="h-4 w-20 bg-gray-200 rounded mb-2 dark:bg-zinc-700"></div>
+                          <div className="space-y-2">
+                            <div className="flex items-center">
+                              <div className="h-5 w-5 bg-gray-200 rounded mr-2 dark:bg-zinc-700"></div>
+                              <div className="h-4 w-32 bg-gray-200 rounded dark:bg-zinc-700"></div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="">
+                          <div className="h-4 w-20 bg-gray-200 rounded mb-2 dark:bg-zinc-700"></div>
+                          <div className="space-y-2">
+                            <div className="flex items-center">
+                              <div className="h-5 w-5 bg-gray-200 rounded mr-2 dark:bg-zinc-700"></div>
+                              <div className="h-4 w-32 bg-gray-200 rounded dark:bg-zinc-700"></div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="">
+                          <div className="h-4 w-20 bg-gray-200 rounded mb-2 dark:bg-zinc-700"></div>
+                          <div className="space-y-2">
+                            <div className="flex items-center">
+                              <div className="h-5 w-5 bg-gray-200 rounded mr-2 dark:bg-zinc-700"></div>
+                              <div className="h-4 w-32 bg-gray-200 rounded dark:bg-zinc-700"></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        
+        {/* Bottom section skeleton */}
+        <div className="sticky bottom-0 flex w-full flex-col justify-end gap-4 rounded-b-lg bg-white p-4 shadow-lg dark:bg-zinc-900">
+          <div className="bg-gray-100 rounded-lg px-4 py-3 dark:bg-zinc-700">
+            <div className="h-5 w-48 bg-gray-200 rounded dark:bg-zinc-600"></div>
+          </div>
+          <label
+            htmlFor={`modal-forminfo`}
+            className="inline-flex w-full cursor-pointer items-center justify-center rounded-lg border border-gray-300 py-2.5 text-sm font-medium text-gray-600 transition-colors duration-150 hover:border-gray-400 hover:text-gray-700 dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400 dark:hover:border-zinc-500"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            เพิ่มรายละเอียดภาระงาน
+          </label>
         </div>
       </div>
     )
@@ -1024,9 +1062,9 @@ const {setBreadcrumbs} = useUtility()
         formDetail={formDetail}
         onSubmit={handleEditForm}
       />
-      {formList.map((form, index) => (
+      {formList.filter(form => form && form.form_id !== null && form.form_id !== undefined).map((form, index) => (
         <DeleteModal
-          key={`delete-modal-${form.form_id}-${index}`}
+          key={form.form_id ? `delete-modal-${form.form_id}` : `delete-modal-temp-${index}`}
           comfirmDelete={comfirmDelete}
           form_id={form.form_id}
         />
@@ -1035,12 +1073,12 @@ const {setBreadcrumbs} = useUtility()
       <div className="">
         <div className="rounded-t-lg bg-white p-4 shadow-lg dark:bg-zinc-900 dark:text-gray-300">
           <div className="space-y-6">
-            <h1 className="text-[16px] font-semibold text-business1 dark:text-blue-400 md:text-2xl">
+            <h1 className="text-[16px] font-normal text-business1 dark:text-blue-400 md:text-2xl">
               {subtaskIndex} {subtask.subtask_name}
             </h1>
-            {formList.map((form, index) => (
+            {formList.filter(form => form && form.form_id !== null && form.form_id !== undefined).map((form, index) => (
               <div
-                key={index}
+                key={form.form_id ? `form-${form.form_id}` : `form-temp-${index}`}
                 className={`border-l-4 border-business1/50 bg-gray-50 p-4 shadow-sm dark:border dark:border-zinc-700 dark:bg-zinc-800`}
               >
                 <div
@@ -1048,10 +1086,10 @@ const {setBreadcrumbs} = useUtility()
                 >
                   <button
                     onClick={() => toggleForm(index)}
-                    className="flex max-w-[90%] items-center text-[16px] font-medium text-business1/80 hover:text-business1 dark:text-gray-200 dark:hover:text-gray-100 md:max-w-full md:text-lg"
+                    className="flex max-w-[90%] items-center text-[16px] font-normal text-business1/80 hover:text-business1 dark:text-gray-200 dark:hover:text-gray-100 md:max-w-full md:text-lg"
                   >
                     <ChevronDown
-                      className={`mr-2 h-10 w-10 transform transition-transform duration-300 md:h-5 md:w-5 ${
+                      className={`mr-2 h-10 w-10 transform transition-transform duration-300 md:h-5 md:w-5${
                         isOpen[index] ? 'rotate-180' : ''
                       }`}
                     />
@@ -1106,7 +1144,7 @@ const {setBreadcrumbs} = useUtility()
                   <div className="ml-4 grid grid-cols-1 gap-2 rounded-xl bg-gray-50 dark:bg-gray-800 md:grid-cols-3">
                     <div className="grid gap-2 md:col-span-2">
                       <div className="rounded-lg bg-white p-4 transition-all duration-200 dark:bg-gray-900">
-                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        <p className="text-sm font-light text-gray-500 dark:text-gray-400">
                           คำอธิบาย:
                         </p>
                         <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">
@@ -1115,7 +1153,7 @@ const {setBreadcrumbs} = useUtility()
                       </div>
                       <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                         <div className="rounded-lg bg-white p-4 transition-all duration-200 dark:bg-gray-900">
-                          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          <p className="text-sm font-light text-gray-500 dark:text-gray-400">
                             ภาระงาน:
                           </p>
                           <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">
@@ -1123,7 +1161,7 @@ const {setBreadcrumbs} = useUtility()
                           </p>
                         </div>
                         <div className="rounded-lg bg-white p-4 transition-all duration-200 dark:bg-gray-900">
-                          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          <p className="text-sm font-light text-gray-500 dark:text-gray-400">
                             จำนวน:
                           </p>
                           <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">
@@ -1132,7 +1170,7 @@ const {setBreadcrumbs} = useUtility()
                         </div>
                       </div>
                       <div className="rounded-lg bg-white p-4 transition-all duration-200 dark:bg-gray-900">
-                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        <p className="text-sm font-light text-gray-500 dark:text-gray-400">
                           รวมภาระงาน:
                         </p>
                         <p className="mt-1 text-base font-semibold text-gray-800 dark:text-gray-200">
@@ -1147,7 +1185,7 @@ const {setBreadcrumbs} = useUtility()
                         formSystemFiles[form.form_id] ||
                         fileInfos[form.form_id]?.length > 0) && (
                         <div className="h-full rounded-lg bg-white p-4 transition-all duration-200 dark:bg-gray-900">
-                          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          <p className="text-sm font-light text-gray-500 dark:text-gray-400">
                             ไฟล์หลักฐาน:
                           </p>
                           <ul className="mt-2 space-y-2">
@@ -1155,9 +1193,9 @@ const {setBreadcrumbs} = useUtility()
                             {form.file_type === 'link' &&
                             formLinks[form.form_id]?.length > 0 ? (
                               // แสดงลิงก์ก่อน (สลับลำดับการตรวจสอบ)
-                              formLinks[form.form_id].map(
+                              formLinks[form.form_id].filter(link => link && link.link_path).map(
                                 (link: LinkData, index: number) => (
-                                  <li key={index}>
+                                  <li key={form.form_id ? `link-${form.form_id}-${index}` : `link-temp-${index}`}>
                                     <button
                                       onClick={() =>
                                         window.open(link.link_path, '_blank')
@@ -1175,12 +1213,13 @@ const {setBreadcrumbs} = useUtility()
                             ) : form.file_type === 'external file' &&
                               formFiles[form.form_id]?.length > 0 ? (
                               // แสดงไฟล์
-                              formFiles[form.form_id].map(
+                              formFiles[form.form_id].filter(file => file && file.file_name).map(
                                 (file: FileData, index: number) => (
-                                  <li key={index}>
+                                  <li key={form.form_id ? `file-${form.form_id}-${index}` : `file-temp-${index}`}>
                                     <button
                                       onClick={() => {
-                                        const url = `/files/${file.file_name}`
+                                        const baseUrl = process.env.NEXT_PUBLIC_API?.replace('/api', '') || 'http://localhost:3333'
+                                        const url = `${baseUrl}/files/${file.file_name}`
                                         window.open(url, '_blank')
                                       }}
                                       className="inline-flex items-center text-sm text-blue-600 transition-colors duration-150 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
@@ -1201,12 +1240,13 @@ const {setBreadcrumbs} = useUtility()
                               formSystemFiles[form.form_id] ? (
                               <li>
                                 <button
-                                  onClick={() =>
+                                  onClick={() => {
+                                    const baseUrl = process.env.NEXT_PUBLIC_API?.replace('/api', '') || 'http://localhost:3333'
                                     window.open(
-                                      `/files/${formSystemFiles[form.form_id].file_name}`,
+                                      `${baseUrl}/files/${formSystemFiles[form.form_id].file_name}`,
                                       '_blank'
                                     )
-                                  }
+                                  }}
                                   className="inline-flex items-center text-sm text-blue-600 transition-colors duration-150 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
                                 >
                                   {isImageFile(
@@ -1222,8 +1262,8 @@ const {setBreadcrumbs} = useUtility()
                                 </button>
                               </li>
                             ) : fileInfos[form.form_id]?.length > 0 ? (
-                              fileInfos[form.form_id].map((fileInfo) => (
-                                <li key={fileInfo.fileinfo_id}>
+                              fileInfos[form.form_id].filter(fileInfo => fileInfo && fileInfo.file_name).map((fileInfo, index) => (
+                                <li key={fileInfo.fileinfo_id ? `fileinfo-${fileInfo.fileinfo_id}` : `fileinfo-${form.form_id || 'temp'}-${index}`}>
                                   <button
                                     onClick={() => handleViewEvidence(fileInfo)}
                                     className="inline-flex items-center text-sm text-blue-600 transition-colors duration-150 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
@@ -1254,9 +1294,9 @@ const {setBreadcrumbs} = useUtility()
           <div
             className={`${totalSum === 0 ? 'bg-gray-100' : 'bg-green-100'} rounded-lg px-4 py-3 dark:bg-zinc-700`}
           >
-            <p className="text-md font-medium text-gray-700 dark:text-gray-300">
+            <p className="text-md font-light text-gray-700 dark:text-gray-300">
               ผลรวมคะแนนรวมทั้งหมด:{' '}
-              <span className="font-semibold">{totalSum}</span>
+              <span className="font-normal">{totalSum}</span>
             </p>
           </div>
           <label

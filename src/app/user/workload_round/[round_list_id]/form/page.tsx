@@ -3,6 +3,9 @@ import axios from 'axios'
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import useAuthHeaders from '@/hooks/Header'
+import useUtility from '@/hooks/useUtility'
+import StickyFooter from '@/components/StickyFooter'
+import ConfirmSubmitFormModal from './confirmSubmitModal'
 
 interface Workload {
   task_id: number
@@ -11,12 +14,20 @@ interface Workload {
 
 export default function WorkLoadForm() {
   const params = useParams()
+  const {setBreadcrumbs} = useUtility()
   const round_list_id = params.round_list_id as string
   const [workload, setWorkload] = useState<Workload[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
   const headers = useAuthHeaders()
+  const [confirmSubmitFormModal, setConfirmSubmitFormModal] = useState<boolean>(false)
+  useEffect(() => {
+    setBreadcrumbs(
+      [{ text: 'รอบประเมินภาระงาน', path: '/user/workload_round' },
+        { text: 'ภาระงานหลัก', path: `/user/workload_round/${round_list_id}/form` },
+      ])
+  }, [setBreadcrumbs])
 
   useEffect(() => {
     const fetchWorkloads = async () => {
@@ -64,6 +75,7 @@ export default function WorkLoadForm() {
 
   return (
     <div className="rounded-md bg-white p-4 shadow transition-all duration-300 ease-in-out dark:bg-zinc-900 dark:text-gray-400">
+    
       <div className="flex flex-col gap-4">
         {workload.map((item, index) => (
           <button
@@ -82,6 +94,24 @@ export default function WorkLoadForm() {
           </button>
         ))}
       </div>
+      <StickyFooter
+        onSubmit={() => {
+          console.log('Submit button clicked, opening modal')
+          setConfirmSubmitFormModal(true)
+        }}
+        showSubmitOnly={true}
+        submitText="ส่งข้อมูล"
+      />
+      <ConfirmSubmitFormModal
+        isOpen={confirmSubmitFormModal}
+        handleSelectWorkloadGroup={() => {
+          // Handle submit logic here
+          console.log('Form submitted')
+          setConfirmSubmitFormModal(false)
+        }}
+        workload_group={null}
+        onClose={() => setConfirmSubmitFormModal(false)}
+      />
     </div>
   )
 }

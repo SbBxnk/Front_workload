@@ -351,7 +351,7 @@ export default function Sidebar({ OpenSidebar, setOpenSidebar }: SidebarProps) {
               ))}
         </ul>
 
-        <div className="my-2 overflow-x-hidden border-t px-4">
+        {/* <div className="my-2 overflow-x-hidden border-t px-4">
           {loading ? (
             <div className="item relative">
               <div className="flex items-center overflow-hidden rounded-md py-2 pl-3 pr-4">
@@ -362,7 +362,7 @@ export default function Sidebar({ OpenSidebar, setOpenSidebar }: SidebarProps) {
               </div>
             </div>
           ) : null}
-        </div>
+        </div> */}
       </nav>
     </aside>
   )
