@@ -1,7 +1,7 @@
 'use client'
 import axios from 'axios'
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import useAuthHeaders from '@/hooks/Header'
 
 interface Workload {
@@ -10,6 +10,8 @@ interface Workload {
 }
 
 export default function WorkLoadForm() {
+  const params = useParams()
+  const round_list_id = params.round_list_id as string
   const [workload, setWorkload] = useState<Workload[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
@@ -36,8 +38,8 @@ export default function WorkLoadForm() {
     //eslint-disable-next-line
   }, [])
 
-  const handleTaskClick = (task_id: number) => {
-    router.push(`/user/workload_form/${task_id}`)
+  const handleTaskClick = (task_id: number, round_list_id: string) => {
+    router.push(`/user/workload_round/${round_list_id}/form/${task_id}`)
   }
 
   if (loading) {
@@ -66,7 +68,7 @@ export default function WorkLoadForm() {
         {workload.map((item, index) => (
           <button
             key={item.task_id}
-            onClick={() => handleTaskClick(item.task_id)}
+            onClick={() => handleTaskClick(item.task_id, round_list_id)}
             className="flex w-full cursor-pointer items-center justify-start gap-4 text-nowrap rounded-md border border-gray-200 px-4 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800"
           >
             <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-business1 text-white">

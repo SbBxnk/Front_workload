@@ -1,3 +1,5 @@
+
+
 'use client'
 import axios from 'axios'
 import type React from 'react'
@@ -8,8 +10,8 @@ import { jwtDecode } from 'jwt-decode'
 import { useSession } from 'next-auth/react'
 import { useAssessor } from '@/hooks/useAssessor'
 import SetAssessorServices from '@/services/setAssessorServices'
+import { useParams } from 'next/navigation'
 import {
-  Loader,
   CalendarClock,
   Book,
   Calendar,
@@ -20,6 +22,7 @@ import {
 } from 'lucide-react'
 import ConfirmModal from './confirmModal'
 import InfoHoverModal from './infoTermModal'
+import useUtility from '@/hooks/useUtility'
 
 interface Round {
   round_list_id: number
@@ -76,9 +79,11 @@ const formatThaiDate = (dateString: string) => {
 function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const [, setSelectedGroup] = useState<string | null>(null)
   const [terms, setTerms] = useState<Terms[]>([])
+  const { setBreadcrumbs } = useUtility()
   const [workloadGroups, setWorkloadGroups] = useState<WorkloadGroup[]>([])
-  const [, setRounds] = useState<Round[]>([])
+  const [allRounds, setAllRounds] = useState<Round[]>([])
   const [currentRound, setCurrentRound] = useState<Round | null>(null)
+  const [targetRound, setTargetRound] = useState<Round | null>(null)
   const [loading, setLoading] = useState(true)
   // ใช้ useAssessor hook แทน state และ API call
   const { isAssessor: isUserAssessor } = useAssessor()
@@ -91,6 +96,15 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const infoIconRef = useRef<HTMLDivElement>(null)
   const { data: session } = useSession()
+  const params = useParams()
+  const roundId = params?.round_list_id ? parseInt(params.round_list_id as string) : null
+
+  useEffect(() => {
+    setBreadcrumbs(
+      [{ text: 'รอบประเมินภาระงาน', path: '/user/workload_round' },
+        { text: 'ภาระงานหลัก', path: `/user/workload_round/${roundId}/form` },
+      ])
+  }, [setBreadcrumbs])
 
   useEffect(() => {
     if (session?.accessToken) {
@@ -144,7 +158,7 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
         setTerms(responseTerms.data.data)
 
         const fetchedRounds = Array.isArray(responseRounds.payload) ? responseRounds.payload : []
-        setRounds(fetchedRounds as unknown as Round[])
+        setAllRounds(fetchedRounds as unknown as Round[])
 
         const currentDate = new Date()
         const activeRound = fetchedRounds.find((round: any) => {
@@ -153,6 +167,12 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
           return currentDate >= startDate && currentDate <= endDate
         })
 
+         // หารอบที่ผู้ใช้พยายามเข้าถึง
+         console.log('🔍 Debug - roundId:', roundId)
+         console.log('🔍 Debug - fetchedRounds:', fetchedRounds)
+         const targetRoundData = roundId ? fetchedRounds.find((round: any) => round.round_list_id === roundId) : null
+         console.log('🔍 Debug - targetRoundData:', targetRoundData)
+         setTargetRound(targetRoundData as unknown as Round || null)
         setCurrentRound(activeRound as unknown as Round || null)
       } catch (error) {
         console.error('Error fetching data:', error)
@@ -197,6 +217,38 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
       total += getWorkloadHours(taskName, groupName)
     })
     return total
+  }
+
+  // ตรวจสอบสถานะของรอบ
+  const getRoundStatus = (round: Round | null) => {
+    console.log('🔍 Debug - getRoundStatus called with round:', round)
+    if (!round) {
+      console.log('🔍 Debug - round is null, returning not_found')
+      return 'not_found'
+    }
+    
+    const currentDate = new Date()
+    const startDate = new Date(round.date_start)
+    const endDate = new Date(round.date_end)
+    
+    console.log('🔍 Debug - dates:', {
+      currentDate: currentDate.toISOString(),
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      isBeforeStart: currentDate < startDate,
+      isAfterEnd: currentDate > endDate
+    })
+    
+    if (currentDate < startDate) {
+      console.log('🔍 Debug - returning not_started')
+      return 'not_started'
+    }
+    if (currentDate > endDate) {
+      console.log('🔍 Debug - returning ended')
+      return 'ended'
+    }
+    console.log('🔍 Debug - returning active')
+    return 'active'
   }
 
   const handleSelectWorkloadGroup = async (workload_group: WorkloadGroup) => {
@@ -254,20 +306,136 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center rounded-md bg-base-100">
-        <div className="flex items-center justify-center space-x-4">
-          <Loader className="h-12 w-12 animate-spin font-semibold text-primary" />
-          <p className="font-regular text-4xl text-primary">Loading...</p>
+      <div className="rounded-md transition-all duration-300 ease-in-out dark:text-gray-400">
+        <div className="flex flex-col gap-4">
+          {/* Skeleton for round info */}
+          <div className="rounded-md bg-white p-4 shadow dark:bg-zinc-900 dark:text-gray-400">
+            <div className="mb-4 h-6 w-48 animate-pulse rounded bg-gray-200 dark:bg-zinc-700"></div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+              {[...Array(4)].map((_, index) => (
+                <div key={index} className="space-y-4">
+                  <div className="h-4 w-24 animate-pulse rounded bg-gray-200 dark:bg-zinc-700"></div>
+                  <div className="h-8 w-full animate-pulse rounded bg-gray-200 dark:bg-zinc-700"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          {/* Skeleton for workload criteria table */}
+          <div className="rounded-md bg-white px-4 pt-4 pb-1 shadow dark:bg-zinc-900 dark:text-gray-400">
+            <div className="mb-4 h-6 w-80 animate-pulse rounded bg-gray-200 dark:bg-zinc-700"></div>
+            <div className="my-4 overflow-x-auto">
+              <table className="w-full overflow-x-auto border border-gray-300 bg-white dark:border-gray-700 dark:bg-zinc-900 md:table-auto">
+                <thead className="bg-gray-100 dark:bg-zinc-800">
+                  <tr>
+                    <th className="border-b border-r border-gray-300 px-4 py-3 text-left text-gray-700 dark:text-gray-300">
+                      <div className="h-4 w-20 animate-pulse rounded bg-gray-200 dark:bg-zinc-700"></div>
+                    </th>
+                    {[...Array(4)].map((_, index) => (
+                      <th key={index} className="text-md text-nowrap border-b border-r border-gray-300 px-4 py-2 text-center font-normal text-gray-600 dark:text-gray-300">
+                        <div className="h-4 w-24 animate-pulse rounded bg-gray-200 dark:bg-zinc-700 mx-auto"></div>
+                        <div className="mt-1 h-3 w-20 animate-pulse rounded bg-gray-200 dark:bg-zinc-700 mx-auto"></div>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...Array(5)].map((_, taskIndex) => (
+                    <tr key={taskIndex} className="hover:bg-gray-50 dark:hover:bg-zinc-800">
+                      <td className="text-md text-nowrap border-b border-r border-gray-300 px-4 py-3 font-normal text-gray-700">
+                        <div className="h-4 w-48 animate-pulse rounded bg-gray-200 dark:bg-zinc-700"></div>
+                      </td>
+                      {[...Array(4)].map((_, groupIndex) => (
+                        <td key={groupIndex} className="border-b border-r border-gray-300 px-4 py-2 text-center text-gray-500">
+                          <div className="h-4 w-8 animate-pulse rounded bg-gray-200 dark:bg-zinc-700 mx-auto"></div>
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                  <tr className="bg-gray-100 font-bold dark:bg-zinc-800">
+                    <td className="border-b border-r border-gray-300 px-4 py-2 text-center font-normal text-gray-600">
+                      <div className="h-4 w-32 animate-pulse rounded bg-gray-200 dark:bg-zinc-700 mx-auto"></div>
+                    </td>
+                    {[...Array(4)].map((_, groupIndex) => (
+                      <td key={groupIndex} className="border-b border-r border-gray-300 px-4 py-2 text-center font-normal text-business1">
+                        <div className="h-4 w-8 animate-pulse rounded bg-gray-200 dark:bg-zinc-700 mx-auto"></div>
+                      </td>
+                    ))}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
+          {/* Skeleton for workload group selection */}
+          <div className="rounded-md bg-white p-4 shadow dark:bg-zinc-900 dark:text-gray-400">
+            <div className="mb-4 h-6 w-48 animate-pulse rounded bg-gray-200 dark:bg-zinc-700"></div>
+            <div className="flex flex-wrap gap-2">
+              {[...Array(4)].map((_, index) => (
+                <div key={index} className="h-10 w-24 animate-pulse rounded bg-gray-200 dark:bg-zinc-700"></div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     )
   }
 
+  // ตรวจสอบสถานะของรอบที่ผู้ใช้พยายามเข้าถึง
+  console.log('🔍 Debug - targetRound before getRoundStatus:', targetRound)
+  const targetRoundStatus = getRoundStatus(targetRound)
+  console.log('🔍 Debug - targetRoundStatus:', targetRoundStatus)
+
   return (
     <>
-      {/* ไม่มีรอบการประเมิน */}
-      {!currentRound ? (
+      {/* ตรวจสอบสถานะของรอบที่ผู้ใช้พยายามเข้าถึง */}
+      {targetRoundStatus === 'not_found' ? (
         <div className="mb-4 rounded-md bg-white p-6 shadow dark:bg-zinc-900 dark:text-gray-400">
+          <div className="flex flex-col items-center justify-center gap-4 py-8 text-center">
+            <ClockAlert className="h-12 w-12 text-blue-500 md:h-24 md:w-24" />
+            <div className="">
+              <h2 className="mb-2 text-4xl font-medium text-gray-700 dark:text-gray-300">
+                ไม่พบรอบการประเมิน
+              </h2>
+              <p className="text-gray-500 dark:text-gray-400">
+                ไม่พบรอบการประเมินที่คุณพยายามเข้าถึง
+                กรุณาตรวจสอบ URL หรือติดต่อผู้ดูแลระบบ
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : targetRoundStatus === 'not_started' ? (
+        <div className="h-[calc(100vh-6rem)] rounded-md bg-white p-6 shadow dark:bg-zinc-900 dark:text-gray-400">
+          <div className="flex flex-col items-center justify-center gap-4 py-8 text-center">
+            <ClockAlert className="h-12 w-12 text-amber-500 md:h-24 md:w-24" />
+            <div className="">
+              <h2 className="mb-2 text-4xl font-medium text-gray-700 dark:text-gray-300">
+                กำลังรอดำเนินการ
+              </h2>
+              <p className="text-gray-500 dark:text-gray-400">
+                รอบการประเมินนี้ยังไม่เริ่มต้น
+                กรุณาตรวจสอบอีกครั้งในภายหลัง
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : targetRoundStatus === 'ended' ? (
+        <div className="h-[calc(100vh-6rem)] rounded-md bg-white p-6 shadow dark:bg-zinc-900 dark:text-gray-400">
+          <div className="flex flex-col items-center justify-center gap-4 py-8 text-center">
+            <TriangleAlertIcon className="h-12 w-12 text-red-500 md:h-24 md:w-24" />
+            <div className="">
+              <h2 className="mb-2 text-4xl font-medium text-gray-700 dark:text-gray-300">
+                การประเมินสิ้นสุด
+              </h2>
+              <p className="text-gray-500 dark:text-gray-400">
+                รอบการประเมินนี้สิ้นสุดแล้ว
+                ไม่สามารถเข้าถึงได้อีกต่อไป
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : !currentRound ? (
+        <div className="h-[calc(100vh-6rem)] rounded-md bg-white p-6 shadow dark:bg-zinc-900 dark:text-gray-400">
           <div className="flex flex-col items-center justify-center gap-4 py-8 text-center">
             <ClockAlert className="h-12 w-12 text-blue-500 md:h-24 md:w-24" />
             <div className="">
@@ -352,10 +520,11 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
           {isUserAssessor ? (
             !workloadGroupInfo ||
             workloadGroupInfo.workload_group_id === 0 ||
-            workloadGroupInfo.workload_group_id === null ? (
+            workloadGroupInfo.workload_group_id === null ||
+            !workloadGroupInfo.workload_group_name ? (
               <div className="space-y-4">
                 {Array.isArray(terms) && terms.length > 0 && (
-                  <div className="rounded-md bg-white p-4 shadow transition-all duration-300 ease-in-out dark:bg-zinc-900 dark:text-gray-400">
+                  <div className="rounded-md bg-white px-4 pt-4 pb-1 shadow transition-all duration-300 ease-in-out dark:bg-zinc-900 dark:text-gray-400">
                     <h2 className="text-lg font-medium text-gray-700">
                       เกณฑ์การประเมินภาระงานของแต่ละด้านภาระงาน
                     </h2>
@@ -462,3 +631,4 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
 }
 
 export default ClientLayout
+

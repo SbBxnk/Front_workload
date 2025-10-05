@@ -22,6 +22,7 @@ import { useSession } from 'next-auth/react'
 import CreateModal from './createModal'
 import DeleteModal from './deleteModal'
 import EditModal from './editModal'
+import useUtility from '@/hooks/useUtility'
 
 interface ApiFormData {
   subtask_name: string
@@ -108,7 +109,7 @@ const isImageFile = (fileName: string | null | undefined): boolean => {
 }
 
 function WorkloadSubtaskInfo() {
-  const { subtask_id, task_id } = useParams()
+  const { subtask_id, task_id, round_list_id } = useParams()
   const headers = useAuthHeaders()
   const [subtask, setSubtask] = useState<Subtask | null>(null)
   const [subtaskIndex, setSubtaskIndex] = useState<string>('')
@@ -139,6 +140,15 @@ function WorkloadSubtaskInfo() {
   const [isOpen, setIsOpen] = useState<{ [index: number]: boolean }>({})
   const [editFormId, setEditFormId] = useState<number | null>(null)
   const [formDetail, setFormDetail] = useState<FormInfo | null>(null)
+const {setBreadcrumbs} = useUtility()
+  useEffect(() => {
+    setBreadcrumbs(
+      [{ text: 'รอบประเมินภาระงาน', path: '/user/workload_round' },
+        { text: 'ภาระงานหลัก', path: `/user/workload_round/${round_list_id}/form` },
+        { text: 'ภาระงานย่อย', path: `/user/workload_round/${round_list_id}/form/${task_id}` },
+        { text: 'ฟอร์มภาระงานย่อย', path: `/user/workload_round/${round_list_id}/form/${task_id}/subtask/${subtask_id}` },
+      ])
+  }, [setBreadcrumbs])
 
   const toggleDropdown = (index: number) => {
     setDropdownOpen((prev) => ({ ...prev, [index]: !prev[index] }))

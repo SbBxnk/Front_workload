@@ -6,6 +6,7 @@ import axios from 'axios'
 import useAuthHeaders from '@/hooks/Header'
 import { useRouter } from 'next/navigation'
 import { Loader } from 'lucide-react'
+import useUtility from '@/hooks/useUtility'
 
 interface SubTaskDetail {
   subtask_id: number
@@ -15,12 +16,22 @@ interface SubTaskDetail {
 
 export default function WorkloadSubtask() {
   const params = useParams()
+  const { setBreadcrumbs } = useUtility()
   const router = useRouter()
   const task_id = params.task_id
   const headers = useAuthHeaders()
+  const round_list_id = params.round_list_id as string
   const [subtasks, setSubtasks] = useState<SubTaskDetail[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setBreadcrumbs(
+      [{ text: 'รอบประเมินภาระงาน', path: '/user/workload_round' },
+        { text: 'ภาระงานหลัก', path: `/user/workload_round/${round_list_id}/form` },
+        { text: 'ภาระงานย่อย', path: `/user/workload_round/${round_list_id}/form/${task_id}` },
+      ])
+  }, [setBreadcrumbs])
 
   useEffect(() => {
     const fetchTaskAndSubtasks = async () => {
@@ -60,8 +71,8 @@ export default function WorkloadSubtask() {
   }
   if (error) return <p className="text-red-500">{error}</p>
 
-  const handleSubTaskClick = (subtask_id: number) => {
-    router.push(`/user/workload_form/${task_id}/${subtask_id}`)
+  const handleSubTaskClick = (subtask_id: number, round_list_id: string) => {
+    router.push(`/user/workload_round/${round_list_id}/form/${task_id}/subtask/${subtask_id}`)
   }
   return (
     <div className="">
@@ -70,7 +81,7 @@ export default function WorkloadSubtask() {
           {subtasks.map((subtask, index) => (
             <button
               key={subtask.subtask_id}
-              onClick={() => handleSubTaskClick(subtask.subtask_id)}
+              onClick={() => handleSubTaskClick(subtask.subtask_id, round_list_id)}
               className="flex w-full cursor-pointer items-center justify-start gap-4 text-nowrap rounded-md border border-gray-200 px-4 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800"
             >
               <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-business1 text-white">
