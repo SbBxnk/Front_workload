@@ -22,7 +22,9 @@ import {
 } from 'lucide-react'
 import ConfirmModal from './confirmModal'
 import InfoHoverModal from './infoTermModal'
+import _successForm from './_successForm'
 import useUtility from '@/hooks/useUtility'
+import WorkloadFormServices from '@/services/workloadFormServices'
 
 interface Round {
   round_list_id: number
@@ -87,13 +89,13 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const [loading, setLoading] = useState(true)
   // ใช้ useAssessor hook แทน state และ API call
   const { isAssessor: isUserAssessor } = useAssessor()
-  const [workloadGroupInfo, setWorkloadGroupInfo] =
-    useState<CheckWorkloadGroupResponse | null>(null)
+  const [workloadGroupInfo, setWorkloadGroupInfo] = useState<CheckWorkloadGroupResponse | null>(null)
   const [userId, setUserId] = useState<number | null>(null)
   const headers = useAuthHeaders()
   const [selectedWorkloadGroup, setSelectedWorkloadGroup] =
     useState<WorkloadGroup | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [formStatus, setFormStatus] = useState<number | null>(null)
   const infoIconRef = useRef<HTMLDivElement>(null)
   const { data: session } = useSession()
   const params = useParams()
@@ -140,6 +142,27 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId])
 
+  // เช็ค status ของ workload form
+  useEffect(() => {
+    const checkFormStatus = async () => {
+      if (userId && roundId && session?.accessToken) {
+        try {
+          const response = await WorkloadFormServices.checkWorkloadFormStatus(userId, roundId, session.accessToken)
+          if (response.success && response.payload) {
+            const data = Array.isArray(response.payload) ? response.payload[0] : response.payload
+            if (data) {
+              setFormStatus(data.status)
+            }
+          }
+        } catch (error) {
+          console.error('Error checking form status:', error)
+        }
+      }
+    }
+
+    checkFormStatus()
+  }, [userId, roundId, session?.accessToken])
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true)
@@ -168,10 +191,7 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
         })
 
          // หารอบที่ผู้ใช้พยายามเข้าถึง
-         console.log('🔍 Debug - roundId:', roundId)
-         console.log('🔍 Debug - fetchedRounds:', fetchedRounds)
          const targetRoundData = roundId ? fetchedRounds.find((round: any) => round.round_list_id === roundId) : null
-         console.log('🔍 Debug - targetRoundData:', targetRoundData)
          setTargetRound(targetRoundData as unknown as Round || null)
         setCurrentRound(activeRound as unknown as Round || null)
       } catch (error) {
@@ -221,9 +241,7 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
 
   // ตรวจสอบสถานะของรอบ
   const getRoundStatus = (round: Round | null) => {
-    console.log('🔍 Debug - getRoundStatus called with round:', round)
     if (!round) {
-      console.log('🔍 Debug - round is null, returning not_found')
       return 'not_found'
     }
     
@@ -231,23 +249,14 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
     const startDate = new Date(round.date_start)
     const endDate = new Date(round.date_end)
     
-    console.log('🔍 Debug - dates:', {
-      currentDate: currentDate.toISOString(),
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-      isBeforeStart: currentDate < startDate,
-      isAfterEnd: currentDate > endDate
-    })
+   
     
     if (currentDate < startDate) {
-      console.log('🔍 Debug - returning not_started')
       return 'not_started'
     }
     if (currentDate > endDate) {
-      console.log('🔍 Debug - returning ended')
       return 'ended'
     }
-    console.log('🔍 Debug - returning active')
     return 'active'
   }
 
@@ -264,15 +273,10 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
     }
 
     try {
-      const response = await axios.put(
-        `${process.env.NEXT_PUBLIC_API}/workload_form/update/${userId}`,
-        payload,
-        {
-          headers,
-        }
-      )
+      const response = await WorkloadFormServices.selectWorkloadFormGroup(userId, workload_group.workload_group_id, currentRound.round_list_id, session?.accessToken || '')
+      
 
-      if (response.data.status) {
+      if (response.status) {
         // อัปเดต workloadGroupInfo และ selectedGroup
         setWorkloadGroupInfo({
           workload_group_id: workload_group.workload_group_id,
@@ -280,7 +284,7 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
         })
         setSelectedGroup(workload_group.workload_group_name)
       } else {
-        console.error('Error from API:', response.data.error)
+        console.error('Error from API:', response.message)
       }
     } catch (error) {
       console.error('Error updating workload group:', error)
@@ -381,10 +385,7 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
     )
   }
 
-  // ตรวจสอบสถานะของรอบที่ผู้ใช้พยายามเข้าถึง
-  console.log('🔍 Debug - targetRound before getRoundStatus:', targetRound)
   const targetRoundStatus = getRoundStatus(targetRound)
-  console.log('🔍 Debug - targetRoundStatus:', targetRoundStatus)
 
   return (
     <>
@@ -605,6 +606,8 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
                   />
                 </div>
               </div>
+            ) : formStatus === 1 ? (
+              <_successForm terms={terms} selectedGroupName={workloadGroupInfo?.workload_group_name || undefined} />
             ) : (
               <div>{children}</div>
             )

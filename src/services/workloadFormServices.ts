@@ -1,4 +1,4 @@
-import { ResponsePayload } from '@/Types'
+import { ResponsePayload, BackendResponse } from '@/Types'
 import http from '@/utils/http'
 
 // Types for Workload Form
@@ -149,22 +149,47 @@ const WorkloadFormServices = {
   selectWorkloadFormGroup: (
     userId: number,
     workloadGroupId: number,
+    roundId: number,
     accessToken: string
-  ): Promise<ResponsePayload<void>> => {
-    return http.put(`/workload_form/update/${userId}`, 
-      { workload_group_id: workloadGroupId },
+  ): Promise<BackendResponse<void>> => {
+    return http.patch(`/workload_form/update/${userId}`, { 
+      workload_group_id: workloadGroupId,
+      round_id: roundId 
+    },
       {
         headers: { Authorization: `Bearer ${accessToken}` },
       }
     )
   },
 
-  // Add bulk workload forms
-  addBulkForms: (formData: any[], accessToken: string): Promise<ResponsePayload<void>> => {
-    return http.post('/workload_form/add_bulk', formData, {
+  updateWorkloadFormStatus: (
+    userId: number,
+    roundId: number,
+    accessToken: string
+  ): Promise<ResponsePayload<void>> => {
+    return http.patch(`/assessor_status/${roundId}/update/${userId}`, {
+      round_id: roundId ,
+      round_list_id: roundId,
+      as_u_id: userId
+    },
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }
+    )
+  },
+
+  // Check workload form status
+  checkWorkloadFormStatus: (
+    userId: number,
+    roundId: number,
+    accessToken: string
+  ): Promise<ResponsePayload<{ status: number; formlist_id: number }>> => {
+    return http.get(`/workload_form/status/${userId}/${roundId}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
   },
+
+  
 }
 
 export default WorkloadFormServices

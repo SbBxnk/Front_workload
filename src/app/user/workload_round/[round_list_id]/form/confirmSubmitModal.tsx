@@ -1,22 +1,16 @@
 'use client'
 
-import type { WorkloadGroup } from '@/Types'
-import { CalendarClock } from 'lucide-react'
-
 interface ConfirmSubmitFormModalProps {
-  handleSelectWorkloadGroup: (workload_group: WorkloadGroup) => void
-  workload_group: WorkloadGroup | null
+  onConfirm: () => void
   onClose?: () => void
   isOpen: boolean
 }
 
 export default function ConfirmSubmitFormModal({
-  handleSelectWorkloadGroup,
-  workload_group,
+  onConfirm,
   onClose,
   isOpen,
 }: ConfirmSubmitFormModalProps) {
-  console.log('ConfirmSubmitFormModal render:', { isOpen, workload_group })
 
   if (!isOpen) return null
 
@@ -48,9 +42,8 @@ export default function ConfirmSubmitFormModal({
             <button
               type="submit"
               onClick={() => {
-                if (workload_group) {
-                  handleSelectWorkloadGroup(workload_group)
-                }
+                console.log('🔘 Modal confirm button clicked')
+                onConfirm()
                 if (onClose) {
                   onClose()
                 }

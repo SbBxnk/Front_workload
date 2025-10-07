@@ -2,23 +2,45 @@
 import axios from 'axios'
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
+import { useSession } from 'next-auth/react'
+import { jwtDecode } from 'jwt-decode'
 import useAuthHeaders from '@/hooks/Header'
 import useUtility from '@/hooks/useUtility'
 import StickyFooter from '@/components/StickyFooter'
 import ConfirmSubmitFormModal from './confirmSubmitModal'
+import WorkloadFormServices from '@/services/workloadFormServices'
 
 interface Workload {
   task_id: number
   task_name: string
 }
 
+interface UserLoginData {
+  id: number
+  u_fname: string
+  u_lname: string
+  u_email: string
+  level_name: string
+  prefix_id: number
+  position_id: number
+  course_id: number
+  ex_position_id: number
+  type_p_id: number
+  u_id_card: string
+  u_img: string
+  u_tel: string
+  work_start: string
+}
+
 export default function WorkLoadForm() {
   const params = useParams()
   const {setBreadcrumbs} = useUtility()
+  const { data: session } = useSession()
   const round_list_id = params.round_list_id as string
   const [workload, setWorkload] = useState<Workload[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
+  const [user, setUser] = useState<UserLoginData | null>(null)
   const router = useRouter()
   const headers = useAuthHeaders()
   const [confirmSubmitFormModal, setConfirmSubmitFormModal] = useState<boolean>(false)
@@ -28,6 +50,18 @@ export default function WorkLoadForm() {
         { text: 'ภาระงานหลัก', path: `/user/workload_round/${round_list_id}/form` },
       ])
   }, [setBreadcrumbs])
+
+  // ดึงข้อมูล user จาก session
+  useEffect(() => {
+    if (session?.accessToken) {
+      try {
+        const decoded: UserLoginData = jwtDecode(session.accessToken)
+        setUser(decoded)
+      } catch (error) {
+        console.error('JWT Decode Error:', error)
+      }
+    }
+  }, [session?.accessToken])
 
   useEffect(() => {
     const fetchWorkloads = async () => {
@@ -46,11 +80,30 @@ export default function WorkLoadForm() {
     }
 
     fetchWorkloads()
-    //eslint-disable-next-line
   }, [])
 
   const handleTaskClick = (task_id: number, round_list_id: string) => {
     router.push(`/user/workload_round/${round_list_id}/form/${task_id}`)
+  }
+
+  const handleSubmitForm = async () => {
+    
+    if (!user || !round_list_id) {
+      console.error('❌ Missing user data or round_list_id')
+      return
+    }
+
+    try {
+      const response = await WorkloadFormServices.updateWorkloadFormStatus(user.id, parseInt(round_list_id), session?.accessToken || '')
+
+      if (response.success) {
+        router.push('/user/workload_round')
+      } else {
+        console.error('❌ Failed to submit form:', response.message)
+      }
+    } catch (error) {
+      console.error('❌ Error submitting form:', error)
+    }
   }
 
   if (loading) {
@@ -104,12 +157,10 @@ export default function WorkLoadForm() {
       />
       <ConfirmSubmitFormModal
         isOpen={confirmSubmitFormModal}
-        handleSelectWorkloadGroup={() => {
-          // Handle submit logic here
-          console.log('Form submitted')
+        onConfirm={() => {
+          handleSubmitForm()
           setConfirmSubmitFormModal(false)
         }}
-        workload_group={null}
         onClose={() => setConfirmSubmitFormModal(false)}
       />
     </div>

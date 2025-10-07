@@ -17,4 +17,12 @@ export type ResponsePayload<T> = {
   }
 }
 
+// Backend response format for workload form operations
+export type BackendResponse<T = any> = {
+  status: boolean
+  message: string
+  data?: T
+  error?: string
+}
+
 

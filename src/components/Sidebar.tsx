@@ -177,33 +177,23 @@ export default function Sidebar({ OpenSidebar, setOpenSidebar }: SidebarProps) {
       try {
         const decoded: DecodedToken = jwtDecode(token)
         
-        console.log('🔍 Sidebar - User Info:', {
-          userId: decoded.id,
-          levelName: decoded.level_name,
-          isAssessor: isAssessor,
-          assessorLoading: assessorLoading
-        })
+      
 
         // ใช้ข้อมูลจาก useAssessor hook แทนการเรียก API
         if (decoded.level_name === 'ผู้ดูแลระบบ') {
-          console.log('✅ User is Admin - showing admin menu')
           setMenuItems(adminMenuItems)
         } else if (decoded.level_name === 'ผู้ใช้งานทั่วไป') {
           if (isAssessor) {
-            console.log('✅ User is Assessor - showing assessor menu')
             setMenuItems([...baseUserMenuItems, assessorMenuItem])
           } else {
-            console.log('❌ User is not Assessor - showing basic user menu')
             setMenuItems(baseUserMenuItems)
           }
         } else {
-          console.log('❓ Unknown user level:', decoded.level_name)
           setMenuItems(baseUserMenuItems)
         }
         
         setLoading(false)
       } catch (error) {
-        console.error('❌ Invalid token', error)
         setLoading(false)
       }
     } else {
