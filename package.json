@@ -20,6 +20,8 @@
     "dotenv": "^16.4.7",
     "formik": "^2.4.6",
     "js-cookie": "^3.0.5",
+    "jspdf": "^3.0.3",
+    "jspdf-autotable": "^5.0.2",
     "jwt-decode": "^4.0.0",
     "lucide": "^0.471.0",
     "lucide-react": "^0.469.0",

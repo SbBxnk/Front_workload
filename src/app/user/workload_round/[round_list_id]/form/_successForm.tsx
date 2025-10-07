@@ -1,16 +1,19 @@
 'use client'
 import React from 'react'
 import type { Terms } from '@/Types'
+import _workloadForm from './_workloadForm'
 
 interface _successFormProps {
   terms?: Terms[]
   selectedGroupName?: string
+  userId?: number
+  roundId?: number
 }
 
-export default function _successForm({ terms = [], selectedGroupName }: _successFormProps) {
+export default function _successForm({ terms = [], selectedGroupName, userId, roundId }: _successFormProps) {
   // ดึงรายการภาระงานที่ไม่ซ้ำกันจากข้อมูล API
   const uniqueTasks = Array.isArray(terms)
-    ? [...new Set(terms.map((term) => term.task_name))]
+    ? [...new Set(terms.map((term) => term.task_name))].reverse()
     : []
 
   // แสดงเฉพาะกลุ่มงานที่เลือก
@@ -44,6 +47,7 @@ export default function _successForm({ terms = [], selectedGroupName }: _success
 
   return (
     <div className="space-y-4">
+      {/* ตารางเกณฑ์เดิม */}
       {Array.isArray(terms) && terms.length > 0 && (
         <div className="rounded-md bg-white px-4 pt-4 pb-1 shadow transition-all duration-300 ease-in-out dark:bg-zinc-900 dark:text-gray-400">
           <h2 className="text-lg font-medium text-gray-700">
@@ -107,6 +111,14 @@ export default function _successForm({ terms = [], selectedGroupName }: _success
           </div>
         </div>
       )}
+
+      {/* ฟอร์มภาระงานใหม่ */}
+      <_workloadForm 
+        selectedGroupName={selectedGroupName}
+        terms={terms}
+        userId={userId}
+        roundId={roundId}
+      />
     </div>
   )
 }

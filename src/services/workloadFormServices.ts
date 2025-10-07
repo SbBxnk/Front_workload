@@ -189,6 +189,17 @@ const WorkloadFormServices = {
     })
   },
 
+  // Get workload items by user and round
+  getWorkloadItems: (
+    userId: number,
+    roundId: number,
+    accessToken: string
+  ): Promise<ResponsePayload<any>> => {
+    return http.get(`/workload_form/items/${userId}/${roundId}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+  },
+
   
 }
 

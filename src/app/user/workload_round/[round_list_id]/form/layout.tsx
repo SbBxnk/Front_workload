@@ -207,9 +207,9 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId])
 
-  // ดึงรายการภาระงานที่ไม่ซ้ำกันจากข้อมูล API
+  // ดึงรายการภาระงานที่ไม่ซ้ำกันจากข้อมูล API (เรียงจากล่างขึ้นบน)
   const uniqueTasks = Array.isArray(terms)
-    ? [...new Set(terms.map((term) => term.task_name))]
+    ? [...new Set(terms.map((term) => term.task_name))].reverse()
     : []
 
   // ดึงกลุ่มงานที่ไม่ซ้ำกันจากข้อมูล API
@@ -389,7 +389,6 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
 
   return (
     <>
-      {/* ตรวจสอบสถานะของรอบที่ผู้ใช้พยายามเข้าถึง */}
       {targetRoundStatus === 'not_found' ? (
         <div className="mb-4 rounded-md bg-white p-6 shadow dark:bg-zinc-900 dark:text-gray-400">
           <div className="flex flex-col items-center justify-center gap-4 py-8 text-center">
@@ -553,7 +552,7 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
                               key={taskIndex}
                               className="hover:bg-gray-50 dark:hover:bg-zinc-800"
                             >
-                              <td className="text-md text-nowrap border-b border-r border-gray-300 px-4 py-2 font-normal text-gray-700">
+                              <td className="text-md md:max-w-[450px] break-words border-b border-r border-gray-300 px-4 py-2 font-normal text-gray-700">
                                 {taskIndex + 1}. {taskName}
                               </td>
                               {uniqueGroups.map((group, groupIndex) => (
@@ -607,7 +606,12 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
                 </div>
               </div>
             ) : formStatus === 1 ? (
-              <_successForm terms={terms} selectedGroupName={workloadGroupInfo?.workload_group_name || undefined} />
+              <_successForm 
+                terms={terms} 
+                selectedGroupName={workloadGroupInfo?.workload_group_name || undefined}
+                userId={userId || undefined}
+                roundId={roundId || undefined}
+              />
             ) : (
               <div>{children}</div>
             )
