@@ -23,7 +23,7 @@ import {
 } from 'lucide-react'
 import ConfirmModal from './confirmModal'
 import InfoHoverModal from './infoTermModal'
-import _successForm from './_successForm'
+import _successForm from '../_successForm'
 import useUtility from '@/hooks/useUtility'
 import WorkloadFormServices from '@/services/workloadFormServices'
 
@@ -105,11 +105,12 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const roundId = params?.round_list_id ? parseInt(params.round_list_id as string) : null
 
   useEffect(() => {
-    setBreadcrumbs(
-      [{ text: 'ฟอร์มประเมินภาระงาน', path: '/user/workload_round' },
+    setBreadcrumbs([
+      { text: 'ฟอร์มประเมินภาระงาน', path: '/user/workload_round' },
+      { text: 'องค์ประกอบที่ 1 ผลสัมฤทธิ์ของงาน', path: `/user/workload_round/${roundId}` },
       { text: 'ภาระงานหลัก', path: `/user/workload_round/${roundId}/form` },
-      ])
-  }, [setBreadcrumbs])
+    ])
+  }, [setBreadcrumbs, roundId])
 
   useEffect(() => {
     if (session?.accessToken) {
@@ -373,19 +374,6 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
     return (
       <div className="rounded-md transition-all duration-300 ease-in-out dark:text-gray-400">
         <div className="flex flex-col gap-4">
-          {/* Skeleton for round info */}
-          <div className="rounded-md bg-white p-4 shadow dark:bg-zinc-900 dark:text-gray-400">
-            <div className="mb-4 h-6 w-48 animate-pulse rounded bg-gray-200 dark:bg-zinc-700"></div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-              {[...Array(4)].map((_, index) => (
-                <div key={index} className="space-y-4">
-                  <div className="h-4 w-24 animate-pulse rounded bg-gray-200 dark:bg-zinc-700"></div>
-                  <div className="h-8 w-full animate-pulse rounded bg-gray-200 dark:bg-zinc-700"></div>
-                </div>
-              ))}
-            </div>
-          </div>
-
           {/* Skeleton for workload criteria table */}
           <div className="rounded-md bg-white px-4 pt-4 pb-1 shadow dark:bg-zinc-900 dark:text-gray-400">
             <div className="mb-4 h-6 w-80 animate-pulse rounded bg-gray-200 dark:bg-zinc-700"></div>
@@ -470,72 +458,6 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
         </div>
       ) : (
         <>
-          {/* รอบปัจจุบัน - แสดงเฉพาะเมื่อมีฟอร์มในรอบนี้ */}
-          {hasFormInRound && currentRound && (
-            <div className="mb-4 rounded-md bg-white p-4 shadow dark:bg-zinc-900 dark:text-gray-400">
-              <h2 className="mb-4 text-lg font-medium text-gray-700 dark:text-gray-300">
-                รอบการประเมินปัจจุบัน
-              </h2>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-                <div className="">
-                  <p className="flex items-center gap-2 text-sm font-light text-gray-500">
-                    <Tag className="h-4 w-4" />
-                    ชื่อรอบการประเมิน
-                  </p>
-                  <p className="text-md text-md p-2 font-normal">
-                    {currentRound.round_list_name}
-                    {/* ({formatThaiDate(currentRound.date_start)} - {formatThaiDate(currentRound.date_end)}) */}
-                  </p>
-                </div>
-                <div className="">
-                  <p className="flex items-center gap-2 text-sm font-light text-gray-500">
-                    <Calendar className="h-4 w-4" />
-                    รอบ / ปีงบประมาณ
-                  </p>
-                  <p className="text-md text-md p-2 font-normal">
-                    {currentRound.round} / {currentRound.year}
-                  </p>
-                </div>
-                <div className="">
-                  <p className="flex items-center gap-2 text-sm font-light text-gray-500">
-                    <CalendarClock className="h-4 w-4" />
-                    ระยะเวลา
-                  </p>
-                  <p className="text-md text-md p-2 font-normal">
-                    {formatThaiDate(currentRound.date_start)} -{' '}
-                    {formatThaiDate(currentRound.date_end)}
-                  </p>
-                </div>
-                <div className="">
-                  <p className="flex items-center gap-2 text-sm font-light text-gray-500">
-                    <Book className="h-4 w-4" />
-                    กลุ่มภาระงาน
-                  </p>
-                  <div className="text-md text-md relative flex items-center gap-2 p-2 font-normal">
-                    {workloadGroupInfo?.workload_group_name || '-'}
-                    {/* หากไม่มีการเลือก workload_group_id จะไม่แสดง info */}
-                    {workloadGroupInfo?.workload_group_id && (
-                      <div
-                        ref={infoIconRef}
-                        className="cursor-pointer text-gray-400 hover:text-gray-500"
-                        onMouseEnter={() => setIsModalOpen(true)}
-                        onMouseLeave={() => setIsModalOpen(false)}
-                      >
-                        <AlertCircle className="h-4 w-4" />
-                        {isModalOpen && (
-                          <InfoHoverModal
-                            workloadGroupInfo={workloadGroupInfo}
-                            isOpen={isModalOpen}
-                          />
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* เลือกกลุ่มภาระงาน - แสดงเมื่อ workload_group_id เป็น null ใน tb_set_assessorlist */}
           {(() => {
             // แสดงกลุ่มภาระงานเมื่อ:

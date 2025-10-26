@@ -13,6 +13,10 @@ interface StickyFooterProps {
   onSubmit?: () => void
   submitText?: string
   showSubmitOnly?: boolean
+  // สำหรับ preview
+  onPreview?: () => void
+  previewText?: string
+  showPreview?: boolean
 }
 
 const StickyFooter: React.FC<StickyFooterProps> = ({
@@ -27,7 +31,11 @@ const StickyFooter: React.FC<StickyFooterProps> = ({
   // สำหรับ submit ปุ่มเดียว
   onSubmit,
   submitText = 'ส่งข้อมูล',
-  showSubmitOnly = false
+  showSubmitOnly = false,
+  // สำหรับ preview
+  onPreview,
+  previewText = 'ดูตัวอย่าง',
+  showPreview = false
 }) => {
   const handleEditClick = () => {
     if (isEditing && onCancel) {
@@ -49,18 +57,35 @@ const StickyFooter: React.FC<StickyFooterProps> = ({
     }
   }
 
+  const handlePreviewClick = () => {
+    if (onPreview) {
+      onPreview()
+    }
+  }
+
   return (
     <div className={`fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-gray-200 shadow-lg transition-all duration-300 ease-in-out dark:bg-zinc-900 dark:border-zinc-700 md:left-20 ${className}`}>
       <div className="mx-auto px-4 py-4">
         <div className="flex justify-end gap-3">
           {showSubmitOnly ? (
-            <button
-              type="button"
-              onClick={handleSubmitClick}
-              className="h-10 px-6 py-2.5 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 transition-colors duration-200"
-            >
-              {submitText}
-            </button>
+            <>
+              {showPreview && (
+                <button
+                  type="button"
+                  onClick={handlePreviewClick}
+                  className="h-10 px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-200"
+                >
+                  {previewText}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleSubmitClick}
+                className="h-10 px-6 py-2.5 text-sm font-medium text-white bg-success border border-transparent rounded-md hover:bg-success/80 transition-colors duration-200"
+              >
+                {submitText}
+              </button>
+            </>
           ) : isEditing ? (
             <>
               <button

@@ -15,6 +15,7 @@ interface WorkloadFormProps {
   terms?: Terms[]
   userId?: number
   roundId?: number
+  isPreview?: boolean
 }
 
 // เพิ่มฟังก์ชันสำหรับตรวจสอบประเภทไฟล์
@@ -62,7 +63,7 @@ interface Task {
   subtasks: { [key: number]: Subtask }
 }
 
-export default function _workloadForm({ selectedGroupName, terms = [], userId, roundId }: WorkloadFormProps) {
+export default function _workloadForm({ selectedGroupName, terms = [], userId, roundId, isPreview = false }: WorkloadFormProps) {
   const [workloadData, setWorkloadData] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
@@ -1286,7 +1287,7 @@ export default function _workloadForm({ selectedGroupName, terms = [], userId, r
         </div>
       </div>
 
-      <div className="rounded-md bg-white p-6 shadow dark:bg-zinc-900">
+      <div className="rounded-md bg-white p-4 dark:bg-zinc-900">
         <h4 className="text-md font-normal text-gray-800 dark:text-gray-200 mb-4">
           ส่วนที่ 1 องค์ประกอบที่ 1 ผลสัมฤทธิ์ของงาน
         </h4>

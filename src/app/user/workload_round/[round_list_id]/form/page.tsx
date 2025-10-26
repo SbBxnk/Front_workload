@@ -6,8 +6,6 @@ import { useSession } from 'next-auth/react'
 import { jwtDecode } from 'jwt-decode'
 import useAuthHeaders from '@/hooks/Header'
 import useUtility from '@/hooks/useUtility'
-import StickyFooter from '@/components/StickyFooter'
-import ConfirmSubmitFormModal from './confirmSubmitModal'
 import WorkloadFormServices from '@/services/workloadFormServices'
 
 interface Workload {
@@ -43,14 +41,15 @@ export default function WorkLoadForm() {
   const [user, setUser] = useState<UserLoginData | null>(null)
   const router = useRouter()
   const headers = useAuthHeaders()
-  const [confirmSubmitFormModal, setConfirmSubmitFormModal] = useState<boolean>(false)
   const hasFetched = useRef(false)
+
   useEffect(() => {
-    setBreadcrumbs(
-      [{ text: 'รอบประเมินภาระงาน', path: '/user/workload_round' },
-        { text: 'ภาระงานหลัก', path: `/user/workload_round/${round_list_id}/form` },
-      ])
-  }, [setBreadcrumbs])
+    setBreadcrumbs([
+      { text: 'ฟอร์มประเมินภาระงาน', path: '/user/workload_round' },
+      { text: 'องค์ประกอบที่ 1 ผลสัมฤทธิ์ของงาน', path: `/user/workload_round/${round_list_id}` },
+      { text: 'ภาระงานหลัก', path: `/user/workload_round/${round_list_id}/form` },
+    ])
+  }, [setBreadcrumbs, round_list_id])
 
   // ดึงข้อมูล user จาก session
   useEffect(() => {
@@ -107,25 +106,6 @@ export default function WorkLoadForm() {
     router.push(`/user/workload_round/${round_list_id}/form/${task_id}`)
   }
 
-  const handleSubmitForm = async () => {
-    
-    if (!user || !round_list_id) {
-      console.error('❌ Missing user data or round_list_id')
-      return
-    }
-
-    try {
-      const response = await WorkloadFormServices.submitWorkloadForm(user.id, parseInt(round_list_id), session?.accessToken || '')
-
-      if (response.success) {
-        router.push('/user/workload_round')
-      } else {
-        console.error('❌ Failed to submit form:', response.message)
-      }
-    } catch (error) {
-      console.error('❌ Error submitting form:', error)
-    }
-  }
 
   if (loading) {
     return (
@@ -158,7 +138,7 @@ export default function WorkLoadForm() {
               onClick={() => handleTaskClick(item.task_id, round_list_id)}
               className="flex w-full cursor-pointer items-center justify-start gap-4 text-nowrap rounded-md border border-gray-200 px-4 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800"
             >
-              <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-business1 text-white">
+              <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-blue-600 text-white">
                 <span className="flex h-full w-full items-center justify-center text-sm">
                   {index + 1}
                 </span>
@@ -179,22 +159,6 @@ export default function WorkLoadForm() {
           </div>
         )}
       </div>
-      <StickyFooter
-        onSubmit={() => {
-          console.log('Submit button clicked, opening modal')
-          setConfirmSubmitFormModal(true)
-        }}
-        showSubmitOnly={true}
-        submitText="ส่งข้อมูล"
-      />
-      <ConfirmSubmitFormModal
-        isOpen={confirmSubmitFormModal}
-        onConfirm={() => {
-          handleSubmitForm()
-          setConfirmSubmitFormModal(false)
-        }}
-        onClose={() => setConfirmSubmitFormModal(false)}
-      />
     </div>
   )
 }

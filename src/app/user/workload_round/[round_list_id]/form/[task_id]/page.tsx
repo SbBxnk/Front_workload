@@ -27,11 +27,13 @@ export default function WorkloadSubtask() {
 
   useEffect(() => {
     setBreadcrumbs(
-      [{ text: 'รอบประเมินภาระงาน', path: '/user/workload_round' },
+      [
+        { text: 'ฟอร์มประเมินภาระงาน', path: '/user/workload_round' },
+        { text: 'องค์ประกอบที่ 1 ผลสัมฤทธิ์ของงาน', path: `/user/workload_round/${round_list_id}` },
         { text: 'ภาระงานหลัก', path: `/user/workload_round/${round_list_id}/form` },
         { text: 'ภาระงานย่อย', path: `/user/workload_round/${round_list_id}/form/${task_id}` },
       ])
-  }, [])
+  }, [setBreadcrumbs, round_list_id, task_id])
 
   useEffect(() => {
     // ป้องกันการเรียก API ซ้ำใน React Strict Mode
@@ -116,7 +118,7 @@ export default function WorkloadSubtask() {
                 onClick={() => handleSubTaskClick(subtask.subtask_id, round_list_id)}
                 className="flex w-full cursor-pointer items-center justify-start gap-4 text-nowrap rounded-md border border-gray-200 px-4 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800"
               >
-                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-business1/60 text-white">
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-sky-500 text-white">
                   <span className="flex h-full w-full items-center justify-center text-sm">
                     {index + 1}
                   </span>

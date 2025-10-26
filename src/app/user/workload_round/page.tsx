@@ -423,7 +423,7 @@ function SetAssessor() {
 
 
   const handleSetAssessorInfo = (round_list_id: number) => {
-    router.push(`/user/workload_round/${round_list_id}/form`)
+    router.push(`/user/workload_round/${round_list_id}`)
   }
 
   const uniqueYears = Array.from(new Set(data.map((item) => item.year)))
