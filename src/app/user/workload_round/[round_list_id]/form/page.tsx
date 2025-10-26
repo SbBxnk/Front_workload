@@ -71,7 +71,6 @@ export default function WorkLoadForm() {
 
     const fetchWorkloads = async () => {
       try {
-        console.log('🔍 Fetching workload data...')
         const response = await axios.get(
           `${process.env.NEXT_PUBLIC_API}/maintask`,
           { 
@@ -84,15 +83,11 @@ export default function WorkLoadForm() {
           }
         )
         
-        console.log('🔍 Workload API Response:', response.data)
         
         const workloadData = response.data.payload || []
-        console.log('🔍 Setting workload data:', workloadData)
-        console.log('🔍 Task IDs order:', workloadData.map((item: Workload) => item.task_id))
         
         // เรียงลำดับใน frontend เป็น fallback
         const sortedWorkloadData = workloadData.sort((a: Workload, b: Workload) => a.task_id - b.task_id)
-        console.log('🔍 Sorted Task IDs:', sortedWorkloadData.map((item: Workload) => item.task_id))
         
         setWorkload(sortedWorkloadData)
       } catch (err) {

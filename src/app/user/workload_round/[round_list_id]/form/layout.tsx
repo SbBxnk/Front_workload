@@ -126,30 +126,18 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
     const checkWorkloadGroup = async () => {
       if (userId && roundId) {
         try {
-          console.log('🔍 Checking workload group from tb_set_assessorlist:', {
-            userId,
-            roundId,
-            endpoint: `/workload_form/check_workload_group/${userId}/${roundId}`
-          })
           
           const response = await axios.get(
             `${process.env.NEXT_PUBLIC_API}/workload_form/check_workload_group/${userId}/${roundId}`,
             { headers }
           )
           
-          console.log('🔍 Workload Group Check Response:', response.data)
           
           const workloadGroupData = response.data.data[0] || null
           setWorkloadGroupInfo(workloadGroupData)
           
-          console.log('🔍 Workload Group Info Set:', {
-            workloadGroupData,
-            workload_group_id: workloadGroupData?.workload_group_id,
-            isNull: workloadGroupData?.workload_group_id === null
-          })
         } catch (error: unknown) {
           if (axios.isAxiosError(error) && error.response?.status === 404) {
-            console.log('🔍 No workload group found (404)')
             setWorkloadGroupInfo(null)
           } else {
             console.error('❌ Error checking workload group:', error)
@@ -225,39 +213,22 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
     const fetchData = async () => {
       setLoading(true)
       try {
-        console.log('🔍 Starting to fetch data...')
         
         const responseTerms = await axios.get(
           `${process.env.NEXT_PUBLIC_API}/workload_form/terms`,
           { headers }
         )
-        console.log('🔍 Terms API Response:', responseTerms.data)
         
         const responseWorkloadGroups = await axios.get(
           `${process.env.NEXT_PUBLIC_API}/workload_group`,
           { headers }
         )
-        console.log('🔍 Workload Groups API Response:', responseWorkloadGroups.data)
         
         const responseRounds = await SetAssessorServices.getAllRounds(session?.accessToken || '')
-        console.log('🔍 Rounds API Response:', responseRounds)
-
-        console.log('🔍 API Response Debug:', {
-          terms: responseTerms.data,
-          workloadGroups: responseWorkloadGroups.data,
-          rounds: responseRounds
-        })
 
         const workloadGroupsData = responseWorkloadGroups.data.payload || []
         const termsData = responseTerms.data.data || []
         
-        console.log('🔍 Setting data:', {
-          workloadGroupsData,
-          termsData,
-          workloadGroupsLength: workloadGroupsData.length,
-          termsLength: termsData.length
-        })
-
         setWorkloadGroups(workloadGroupsData)
         setTerms(termsData)
 
@@ -282,14 +253,11 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
           })
         }
         
-        // Set fallback values to prevent undefined errors
-        console.log('🔍 Setting fallback values due to error')
         setWorkloadGroups([])
         setTerms([])
         setAllRounds([])
       } finally {
         setLoading(false)
-        console.log('🔍 Data fetching completed')
       }
     }
 
@@ -374,7 +342,6 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
         })
         setSelectedGroup(workload_group.workload_group_name)
         
-        console.log('✅ Workload group selected successfully')
       } else {
         console.error('❌ Error from API:', response.message)
         alert('ไม่สามารถเลือกกลุ่มภาระงานได้ กรุณาลองใหม่')
@@ -481,20 +448,6 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
 
   const targetRoundStatus = getRoundStatus(targetRound)
 
-  // Debug: แสดงข้อมูลสถานะ
-  console.log('🔍 Layout Debug:', {
-    targetRoundStatus,
-    currentRound: currentRound?.round_list_name,
-    targetRound: targetRound?.round_list_name,
-    hasAssessorData,
-    formStatus,
-    hasFormInRound,
-    roundId,
-    isUserAssessor,
-    workloadGroupInfo,
-    workloadGroups: workloadGroups?.length || 0,
-    terms: terms?.length || 0
-  })
 
   return (
     <>
@@ -593,16 +546,6 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
               workloadGroupInfo.workload_group_id === null ||
               workloadGroupInfo.workload_group_id === 0
             )
-            
-            console.log('🔍 Workload Selection Debug:', {
-              hasFormInRound,
-              workloadGroupInfo,
-              shouldShowWorkloadSelection,
-              condition1: !workloadGroupInfo,
-              condition2: workloadGroupInfo?.workload_group_id === null,
-              condition3: workloadGroupInfo?.workload_group_id === 0,
-              explanation: 'แสดงกลุ่มภาระงานเมื่อ workload_group_id เป็น null ใน tb_set_assessorlist'
-            })
             
             return shouldShowWorkloadSelection
           })() ? (

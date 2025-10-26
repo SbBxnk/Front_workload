@@ -116,6 +116,7 @@ const adminMenuItems = [
       { id: 1, label: 'กลุ่มภาระงาน', icon: CheckSquare, href: '/admin/workload-group' },
       { id: 2, label: 'ภาระงานหลัก', icon: LayoutList, href: '/admin/main-task' },
       { id: 3, label: 'ภาระงานย่อย', icon: Logs, href: '/admin/sub-task' },
+      { id: 4, label: 'ปริมาณงาน', icon: NotepadText, href: '/admin/workload-quantity' },
     ],
   },
   {

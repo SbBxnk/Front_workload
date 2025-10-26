@@ -218,30 +218,14 @@ const {setBreadcrumbs} = useUtility()
           }),
         ])
 
-        console.log('🔍 Subtask API Response:', subtaskResponse.data)
-        console.log('🔍 Task Subtasks API Response:', taskSubtasksResponse.data)
-        console.log('🔍 Subtask Response Structure:', {
-          hasData: !!subtaskResponse.data?.data,
-          hasPayload: !!subtaskResponse.data?.payload,
-          fullData: subtaskResponse.data
-        })
-        console.log('🔍 Task Subtasks Response Structure:', {
-          hasData: !!taskSubtasksResponse.data?.data,
-          hasPayload: !!taskSubtasksResponse.data?.payload,
-          fullData: taskSubtasksResponse.data
-        })
         
         const subtaskData: Subtask = subtaskResponse.data?.data || subtaskResponse.data?.payload
         const taskSubtasks: Subtask[] = taskSubtasksResponse.data?.data || taskSubtasksResponse.data?.payload || []
 
-        console.log('🔍 Subtask Data:', subtaskData)
-        console.log('🔍 Task Subtasks:', taskSubtasks)
-        console.log('🔍 Is Array:', Array.isArray(taskSubtasks))
 
         if (subtaskData && subtaskData.subtask_id) {
           setSubtask(subtaskData)
         } else {
-          console.log('🔍 No subtask data found, setting fallback')
           setSubtask({ subtask_id: 0, subtask_name: 'ไม่พบข้อมูล' })
         }
 
@@ -257,7 +241,6 @@ const {setBreadcrumbs} = useUtility()
             index !== -1 ? `${task_id}.${index + 1}` : 'Subtask ไม่พบ'
           )
         } else {
-          console.log('🔍 No subtasks found, setting fallback index')
           setSubtaskIndex('Subtask ไม่พบ')
         }
       } catch (err: any) {

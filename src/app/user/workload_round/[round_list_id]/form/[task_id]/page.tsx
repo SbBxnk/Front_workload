@@ -42,7 +42,6 @@ export default function WorkloadSubtask() {
 
     const fetchTaskAndSubtasks = async () => {
       try {
-        console.log('🔍 Fetching subtasks for task_id:', task_id)
         const subtaskResponse = await axios.get(
           `${process.env.NEXT_PUBLIC_API}/subtask/task/${task_id}`,
           { 
@@ -55,11 +54,8 @@ export default function WorkloadSubtask() {
           }
         )
         
-        console.log('🔍 Subtask API Response:', subtaskResponse.data)
         
         const subtaskData = subtaskResponse.data.data || subtaskResponse.data.payload || []
-        console.log('🔍 Subtask Data:', subtaskData)
-        console.log('🔍 Subtask IDs order:', subtaskData.map((item: SubTaskDetail) => item.subtask_id))
         
         const fetchedSubtasks = Array.isArray(subtaskData) ? subtaskData.map(
           (subtask: SubTaskDetail) => ({
@@ -70,7 +66,6 @@ export default function WorkloadSubtask() {
         
         // เรียงลำดับใน frontend เป็น fallback
         const sortedSubtasks = fetchedSubtasks.sort((a: SubTaskDetail, b: SubTaskDetail) => a.subtask_id - b.subtask_id)
-        console.log('🔍 Sorted Subtask IDs:', sortedSubtasks.map((item: SubTaskDetail) => item.subtask_id))
         
         setSubtasks(sortedSubtasks)
       } catch (err) {

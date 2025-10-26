@@ -31,19 +31,11 @@ export default function AuthGuard({
     if (status === 'loading') return // Still loading
 
     if (!session) {
-      console.log('AuthGuard: No session, redirecting to login')
       router.push(fallbackUrl)
       return
     }
 
     if (requiredRole && session.user?.role !== requiredRole) {
-      console.log(
-        'AuthGuard: Wrong role. Required:',
-        requiredRole,
-        'User role:',
-        session.user?.role
-      )
-      // Wrong role, redirect to appropriate page
       const role = session.user?.role
       if (role === 'ผู้ใช้งานทั่วไป') {
         router.push('/user/')
@@ -59,10 +51,8 @@ export default function AuthGuard({
       return
     }
 
-    console.log('AuthGuard: Access allowed')
   }, [session, status, requiredRole, fallbackUrl, router])
 
-  // Show loading while checking authentication
   if (status === 'loading') {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -71,11 +61,9 @@ export default function AuthGuard({
     )
   }
 
-  // Show nothing while redirecting
   if (!session || (requiredRole && session.user?.role !== requiredRole)) {
     return null
   }
 
-  // Show protected content
   return <>{children}</>
 }

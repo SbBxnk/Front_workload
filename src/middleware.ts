@@ -15,25 +15,17 @@ export default withAuth(
       token?.role
     )
 
-    // If no token and not on login page, redirect to login
     if (!token && pathname !== '/login') {
-      console.log('Middleware: No token, redirecting to login')
       return NextResponse.redirect(new URL('/login', req.url))
     }
 
-    // If no token and on login page, allow access
     if (!token && pathname === '/login') {
-      console.log('Middleware: No token on login page, allowing access')
       return NextResponse.next()
     }
 
     // Check if user is trying to access admin routes
     if (pathname.startsWith('/admin')) {
       if (token && token.role !== 'ผู้ดูแลระบบ') {
-        console.log(
-          'Middleware: Wrong role for admin, redirecting to appropriate page'
-        )
-        // Redirect to appropriate page based on user role
         if (token.role === 'ผู้ใช้งานทั่วไป') {
           return NextResponse.redirect(new URL('/user', req.url))
         } else if (token.role === 'ผู้ประเมินภาระงาน') {
@@ -118,7 +110,6 @@ export default withAuth(
           !!token
         )
 
-        // Allow access to login page always
         if (pathname === '/login') {
           return true
         }
