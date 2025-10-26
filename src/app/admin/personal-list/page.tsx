@@ -1,6 +1,6 @@
 'use client'
 import type React from 'react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Edit2, Plus, Trash2, FileText } from 'lucide-react'
 
 import type { Personal, Position, Branch, Course, UserLevel, ExPosition } from '@/Types'
@@ -374,12 +374,17 @@ function PersonalListTable() {
     window.history.replaceState({}, '', `?${searchParams.toString()}`)
   }
 
-  const getUsers = async (
+  const getUsers = useCallback(async (
     search: string,
     limit: number | undefined,
     page: number | undefined,
     sort: string,
     order: string,
+    positionName?: string,
+    branchName?: string,
+    courseName?: string,
+    exPositionName?: string,
+    gender?: string,
     afterSuccess?: () => void
   ) => {
     setLoading(true)
@@ -395,11 +400,11 @@ function PersonalListTable() {
         limit: limit ?? 10,
         sort,
         order,
-        position_name: params.position_name || '',
-        branch_name: params.branch_name || '',
-        course_name: params.course_name || '',
-        ex_position_name: params.ex_position_name || '',
-        gender: params.gender || '',
+        position_name: positionName || '',
+        branch_name: branchName || '',
+        course_name: courseName || '',
+        ex_position_name: exPositionName || '',
+        gender: gender || '',
       })
 
       if (response.success) {
@@ -431,14 +436,14 @@ function PersonalListTable() {
         limit,
         sort,
         order,
-        position_name: params.position_name,
-        branch_name: params.branch_name,
-        course_name: params.course_name,
-        ex_position_name: params.ex_position_name,
-        gender: params.gender,
+        position_name: positionName,
+        branch_name: branchName,
+        course_name: courseName,
+        ex_position_name: exPositionName,
+        gender: gender,
       })
     }
-  }
+  }, [session?.accessToken])
 
   // Auto search with debounce
   useEffect(() => {
@@ -459,7 +464,12 @@ function PersonalListTable() {
         params.limit,
         params.page,
         params.sort || '',
-        params.order || ''
+        params.order || '',
+        params.position_name,
+        params.branch_name,
+        params.course_name,
+        params.ex_position_name,
+        params.gender
       )
     } else {
       console.log('No access token found')
@@ -629,7 +639,12 @@ function PersonalListTable() {
         params.limit,
         params.page,
         params.sort || '',
-        params.order || ''
+        params.order || '',
+        params.position_name,
+        params.branch_name,
+        params.course_name,
+        params.ex_position_name,
+        params.gender
       )
 
       Swal.fire({
@@ -674,7 +689,12 @@ function PersonalListTable() {
           params.limit,
           params.page,
           params.sort || '',
-          params.order || ''
+          params.order || '',
+          params.position_name,
+          params.branch_name,
+          params.course_name,
+          params.ex_position_name,
+          params.gender
         )
 
         Swal.fire({

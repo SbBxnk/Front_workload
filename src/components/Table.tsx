@@ -10,6 +10,7 @@ export interface TableColumn<T = any> {
   align?: 'left' | 'center' | 'right'
   sortable?: boolean
   render?: (value: any, row: T, index: number) => React.ReactNode
+  headerRender?: () => React.ReactNode
 }
 
 export type SortOrder = 'asc' | 'desc' | null
@@ -175,7 +176,7 @@ function Table<T extends Record<string, any>>({
                       column.align === 'center' ? 'justify-center' : 
                       column.align === 'right' ? 'justify-end' : 'justify-start'
                     }`}>
-                      <span>{column.label}</span>
+                      {column.headerRender ? column.headerRender() : <span>{column.label}</span>}
                       {getSortIcon(column.key)}
                     </div>
                   </th>

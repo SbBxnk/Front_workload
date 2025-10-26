@@ -68,7 +68,7 @@ const useFetchData = <T>(endpoint: string): FetchResult<T> => {
     if (session?.accessToken) {
       fetchData()
     }
-  }, [endpoint, session?.accessToken])
+  }, [endpoint, getToken]) // ใช้ getToken แทน session?.accessToken
 
   // ฟังก์ชัน create
   const postData = async (body: Partial<T>) => {

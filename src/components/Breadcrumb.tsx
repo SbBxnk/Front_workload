@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { usePathname, useParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import axios from 'axios'
 import { useSession } from 'next-auth/react'
 
@@ -23,13 +23,18 @@ export default function Breadcrumb() {
   })
   const [isLoading, setIsLoading] = useState(false)
   const { data: session } = useSession()
+  const hasFetched = useRef(false)
 
   useEffect(() => {
-    const fetchTaskName = async () => {
-      if (!task_id || !session?.accessToken) {
-        return
-      }
+    // ป้องกันการเรียก API ซ้ำใน React Strict Mode
+    if (hasFetched.current) return
+    if (!task_id || !session?.accessToken) {
+      return
+    }
 
+    hasFetched.current = true
+
+    const fetchTaskName = async () => {
       setIsLoading(true)
       try {
         const response = await axios.get<{ data: MainTaskDetail }>(

@@ -1,7 +1,7 @@
 'use client'
 import { useParams } from 'next/navigation'
 import type React from 'react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import axios from 'axios'
 import useAuthHeaders from '@/hooks/Header'
 import { useRouter } from 'next/navigation'
@@ -23,6 +23,7 @@ export default function WorkloadSubtask() {
   const [subtasks, setSubtasks] = useState<SubTaskDetail[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const hasFetched = useRef(false)
 
   useEffect(() => {
     setBreadcrumbs(
@@ -33,6 +34,12 @@ export default function WorkloadSubtask() {
   }, [])
 
   useEffect(() => {
+    // ป้องกันการเรียก API ซ้ำใน React Strict Mode
+    if (hasFetched.current) return
+    if (!task_id) return
+    
+    hasFetched.current = true
+
     const fetchTaskAndSubtasks = async () => {
       try {
         const subtaskResponse = await axios.get(
@@ -54,8 +61,7 @@ export default function WorkloadSubtask() {
       }
     }
 
-    if (task_id) fetchTaskAndSubtasks()
-    //eslint-disable-next-line
+    fetchTaskAndSubtasks()
   }, [task_id])
 
   if (loading) {

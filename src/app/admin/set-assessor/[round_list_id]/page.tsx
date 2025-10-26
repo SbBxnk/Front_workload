@@ -5,19 +5,21 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import axios from 'axios'
-import { Loader, Trash2, Eye, Plus } from 'lucide-react'
+import { Loader, Trash2, Eye, Plus, Check, FileCheck, Lock, Unlock, FileX } from 'lucide-react'
 import { FiX } from 'react-icons/fi'
 import Pagination from '@/components/Pagination'
 import SearchFilter from '@/components/SearchFilter'
 import Table, { TableColumn, SortState } from '@/components/Table'
 import CreateModal from './createModal'
 import DeleteModal from './deleteModal'
+import ConfirmSubmitFormModal from './confirmModal'
 import useAuthHeaders from '@/hooks/Header'
 import type { ExPosition, User } from '@/Types'
 import Swal from 'sweetalert2'
 import Image from 'next/image'
 import SetAssessorServices, { SetAssessorList, CreateSetAssessorListRequest } from '@/services/setAssessorServices'
 import ExpositionServices from '@/services/exPositionServices'
+import WorkloadFormServices from '@/services/workloadFormServices'
 import { ResponsePayload } from '@/Types'
 import useUtility from '@/hooks/useUtility'
 
@@ -54,7 +56,22 @@ interface WorkloadFormList {
   status_id: number
 }
 
+interface EvaluationStatus {
+  set_asses_list_id: number
+  workload_group_id: number | null
+  form_status: number
+  evaluation_status: 'not_started' | 'in_progress' | 'completed'
+}
+
 const ITEMS_PER_PAGE = 10
+
+// สไตล์สำหรับสถานะการประเมิน
+const statusStyles: { [key: string]: string } = {
+  completed: 'text-white bg-green-500',
+  in_progress: 'text-white bg-blue-500',
+  not_started: 'text-gray-500 bg-gray-200',
+}
+
 
 const isDateInRange = (startDate: string, endDate: string): boolean => {
   if (!startDate || !endDate) return false
@@ -112,6 +129,23 @@ export default function ExDetailsPage() {
     column: null,
     order: null,
   })
+  
+  // State สำหรับเก็บสถานะ checkbox ของแต่ละ row
+  const [checkboxStates, setCheckboxStates] = useState<Record<number, boolean>>({})
+  
+  // State สำหรับเก็บสถานะการประเมินของแต่ละ row
+  const [evaluationStatuses, setEvaluationStatuses] = useState<Record<number, EvaluationStatus>>({})
+  
+  // State สำหรับ Select All checkbox
+  const [selectAllChecked, setSelectAllChecked] = useState<boolean>(false)
+  
+  // State สำหรับ confirm modal
+  const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false)
+  const [pendingAction, setPendingAction] = useState<{
+    checked: boolean
+    actionText: string
+    count: number
+  } | null>(null)
   
   const hasFetchedInitial = useRef(false)
   const isFirstRender = useRef(true)
@@ -173,7 +207,6 @@ export default function ExDetailsPage() {
 
       // Set exposition data
       if (resExposition.success && resExposition.payload) {
-        console.log('Exposition data loaded:', resExposition.payload)
         setExPosition(resExposition.payload)
       } else {
         console.log('Exposition data failed to load:', resExposition)
@@ -202,6 +235,12 @@ export default function ExDetailsPage() {
 
         const assessorsData = resAssessors.payload || []
         setAssessors(assessorsData)
+
+        // ดึงสถานะ checkbox และสถานะการประเมินของแต่ละ assessor
+        await Promise.all([
+          fetchCheckboxStates(assessorsData),
+          fetchEvaluationStatuses(assessorsData)
+        ])
 
         // Check which assessors have related data
         const idsWithData: number[] = []
@@ -525,12 +564,64 @@ export default function ExDetailsPage() {
       ),
     },
     {
+      key: 'evaluation_status',
+      label: 'สถานะ',
+      align: 'left',
+      width: '150px',
+      render: (_, record) => {
+        const status = evaluationStatuses[record.set_asses_list_id]
+        if (!status) {
+          return (
+            <span className="inline-block rounded-md bg-gray-600 text-white px-2 py-0.5 text-sm font-light">
+              กำลังโหลด...
+            </span>
+          )
+        }
+
+        const getStatusDisplay = () => {
+          switch (status.evaluation_status) {
+            case 'completed':
+              return 'เสร็จสิ้น'
+            case 'in_progress':
+              return 'กำลังดำเนินการ'
+            case 'not_started':
+            default:
+              return 'ยังไม่เริ่มการประเมิน'
+          }
+        }
+
+        const statusText = getStatusDisplay()
+        const statusClass = statusStyles[status.evaluation_status] || 'bg-gray-600 text-white'
+
+        return (
+          <span className={`inline-block rounded-md ${statusClass} px-2 py-0.5 text-sm font-light`}>
+            {statusText}
+          </span>
+        )
+      },
+    },
+    {
       key: 'actions',
       label: 'จัดการ',
       width: '120px',
       align: 'center',
       render: (_, record) => (
         <div className="flex justify-center gap-2">
+          <button
+            className={`cursor-pointer rounded-md border-none p-1 transition duration-300 ease-in-out ${
+              checkboxStates[record.set_asses_list_id]
+                ? 'border-red-500 text-red-500 hover:bg-red-500 hover:text-white'
+                : 'border-success text-success hover:bg-success hover:text-white'
+            }`}
+            onClick={() => handleCheckboxChange(record.set_asses_list_id, !checkboxStates[record.set_asses_list_id])}
+            title={checkboxStates[record.set_asses_list_id] ? 'เปิดการประเมิน' : 'ปิดการประเมิน'}
+          >
+            {checkboxStates[record.set_asses_list_id] ? (
+              <FileX className="h-4 w-4" />
+            ) : (
+              <FileCheck className="h-4 w-4" />
+            )}
+          </button>
           <button
             className="cursor-pointer rounded-md border-none border-blue-500 p-1 text-blue-500 transition duration-300 ease-in-out hover:bg-blue-500 hover:text-white"
             onClick={() =>
@@ -577,6 +668,236 @@ export default function ExDetailsPage() {
     )
   }
 
+  // ฟังก์ชันสำหรับจัดการ checkbox และอัปเดต status
+  const handleCheckboxChange = async (set_asses_list_id: number, checked: boolean) => {
+    if (!session?.accessToken) return
+
+    try {
+      const newStatus = checked ? 1 : 0
+      
+      // อัปเดต status ในฐานข้อมูล
+      await WorkloadFormServices.updateWorkloadFormStatus(
+        set_asses_list_id,
+        newStatus,
+        session.accessToken
+      )
+
+      // อัปเดต state ของ checkbox
+      setCheckboxStates(prev => ({
+        ...prev,
+        [set_asses_list_id]: checked
+      }))
+
+      // อัปเดต Select All checkbox
+      const allChecked = Object.values({...checkboxStates, [set_asses_list_id]: checked}).every(Boolean)
+      setSelectAllChecked(allChecked)
+
+      // อัปเดต evaluation status ทันที
+      setEvaluationStatuses(prev => ({
+        ...prev,
+        [set_asses_list_id]: {
+          ...prev[set_asses_list_id],
+          form_status: newStatus,
+          evaluation_status: newStatus === 1 ? 'completed' : 
+            prev[set_asses_list_id]?.workload_group_id ? 'in_progress' : 'not_started'
+        }
+      }))
+
+      // แสดงข้อความแจ้งเตือน
+      Swal.fire({
+        position: 'center',
+        icon: 'success',
+        title: 'สำเร็จ!',
+        text: checked ? 'ปิดการประเมินสำเร็จ' : 'เปิดการประเมินสำเร็จ',
+        showConfirmButton: false,
+        timer: 1500,
+      })
+    } catch (error) {
+      console.error('Error updating status:', error)
+      Swal.fire({
+        position: 'center',
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด!',
+        text: 'ไม่สามารถอัปเดตสถานะได้',
+        showConfirmButton: false,
+        timer: 1500,
+      })
+    }
+  }
+
+  // ฟังก์ชันสำหรับจัดการ Select All checkbox
+  const handleSelectAllChange = async (checked: boolean) => {
+    if (!session?.accessToken) return
+
+    const allAssessorIds = assessors.map(assessor => assessor.set_asses_list_id)
+    const actionText = "ยืนยัน"
+    
+    // เก็บข้อมูลการดำเนินการที่รอการยืนยัน
+    setPendingAction({
+      checked,
+      actionText,
+      count: allAssessorIds.length
+    })
+    
+    // แสดง confirm modal
+    setShowConfirmModal(true)
+  }
+
+  // ฟังก์ชันสำหรับยืนยันการดำเนินการ
+  const handleConfirmAction = async () => {
+    if (!session?.accessToken || !pendingAction) return
+
+    try {
+      const allAssessorIds = assessors.map(assessor => assessor.set_asses_list_id)
+      const newStatus = pendingAction.checked ? 1 : 0
+      
+      // แสดง loading
+      Swal.fire({
+        title: 'กำลังดำเนินการ...',
+        text: `กำลัง${pendingAction.actionText}ทั้งหมด ${pendingAction.count} รายการ`,
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        didOpen: () => {
+          Swal.showLoading()
+        }
+      })
+      
+      // อัปเดต status แบบ bulk ในฐานข้อมูล
+      await WorkloadFormServices.updateWorkloadFormStatusBulk(
+        allAssessorIds,
+        newStatus,
+        session.accessToken
+      )
+
+      // อัปเดต state ของ checkbox ทั้งหมด
+      const newCheckboxStates: Record<number, boolean> = {}
+      allAssessorIds.forEach(id => {
+        newCheckboxStates[id] = pendingAction.checked
+      })
+      setCheckboxStates(newCheckboxStates)
+      setSelectAllChecked(pendingAction.checked)
+
+      // อัปเดต evaluation status ทั้งหมดทันที
+      setEvaluationStatuses(prev => {
+        const newStatuses = { ...prev }
+        allAssessorIds.forEach(id => {
+          newStatuses[id] = {
+            ...newStatuses[id],
+            form_status: newStatus,
+            evaluation_status: newStatus === 1 ? 'completed' : 
+              newStatuses[id]?.workload_group_id ? 'in_progress' : 'not_started'
+          }
+        })
+        return newStatuses
+      })
+
+      // ปิด loading modal
+      Swal.close()
+
+      // แสดงข้อความแจ้งเตือนสำเร็จ
+      Swal.fire({
+        position: 'center',
+        icon: 'success',
+        title: 'สำเร็จ!',
+        text: `${pendingAction.actionText}ทั้งหมด ${pendingAction.count} รายการสำเร็จ`,
+        showConfirmButton: false,
+        timer: 2000,
+      })
+    } catch (error) {
+      console.error('Error updating status bulk:', error)
+      
+      // ปิด loading modal
+      Swal.close()
+      
+      Swal.fire({
+        position: 'center',
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด!',
+        text: 'ไม่สามารถอัปเดตสถานะได้',
+        showConfirmButton: false,
+        timer: 1500,
+      })
+    } finally {
+      // ปิด confirm modal และล้างข้อมูล pending
+      setShowConfirmModal(false)
+      setPendingAction(null)
+    }
+  }
+
+  // ฟังก์ชันสำหรับยกเลิกการดำเนินการ
+  const handleCancelAction = () => {
+    setShowConfirmModal(false)
+    setPendingAction(null)
+  }
+
+  // ฟังก์ชันสำหรับดึงสถานะปัจจุบันของแต่ละ assessor
+  const fetchCheckboxStates = async (assessors: Assessor[]) => {
+    if (!session?.accessToken) return
+
+    const states: Record<number, boolean> = {}
+    
+    for (const assessor of assessors) {
+      try {
+        const response = await WorkloadFormServices.getWorkloadFormStatus(
+          assessor.set_asses_list_id,
+          session.accessToken
+        )
+        
+        if (response.success && response.payload && response.payload.length > 0) {
+          states[assessor.set_asses_list_id] = response.payload[0].status === 1
+        } else {
+          states[assessor.set_asses_list_id] = false
+        }
+      } catch (error) {
+        console.error(`Error fetching status for assessor ${assessor.set_asses_list_id}:`, error)
+        states[assessor.set_asses_list_id] = false
+      }
+    }
+    
+    setCheckboxStates(states)
+    
+    // อัปเดต Select All checkbox
+    const allChecked = Object.values(states).every(Boolean)
+    setSelectAllChecked(allChecked)
+  }
+
+  // ฟังก์ชันสำหรับดึงสถานะการประเมินของแต่ละ assessor
+  const fetchEvaluationStatuses = async (assessors: Assessor[]) => {
+    if (!session?.accessToken) return
+
+    const statuses: Record<number, EvaluationStatus> = {}
+    
+    for (const assessor of assessors) {
+      try {
+        const response = await WorkloadFormServices.getAssessorEvaluationStatus(
+          assessor.set_asses_list_id,
+          session.accessToken
+        )
+        
+        if (response.success && response.payload && response.payload.length > 0) {
+          statuses[assessor.set_asses_list_id] = response.payload[0]
+        } else {
+          statuses[assessor.set_asses_list_id] = {
+            set_asses_list_id: assessor.set_asses_list_id,
+            workload_group_id: null,
+            form_status: 0,
+            evaluation_status: 'not_started'
+          }
+        }
+      } catch (error) {
+        console.error(`Error fetching evaluation status for assessor ${assessor.set_asses_list_id}:`, error)
+        statuses[assessor.set_asses_list_id] = {
+          set_asses_list_id: assessor.set_asses_list_id,
+          workload_group_id: null,
+          form_status: 0,
+          evaluation_status: 'not_started'
+        }
+      }
+    }
+    
+    setEvaluationStatuses(statuses)
+  }
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     if (!session?.accessToken) return
 
@@ -620,11 +941,15 @@ export default function ExDetailsPage() {
             }))
 
             // ส่งข้อมูลแบบ bulk
-            await axios.post(
-              `${process.env.NEXT_PUBLIC_API}/workload_form/add_bulk`,
-              workloadFormDataArray,
-              { headers }
-            )
+            try {
+              await axios.post(
+                `${process.env.NEXT_PUBLIC_API}/workload_form/add_bulk`,
+                workloadFormDataArray,
+                { headers }
+              )
+            } catch (error) {
+              console.error('❌ Workload form bulk insert failed:', error)
+            }
           }
         }
       }
@@ -755,6 +1080,7 @@ export default function ExDetailsPage() {
             <span className="text-business1">{rounds?.round_list_name}</span>
           </h1>
       </div>
+
       <div className="mb-4 flex items-end justify-between">
         <div className="flex w-full flex-wrap items-end gap-4 md:w-auto">
           {loading ? (
@@ -791,7 +1117,7 @@ export default function ExDetailsPage() {
             labelKey="ex_position_name"
             placeholder={expositons && expositons.length > 0 ? "เลือกตำแหน่งบริหาร" : "กำลังโหลด..."}
           />
-          <div className="w-full pt-4 md:w-auto md:pt-0">
+          <div className="flex w-full gap-2 pt-4 md:w-auto md:pt-0">
             {rounds && isDateInRange(rounds.date_start, rounds.date_end) ? (
               <label
                 htmlFor={users.length === 0 ? "" : "modal-create"}
@@ -813,6 +1139,25 @@ export default function ExDetailsPage() {
                 เพิ่มผู้ถูกประเมิน
                 <Plus className="h-4 w-4" />
               </div>
+            )}
+            
+            {assessors.length > 0 && (
+              <button
+                onClick={() => handleSelectAllChange(true)}
+                disabled={Object.values(checkboxStates).every(Boolean)}
+                className={`flex items-center gap-2 rounded-md px-4 py-2.5 text-sm font-light transition duration-300 ease-in-out md:w-auto ${
+                  Object.values(checkboxStates).every(Boolean)
+                    ? "cursor-not-allowed bg-gray-200 text-gray-400"
+                    : "cursor-pointer bg-red-500 text-white hover:bg-red-600"
+                }`}
+                title={
+                  Object.values(checkboxStates).every(Boolean)
+                    ? "ปิดการประเมินทั้งหมดแล้ว"
+                    : "ปิดการประเมินทั้งหมด"
+                }
+              >
+                ปิดรอบการประเมิน
+              </button>
             )}
           </div>
         </div>
@@ -882,6 +1227,16 @@ export default function ExDetailsPage() {
         isLoading={loading}
         set_asses_list_id={selectedSetAssesListId}
         handleDelete={handleDelete}
+      />
+
+      <ConfirmSubmitFormModal
+        isOpen={showConfirmModal}
+        onClose={handleCancelAction}
+        onConfirm={handleConfirmAction}
+        title="ยืนยันการดำเนินการ"
+        message={pendingAction ? `คุณต้องการปิดรอบการประเมินทั้งหมด ${pendingAction.count} รายการหรือไม่?` : 'คุณแน่ใจหรือไม่?'}
+        confirmText={pendingAction?.actionText || 'ยืนยัน'}
+        cancelText="ยกเลิก"
       />
     </div>
   )

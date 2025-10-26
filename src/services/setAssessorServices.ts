@@ -8,6 +8,7 @@ export interface RoundList {
   date_end: string
   year: string
   round: number
+  has_completed_forms?: number
 }
 
 export interface CreateRoundListRequest {
@@ -270,6 +271,17 @@ const SetAssessorServices = {
   // ดึงข้อมูลรอบการประเมินทั้งหมด
   getAllRounds: (accessToken: string): Promise<ResponsePayload<RoundList[]>> => {
     return http.get('/set_assessor_round', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+  },
+
+  // ตรวจสอบว่าผู้ใช้มีสิทธิ์เข้าถึงรอบนี้หรือไม่
+  checkUserAccessToRound: (
+    as_u_id: number,
+    round_list_id: number,
+    accessToken: string
+  ): Promise<ResponsePayload<any>> => {
+    return http.get(`/check_user_access/${as_u_id}/${round_list_id}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
   },

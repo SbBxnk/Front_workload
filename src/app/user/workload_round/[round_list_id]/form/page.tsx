@@ -1,6 +1,6 @@
 'use client'
 import axios from 'axios'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { jwtDecode } from 'jwt-decode'
@@ -44,6 +44,7 @@ export default function WorkLoadForm() {
   const router = useRouter()
   const headers = useAuthHeaders()
   const [confirmSubmitFormModal, setConfirmSubmitFormModal] = useState<boolean>(false)
+  const hasFetched = useRef(false)
   useEffect(() => {
     setBreadcrumbs(
       [{ text: 'รอบประเมินภาระงาน', path: '/user/workload_round' },
@@ -64,6 +65,10 @@ export default function WorkLoadForm() {
   }, [session?.accessToken])
 
   useEffect(() => {
+    // ป้องกันการเรียก API ซ้ำใน React Strict Mode
+    if (hasFetched.current) return
+    hasFetched.current = true
+
     const fetchWorkloads = async () => {
       try {
         const response = await axios.get(
@@ -80,6 +85,7 @@ export default function WorkLoadForm() {
     }
 
     fetchWorkloads()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleTaskClick = (task_id: number, round_list_id: string) => {

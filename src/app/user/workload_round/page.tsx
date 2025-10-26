@@ -20,6 +20,7 @@ interface FormDataRoundList {
   date_end: string
   year: string
   round: number
+  has_completed_forms?: number
 }
 
 const FormRoundList: FormDataRoundList = {
@@ -73,8 +74,13 @@ const isDateInRange = (startDate: string, endDate: string): boolean => {
   return currentDate >= start && currentDate <= end
 }
 
-const getRoundStatusLabel = (startDate: string, endDate: string): string => {
+const getRoundStatusLabel = (startDate: string, endDate: string, hasCompletedForms?: number): string => {
   if (!startDate || !endDate) return 'รอดำเนินการ'
+
+  // ถ้ามีฟอร์มที่เสร็จสิ้นแล้ว (status = 1) ให้แสดง "สำเร็จ"
+  if (hasCompletedForms === 1) {
+    return 'เสร็จสิ้น'
+  }
 
   const currentDate = new Date()
   const start = new Date(startDate)
@@ -89,8 +95,13 @@ const getRoundStatusLabel = (startDate: string, endDate: string): string => {
   }
 }
 
-const getRoundStatusColor = (startDate: string, endDate: string): string => {
+const getRoundStatusColor = (startDate: string, endDate: string, hasCompletedForms?: number): string => {
   if (!startDate || !endDate) return 'bg-gray-300 text-gray-500'
+
+  // ถ้ามีฟอร์มที่เสร็จสิ้นแล้ว (status = 1) ให้แสดงสีเขียว
+  if (hasCompletedForms === 1) {
+    return 'text-white bg-success'
+  }
 
   const currentDate = new Date()
   const start = new Date(startDate)
@@ -143,7 +154,7 @@ function SetAssessor() {
 
   useEffect(() => {
     setBreadcrumbs(
-      [{ text: 'รอบประเมินภาระงาน', path: '/user/workload_round' },
+      [{ text: 'ฟอร์มประเมินภาระงาน', path: '/user/workload_round' },
       ])
   }, [setBreadcrumbs])
 
@@ -457,8 +468,8 @@ function SetAssessor() {
       align: 'left',
       sortable: true,
       render: (_, record) => (
-        <span className={`text-xs font-normal rounded-md px-2 py-1 ${getRoundStatusColor(record.date_start, record.date_end)}`}>
-          {getRoundStatusLabel(record.date_start, record.date_end)}
+        <span className={`text-xs font-normal rounded-md px-2 py-1 ${getRoundStatusColor(record.date_start, record.date_end, record.has_completed_forms)}`}>
+          {getRoundStatusLabel(record.date_start, record.date_end, record.has_completed_forms)}
         </span>
       ),
     },
@@ -469,7 +480,15 @@ function SetAssessor() {
       align: 'center',
       render: (_, record) => (
         <div className="w-full flex justify-center gap-2 p-0">
-          {isDateInRange(record.date_start, record.date_end) ? (
+          {record.has_completed_forms === 1 ? (
+            <button
+              type="button"
+              className="cursor-pointer rounded-md p-1 text-blue-500 transition duration-300 ease-in-out hover:bg-blue-500 hover:text-white"
+              onClick={() => handleSetAssessorInfo(record.round_list_id)}
+            >
+              <Eye className="h-4 w-4" />
+            </button>
+          ) : isDateInRange(record.date_start, record.date_end) ? (
             <>
               <button
                 type="button"

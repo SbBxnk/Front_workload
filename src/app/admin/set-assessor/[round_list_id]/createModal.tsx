@@ -78,7 +78,6 @@ export default function CreateModal({
         )
         if (resUsers.data.status) {
           const processedUsers = resUsers.data.data || []
-          console.log('Users from API:', processedUsers)
           setUsers(processedUsers)
         }
       } catch (error) {
@@ -183,7 +182,7 @@ export default function CreateModal({
               <form onSubmit={(e) => handleSubmit(e)}>
                 <div className="flex items-center border-b border-gray-200 p-4">
                   <h3 className="font-regular flex truncate text-start text-2xl text-gray-600 dark:text-gray-400">
-                    เพิ่มผู้ประเมิน&nbsp;
+                    เพิ่มผู้ถูกประเมิน&nbsp;
                   </h3>
                 </div>
                 <div className="p-4">

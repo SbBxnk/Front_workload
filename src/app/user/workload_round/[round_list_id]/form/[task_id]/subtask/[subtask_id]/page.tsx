@@ -1,7 +1,7 @@
 'use client'
 import { useParams } from 'next/navigation'
 import type React from 'react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 // แก้ไข import เพื่อเพิ่ม icon สำหรับรูปภาพ
 import {
   Loader,
@@ -133,6 +133,7 @@ function WorkloadSubtaskInfo() {
   const [editFormId, setEditFormId] = useState<number | null>(null)
   const [formDetail, setFormDetail] = useState<FormInfo | null>(null)
 const {setBreadcrumbs} = useUtility()
+  const hasFetched = useRef(false)
   useEffect(() => {
     setBreadcrumbs(
       [{ text: 'รอบประเมินภาระงาน', path: '/user/workload_round' },
@@ -179,9 +180,9 @@ const {setBreadcrumbs} = useUtility()
 
   useEffect(() => {
     const checkWorkloadGroup = async () => {
-      if (userId && session?.accessToken) {
+      if (userId && round_list_id && session?.accessToken) {
         try {
-          const response = await WorkloadFormServices.checkWorkloadGroup(userId, session.accessToken)
+          const response = await WorkloadFormServices.checkWorkloadGroup(userId, parseInt(round_list_id as string), session.accessToken)
           
           // ใช้ legacy format เหมือนเดิม
           const data = response.data
@@ -197,9 +198,15 @@ const {setBreadcrumbs} = useUtility()
 
     checkWorkloadGroup()
     // eslint-disable-next-line
-  }, [userId, session?.accessToken])
+  }, [userId, round_list_id, session?.accessToken])
 
   useEffect(() => {
+    // ป้องกันการเรียก API ซ้ำใน React Strict Mode
+    if (hasFetched.current) return
+    if (!subtask_id || !task_id) return
+    
+    hasFetched.current = true
+
     const fetchData = async () => {
       try {
         const [subtaskResponse, taskSubtasksResponse] = await Promise.all([
@@ -234,8 +241,8 @@ const {setBreadcrumbs} = useUtility()
       }
     }
 
-    if (subtask_id && task_id) fetchData()
-    // eslint-disable-next-line
+    fetchData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subtask_id, task_id])
 
   useEffect(() => {
@@ -371,6 +378,18 @@ const {setBreadcrumbs} = useUtility()
     fileName?: string
   ) => {
     event.preventDefault()
+    
+    // ตรวจสอบว่ามี workloadGroupInfo หรือไม่
+    if (!workloadGroupInfo || !workloadGroupInfo.formlist_id) {
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: 'ไม่พบข้อมูลกลุ่มภาระงาน กรุณาลองใหม่อีกครั้ง',
+        confirmButtonText: 'ตกลง',
+      })
+      return
+    }
+    
     const formData = new FormData(event.currentTarget)
 
     const evidenceType = formData.get('file_type') as
@@ -381,10 +400,7 @@ const {setBreadcrumbs} = useUtility()
     // Prepare FormData for API
     const apiFormData = new FormData()
     apiFormData.append('as_u_id', String(userId || 0))
-    apiFormData.append(
-      'formlist_id',
-      String(workloadGroupInfo?.formlist_id || 0)
-    )
+    apiFormData.append('formlist_id', String(workloadGroupInfo.formlist_id))
     apiFormData.append('subtask_id', String(subtask_id || 0))
     apiFormData.append('form_title', formData.get('form_title') as string)
     apiFormData.append('description', formData.get('description') as string)

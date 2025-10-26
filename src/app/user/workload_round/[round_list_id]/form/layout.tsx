@@ -19,6 +19,7 @@ import {
   ClockIcon as ClockAlert,
   TriangleAlertIcon,
   AlertCircle,
+  CircleX
 } from 'lucide-react'
 import ConfirmModal from './confirmModal'
 import InfoHoverModal from './infoTermModal'
@@ -96,6 +97,7 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
     useState<WorkloadGroup | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [formStatus, setFormStatus] = useState<number | null>(null)
+  const [hasAssessorData, setHasAssessorData] = useState<boolean | null>(null)
   const infoIconRef = useRef<HTMLDivElement>(null)
   const { data: session } = useSession()
   const params = useParams()
@@ -103,8 +105,8 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
 
   useEffect(() => {
     setBreadcrumbs(
-      [{ text: 'รอบประเมินภาระงาน', path: '/user/workload_round' },
-        { text: 'ภาระงานหลัก', path: `/user/workload_round/${roundId}/form` },
+      [{ text: 'ฟอร์มประเมินภาระงาน', path: '/user/workload_round' },
+      { text: 'ภาระงานหลัก', path: `/user/workload_round/${roundId}/form` },
       ])
   }, [setBreadcrumbs])
 
@@ -121,10 +123,10 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
 
   useEffect(() => {
     const checkWorkloadGroup = async () => {
-      if (userId) {
+      if (userId && roundId) {
         try {
           const response = await axios.get(
-            `${process.env.NEXT_PUBLIC_API}/workload_form/check_workload_group/${userId}`,
+            `${process.env.NEXT_PUBLIC_API}/workload_form/check_workload_group/${userId}/${roundId}`,
             { headers }
           )
           setWorkloadGroupInfo(response.data.data[0] || null)
@@ -140,7 +142,35 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
 
     checkWorkloadGroup()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId])
+  }, [userId, roundId])
+
+  // ตรวจสอบว่าผู้ใช้มีสิทธิ์เข้าถึงรอบนี้หรือไม่
+  useEffect(() => {
+    const checkUserAccess = async () => {
+      if (userId && roundId && session?.accessToken) {
+        try {
+          const response = await SetAssessorServices.checkUserAccessToRound(
+            userId,
+            roundId,
+            session.accessToken
+          )
+
+          if (response.success) {
+            // ตรวจสอบว่ามี payload หรือไม่ (มี ex_u_id หรือไม่)
+            const hasAccess = response.payload !== null
+            setHasAssessorData(hasAccess)
+          } else {
+            setHasAssessorData(false)
+          }
+        } catch (error) {
+          console.error('Error checking user access:', error)
+          setHasAssessorData(false)
+        }
+      }
+    }
+
+    checkUserAccess()
+  }, [userId, roundId, session?.accessToken])
 
   // เช็ค status ของ workload form
   useEffect(() => {
@@ -148,10 +178,16 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
       if (userId && roundId && session?.accessToken) {
         try {
           const response = await WorkloadFormServices.checkWorkloadFormStatus(userId, roundId, session.accessToken)
-          if (response.success && response.payload) {
-            const data = Array.isArray(response.payload) ? response.payload[0] : response.payload
-            if (data) {
-              setFormStatus(data.status)
+          if (response.success) {
+            if (response.payload === null) {
+              // ยังไม่มีข้อมูล workload form ในระบบ
+              console.log('No form status found - user may not have workload form data yet')
+              setFormStatus(0) // ตั้งค่าเป็น 0 (ยังไม่ได้เริ่มต้น)
+            } else if (response.payload) {
+              const data = Array.isArray(response.payload) ? response.payload[0] : response.payload
+              if (data) {
+                setFormStatus(data.status)
+              }
             }
           }
         } catch (error) {
@@ -190,9 +226,9 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
           return currentDate >= startDate && currentDate <= endDate
         })
 
-         // หารอบที่ผู้ใช้พยายามเข้าถึง
-         const targetRoundData = roundId ? fetchedRounds.find((round: any) => round.round_list_id === roundId) : null
-         setTargetRound(targetRoundData as unknown as Round || null)
+        // หารอบที่ผู้ใช้พยายามเข้าถึง
+        const targetRoundData = roundId ? fetchedRounds.find((round: any) => round.round_list_id === roundId) : null
+        setTargetRound(targetRoundData as unknown as Round || null)
         setCurrentRound(activeRound as unknown as Round || null)
       } catch (error) {
         console.error('Error fetching data:', error)
@@ -207,7 +243,7 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId])
 
-  // ดึงรายการภาระงานที่ไม่ซ้ำกันจากข้อมูล API (เรียงจากล่างขึ้นบน)
+  // ดึงรายการภาระงานที่ไม่ซ้ำกันจากข้อมูล API 
   const uniqueTasks = Array.isArray(terms)
     ? [...new Set(terms.map((term) => term.task_name))].reverse()
     : []
@@ -244,13 +280,13 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
     if (!round) {
       return 'not_found'
     }
-    
+
     const currentDate = new Date()
     const startDate = new Date(round.date_start)
     const endDate = new Date(round.date_end)
-    
-   
-    
+
+
+
     if (currentDate < startDate) {
       return 'not_started'
     }
@@ -274,7 +310,7 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
 
     try {
       const response = await WorkloadFormServices.selectWorkloadFormGroup(userId, workload_group.workload_group_id, currentRound.round_list_id, session?.accessToken || '')
-      
+
 
       if (response.status) {
         // อัปเดต workloadGroupInfo และ selectedGroup
@@ -324,7 +360,7 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
               ))}
             </div>
           </div>
-          
+
           {/* Skeleton for workload criteria table */}
           <div className="rounded-md bg-white px-4 pt-4 pb-1 shadow dark:bg-zinc-900 dark:text-gray-400">
             <div className="mb-4 h-6 w-80 animate-pulse rounded bg-gray-200 dark:bg-zinc-700"></div>
@@ -370,7 +406,7 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
               </table>
             </div>
           </div>
-          
+
           {/* Skeleton for workload group selection */}
           <div className="rounded-md bg-white p-4 shadow dark:bg-zinc-900 dark:text-gray-400">
             <div className="mb-4 h-6 w-48 animate-pulse rounded bg-gray-200 dark:bg-zinc-700"></div>
@@ -387,19 +423,24 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
 
   const targetRoundStatus = getRoundStatus(targetRound)
 
+  // ตรวจสอบว่าผู้ใช้มีสิทธิ์เข้าถึงรอบนี้หรือไม่
+  const hasAccessToRound = hasAssessorData === true || (hasAssessorData === null && formStatus !== null)
+
   return (
     <>
       {targetRoundStatus === 'not_found' ? (
         <div className="mb-4 rounded-md bg-white p-6 shadow dark:bg-zinc-900 dark:text-gray-400">
           <div className="flex flex-col items-center justify-center gap-4 py-8 text-center">
-            <ClockAlert className="h-12 w-12 text-blue-500 md:h-24 md:w-24" />
+            <CircleX className="h-12 w-12 text-red-500 md:h-24 md:w-24" />
             <div className="">
               <h2 className="mb-2 text-4xl font-medium text-gray-700 dark:text-gray-300">
                 ไม่พบรอบการประเมิน
               </h2>
               <p className="text-gray-500 dark:text-gray-400">
-                ไม่พบรอบการประเมินที่คุณพยายามเข้าถึง
-                กรุณาตรวจสอบ URL หรือติดต่อผู้ดูแลระบบ
+                คุณไม่ได้ถูกกำหนดให้เป็นผู้ประเมินในรอบนี้
+              </p>
+              <p className="text-gray-500 dark:text-gray-400">
+                กรุณาติดต่อผู้ดูแลระบบหากคิดว่านี่เป็นข้อผิดพลาด
               </p>
             </div>
           </div>
@@ -449,6 +490,23 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
             </div>
           </div>
         </div>
+      ) : !hasAccessToRound ? (
+        <div className="h-[calc(100vh-6rem)] rounded-md bg-white p-6 shadow dark:bg-zinc-900 dark:text-gray-400">
+          <div className="flex flex-col items-center justify-center gap-4 py-8 text-center">
+            <CircleX className="h-12 w-12 text-red-500 md:h-24 md:w-24" />
+            <div className="">
+              <h2 className="mb-2 text-4xl font-medium text-gray-700 dark:text-gray-300">
+                ไม่พบรอบการประเมิน
+              </h2>
+              <p className="text-gray-500 dark:text-gray-400">
+                คุณไม่ได้ถูกกำหนดให้เป็นผู้ประเมินในรอบนี้
+              </p>
+              <p className="text-gray-500 dark:text-gray-400">
+                กรุณาติดต่อผู้ดูแลระบบหากคิดว่านี่เป็นข้อผิดพลาด
+              </p>
+            </div>
+          </div>
+        </div>
       ) : (
         <>
           {/* รอบปัจจุบัน - แสดงเฉพาะเมื่อมีสิทธิในการประเมิน */}
@@ -465,6 +523,7 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
                   </p>
                   <p className="text-md text-md p-2 font-normal">
                     {currentRound.round_list_name}
+                    {/* ({formatThaiDate(currentRound.date_start)} - {formatThaiDate(currentRound.date_end)}) */}
                   </p>
                 </div>
                 <div className="">
@@ -519,9 +578,9 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
           {/* เลือกกลุ่มภาระงาน - แสดงเฉพาะเมื่อเป็นผู้ประเมิน */}
           {isUserAssessor ? (
             !workloadGroupInfo ||
-            workloadGroupInfo.workload_group_id === 0 ||
-            workloadGroupInfo.workload_group_id === null ||
-            !workloadGroupInfo.workload_group_name ? (
+              workloadGroupInfo.workload_group_id === 0 ||
+              workloadGroupInfo.workload_group_id === null ||
+              !workloadGroupInfo.workload_group_name ? (
               <div className="space-y-4">
                 {Array.isArray(terms) && terms.length > 0 && (
                   <div className="rounded-md bg-white px-4 pt-4 pb-1 shadow transition-all duration-300 ease-in-out dark:bg-zinc-900 dark:text-gray-400">
@@ -606,8 +665,8 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
                 </div>
               </div>
             ) : formStatus === 1 ? (
-              <_successForm 
-                terms={terms} 
+              <_successForm
+                terms={terms}
                 selectedGroupName={workloadGroupInfo?.workload_group_name || undefined}
                 userId={userId || undefined}
                 roundId={roundId || undefined}
