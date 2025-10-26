@@ -158,61 +158,6 @@ function PrefixTable() {
     window.history.replaceState({}, '', `?${searchParams.toString()}`)
   }
 
-  const getPrefixes = async (
-    search: string,
-    limit: number | undefined,
-    page: number | undefined,
-    sort: string,
-    order: string,
-    afterSuccess?: () => void
-  ) => {
-    setLoading(true)
-    setData([])
-    try {
-      if (!session?.accessToken) {
-        throw new Error('No access token')
-      }
-
-      const response = await PrefixServices.getAllPrefixes(
-        session.accessToken,
-        {
-          search,
-          page: page ?? 1,
-          limit: limit ?? 10,
-          sort,
-          order,
-        }
-      )
-
-      if (response.success) {
-        const responseMeta = response.meta
-        if (responseMeta) {
-          setTotal(responseMeta.total_rows)
-          setPage(responseMeta.page - 1)
-          setRowsPerPage(responseMeta.limit)
-        }
-        setData(response.payload || [])
-      } else {
-        setData([])
-        setTotal(0)
-        setPage(0)
-      }
-      if (afterSuccess) {
-        afterSuccess()
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error)
-    } finally {
-      setLoading(false)
-      updateUrlParams({
-        search,
-        page,
-        limit,
-        sort,
-        order,
-      })
-    }
-  }
 
   // Auto search with debounce
   useEffect(() => {
@@ -228,15 +173,51 @@ function PrefixTable() {
 
   // Fetch data when params change
   useEffect(() => {
-    if (session?.accessToken) {
-      getPrefixes(
-        params.search || '',
-        params.limit,
-        params.page,
-        params.sort || '',
-        params.order || ''
-      )
+    const fetchData = async () => {
+      if (!session?.accessToken) return
+      
+      setLoading(true)
+      setData([])
+      try {
+        const response = await PrefixServices.getAllPrefixes(
+          session.accessToken,
+          {
+            search: params.search || '',
+            page: params.page ?? 1,
+            limit: params.limit ?? 10,
+            sort: params.sort || '',
+            order: params.order || '',
+          }
+        )
+
+        if (response.success) {
+          const responseMeta = response.meta
+          if (responseMeta) {
+            setTotal(responseMeta.total_rows)
+            setPage(responseMeta.page - 1)
+            setRowsPerPage(responseMeta.limit)
+          }
+          setData(response.payload || [])
+        } else {
+          setData([])
+          setTotal(0)
+          setPage(0)
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error)
+      } finally {
+        setLoading(false)
+        updateUrlParams({
+          search: params.search,
+          page: params.page,
+          limit: params.limit,
+          sort: params.sort,
+          order: params.order,
+        })
+      }
     }
+
+    fetchData()
   }, [
     params.search,
     params.page,
@@ -244,7 +225,6 @@ function PrefixTable() {
     params.sort,
     params.order,
     session?.accessToken,
-    getPrefixes,
   ])
 
   const clearSearch = () => {
@@ -303,13 +283,10 @@ function PrefixTable() {
 
       if (response && (response as any).status === true) {
         setFormData(FormDataPrefix)
-        getPrefixes(
-          params.search || '',
-          params.limit,
-          1, // Reset to first page
-          params.sort || '',
-          params.order || ''
-        )
+        setParams((prev) => ({
+          ...prev,
+          page: 1,
+        }))
         Swal.fire({
           position: 'center',
           icon: 'success',
@@ -346,13 +323,7 @@ function PrefixTable() {
       if (!session?.accessToken) throw new Error('No access token')
       await PrefixServices.deletePrefix(prefix_id, session.accessToken)
 
-      getPrefixes(
-        params.search || '',
-        params.limit,
-        params.page,
-        params.sort || '',
-        params.order || ''
-      )
+      // Data will be refetched automatically by useEffect
 
       Swal.fire({
         icon: 'success',
@@ -391,13 +362,11 @@ function PrefixTable() {
       )
 
       if (response && (response as any).status === true) {
-        getPrefixes(
-          params.search || '',
-          params.limit,
-          params.page,
-          params.sort || '',
-          params.order || ''
-        )
+        // ปิด modal ก่อน
+        const modal = document.getElementById('modal-edit') as HTMLInputElement
+        if (modal) modal.checked = false
+
+        // Data will be refetched automatically by useEffect
 
         Swal.fire({
           icon: 'success',

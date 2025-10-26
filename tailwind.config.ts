@@ -1,6 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 import daisyui from 'daisyui'
 import tailwindcssAnimate from 'tailwindcss-animate'
+import lineClamp from '@tailwindcss/line-clamp'
 
 const config = {
   content: [
@@ -72,7 +73,7 @@ const config = {
       },
     },
   },
-  plugins: [daisyui, tailwindcssAnimate],
+  plugins: [daisyui, tailwindcssAnimate, lineClamp],
   daisyui: {
     themes: ['light', 'cupcake'],
   },

@@ -60,12 +60,21 @@ export default function Topbar({
   useEffect(() => {
     const fetchTaskName = async () => {
       if (!task_id || !session?.accessToken) {
+        console.log('🔍 Topbar: Missing task_id or accessToken', { task_id, hasToken: !!session?.accessToken })
         return
       }
 
+      // ตรวจสอบว่า task_id เป็นตัวเลขหรือไม่
+      if (isNaN(Number(task_id))) {
+        console.log('🔍 Topbar: Invalid task_id format:', task_id)
+        setTaskName({ task_id: 0, task_name: 'ไม่พบข้อมูล' })
+        return
+      }
+
+      console.log('🔍 Topbar: Fetching task name for task_id:', task_id)
       setIsLoading(true)
       try {
-        const response = await axios.get<{ data: MainTaskDetail }>(
+        const response = await axios.get<{ payload: MainTaskDetail; data?: MainTaskDetail }>(
           `${process.env.NEXT_PUBLIC_API}/maintask/${task_id}`,
           {
             headers: {
@@ -74,13 +83,30 @@ export default function Topbar({
             },
           }
         )
-        if (response.data && response.data.data.task_name) {
+        console.log('🔍 Topbar API Response:', response.data)
+        console.log('🔍 Task ID:', task_id)
+        console.log('🔍 Response status:', response.status)
+        console.log('🔍 Response structure:', {
+          hasData: !!response.data,
+          hasDataData: !!response.data?.data,
+          hasPayload: !!response.data?.payload,
+          hasTaskName: !!response.data?.payload?.task_name,
+          fullData: response.data
+        })
+        
+        if (response.status === 200 && response.data?.payload?.task_name) {
+          console.log('🔍 Setting task name from payload:', response.data.payload.task_name)
+          setTaskName(response.data.payload)
+        } else if (response.status === 200 && response.data?.data?.task_name) {
+          console.log('🔍 Setting task name from data:', response.data.data.task_name)
           setTaskName(response.data.data)
         } else {
+          console.log('🔍 No task name found, setting fallback')
           setTaskName({ task_id: 0, task_name: 'ไม่พบข้อมูล' })
         }
-      } catch (error) {
-        console.error('Error fetching task name:', error)
+      } catch (error: any) {
+        console.error('❌ Error fetching task name:', error)
+        console.error('❌ Error details:', error.response?.data)
         setTaskName({ task_id: 0, task_name: 'ไม่สามารถโหลดข้อมูลได้' })
       } finally {
         setIsLoading(false)

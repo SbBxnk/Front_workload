@@ -2,39 +2,43 @@
 import type React from 'react'
 import { useEffect, useState } from 'react'
 import { Edit2, Plus, Trash2 } from 'lucide-react'
-import type { Position } from '@/Types'
+import type { SubTask, SubTaskSearchParams, MainTask } from '@/Types'
 import CreateModal from './createModal'
 import DeleteModal from './deleteModal'
 import { FiX } from 'react-icons/fi'
 import Swal from 'sweetalert2'
 import EditModal from './editModal'
-import PositionServices from '@/services/positionServices'
+import SubTaskServices from '@/services/subTaskServices'
+import MainTaskServices from '@/services/mainTaskServices'
 import { useSession } from 'next-auth/react'
 import Table, { TableColumn, SortState, SortOrder } from '@/components/Table'
+import Tooltip from '@/components/Tooltip'
 
 const ITEMS_PER_PAGE = 10
 
-interface FormDataPosition {
-  position_name: string
+interface FormDataSubTask {
+  subtask_name: string
+  task_id: number
 }
 
-const FormDataPosition: FormDataPosition = {
-  position_name: '',
+const FormDataSubTask: FormDataSubTask = {
+  subtask_name: '',
+  task_id: 0,
 }
 
 type Order = 'asc' | 'desc'
 
-function PositionTable() {
+function SubTaskTable() {
   const { data: session } = useSession()
-  const [FormData, setFormData] = useState<FormDataPosition>(FormDataPosition)
+  const [FormData, setFormData] = useState<FormDataSubTask>(FormDataSubTask)
   const [loading, setLoading] = useState<boolean>(false)
   const [order, setOrder] = useState<Order>('asc')
   const [orderBy, setOrderBy] = useState<string>('')
   const [page, setPage] = useState<number>(0)
   const [rowsPerPage, setRowsPerPage] = useState<number>(10)
   const [total, setTotal] = useState<number>(0)
-  const [data, setData] = useState<Position[]>([])
-  const [params, setParams] = useState({
+  const [data, setData] = useState<SubTask[]>([])
+  const [params, setParams] = useState<SubTaskSearchParams>({
     search: '',
     page: 1,
     limit: 10,
@@ -42,13 +46,112 @@ function PositionTable() {
     order: '',
   })
   const [searchInput, setSearchInput] = useState<string>('')
-  const [selectedPosition, setSelectedPosition] = useState<string>('')
-  const [selectedPositionId, setSelectedPositionId] = useState<number>(0)
-  const [selectedPositionName, setSelectedPositionName] = useState<string>('')
+  const [selectedSubTaskId, setSelectedSubTaskId] = useState<number>(0)
+  const [selectedSubTaskName, setSelectedSubTaskName] = useState<string>('')
+  const [selectedTaskId, setSelectedTaskId] = useState<number>(0)
+  const [selectedTaskName, setSelectedTaskName] = useState<string>('')
   const [sortState, setSortState] = useState<SortState>({
     column: null,
     order: null,
   })
+  const [mainTasks, setMainTasks] = useState<MainTask[]>([])
+
+  // Define table columns
+  const columns: TableColumn<SubTask>[] = [
+    {
+      key: 'index',
+      label: '#',
+      width: '80px',
+      align: 'center',
+      render: (_, __, index) => (
+        <span className="font-regular text-sm text-gray-600 dark:text-gray-300">
+          {page * rowsPerPage + index + 1}
+        </span>
+      ),
+    },
+    {
+      key: 'subtask_name',
+      label: 'ภาระงานย่อย',
+      align: 'left',
+      sortable: true,
+      width: '40%',
+      render: (value) => {
+        const displayValue = value || '-'
+        
+        return (
+          <Tooltip content={displayValue}>
+            <div className="text-sm font-light text-gray-500 dark:text-gray-400 w-full cursor-default">
+              <div className="line-clamp-2 whitespace-normal">
+                {displayValue}
+              </div>
+            </div>
+          </Tooltip>
+        )
+      },
+    },
+    {
+      key: 'task_name',
+      label: 'ภาระงานหลัก',
+      align: 'left',
+      sortable: true,
+      width: '30%',
+      render: (value) => {
+        const displayValue = value || '-'
+        
+        return (
+          <Tooltip content={displayValue}>
+            <div className="text-sm font-light text-gray-500 dark:text-gray-400 w-full cursor-default">
+              <div className="line-clamp-2 whitespace-normal">
+                {displayValue}
+              </div>
+            </div>
+          </Tooltip>
+        )
+      },
+    },
+    {
+      key: 'actions',
+      label: 'จัดการ',
+      width: '120px',
+      align: 'center',
+      render: (_, row , index) => (
+        <div className="w-full flex justify-center gap-2 p-0">
+          <button
+            type="button"
+            className="cursor-pointer rounded-md p-1 text-yellow-500 transition duration-300 ease-in-out hover:bg-yellow-500 hover:text-white"
+            onClick={() => {
+              setSelectedSubTaskId(row.subtask_id)
+              setSelectedSubTaskName(row.subtask_name)
+              setSelectedTaskId(row.task_id)
+              setSelectedTaskName(String(row.task_name))
+              // Trigger modal
+              const modal = document.getElementById(
+                `modal-edit`
+              ) as HTMLInputElement
+              if (modal) modal.checked = true
+            }}
+          >
+            <Edit2 className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            className="cursor-pointer rounded-md p-1 text-red-500 transition duration-300 ease-in-out hover:bg-red-500 hover:text-white"
+            onClick={() => {
+              setSelectedSubTaskId(row.subtask_id)
+              setSelectedSubTaskName(row.subtask_name)
+              // Trigger modal
+              const modal = document.getElementById(
+                `modal-delete`
+              ) as HTMLInputElement
+              if (modal) modal.checked = true
+            }}
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      ),
+    },
+  ]
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
@@ -92,7 +195,6 @@ function PositionTable() {
     window.history.replaceState({}, '', `?${searchParams.toString()}`)
   }
 
-
   // Auto search with debounce
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
@@ -105,53 +207,76 @@ function PositionTable() {
     return () => clearTimeout(delayDebounce)
   }, [searchInput])
 
+  const getSubTasks = async () => {
+    setLoading(true)
+    setData([])
+    try {
+      if (!session?.accessToken) {
+        throw new Error('No access token')
+      }
+
+      const response = await SubTaskServices.getAllSubTasks(
+        session.accessToken,
+        {
+          search: params.search || '',
+          page: params.page ?? 1,
+          limit: params.limit ?? 10,
+          sort: params.sort || '',
+          order: params.order || '',
+        }
+      )
+
+      if (response.success) {
+        const responseMeta = response.meta
+        if (responseMeta) {
+          setTotal(responseMeta.total_rows)
+          setPage(responseMeta.page - 1)
+          setRowsPerPage(responseMeta.limit)
+        }
+        setData(response.payload || [])
+      } else {
+        setData([])
+        setTotal(0)
+        setPage(0)
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error)
+    } finally {
+      setLoading(false)
+      updateUrlParams({
+        search: params.search,
+        page: params.page,
+        limit: params.limit,
+        sort: params.sort,
+        order: params.order,
+      })
+    }
+  }
+
+  const getMainTasks = async () => {
+    try {
+      if (!session?.accessToken) return
+      const response = await MainTaskServices.getAllMainTasks(session.accessToken, {
+        search: '',
+        page: 1,
+        limit: 100,
+        sort: 'task_name',
+        order: 'asc',
+      })
+      if (response.success) {
+        setMainTasks(response.payload || [])
+      }
+    } catch (error) {
+      console.error('Error fetching main tasks:', error)
+    }
+  }
+
   // Fetch data when params change
   useEffect(() => {
-    const fetchData = async () => {
-      if (!session?.accessToken) return
-      
-      setLoading(true)
-      setData([])
-      try {
-        const response = await PositionServices.getAllPositions(
-          session.accessToken,
-          {
-            search: params.search || '',
-            page: params.page ?? 1,
-            limit: params.limit ?? 10,
-            sort: params.sort || '',
-            order: params.order || '',
-          }
-        )
-
-        if (response.success) {
-          const responseMeta = response.meta
-          if (responseMeta) {
-            setTotal(responseMeta.total_rows)
-            setPage(responseMeta.page - 1)
-            setRowsPerPage(responseMeta.limit)
-          }
-          setData(response.payload || [])
-        } else {
-          setData([])
-          setTotal(0)
-          setPage(0)
-        }
-      } catch (error) {
-        console.error('Error fetching data:', error)
-      } finally {
-        setLoading(false)
-        updateUrlParams({
-          search: params.search,
-          page: params.page,
-          limit: params.limit,
-          sort: params.sort,
-          order: params.order,
-        })
-      }
+    if (session?.accessToken) {
+      getSubTasks()
+      getMainTasks()
     }
-
-    fetchData()
   }, [
     params.search,
     params.page,
@@ -194,7 +319,6 @@ function PositionTable() {
     setPage(0) // Reset page to 0 (display page 1)
   }
 
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
@@ -202,41 +326,48 @@ function PositionTable() {
 
   const handleSubmit = async (
     e: React.FormEvent<HTMLFormElement> | React.MouseEvent,
-    position_name: string
+    subtask_name: string,
+    task_id: number
   ) => {
     setLoading(true)
     try {
       if (!session?.accessToken) throw new Error('No access token')
-      const response = await PositionServices.createPosition(
-        { position_name },
+      const response = await SubTaskServices.createSubTask(
+        { subtask_name, task_id },
         session.accessToken
       )
 
       if (response && (response as any).status === true) {
-        setFormData(FormDataPosition)
+        // ปิด modal ก่อน
+        const modal = document.getElementById('modal-create') as HTMLInputElement
+        if (modal) modal.checked = false
+
+        setFormData(FormDataSubTask)
         setParams((prev) => ({
           ...prev,
           page: 1,
         }))
+        // อัปเดตข้อมูลทันที
+        await getSubTasks()
         Swal.fire({
           position: 'center',
           icon: 'success',
           title: 'สำเร็จ!',
-          text: `เพิ่มตำแหน่งวิชาการ ${position_name} สำเร็จ!`,
+          text: `เพิ่มภาระงานย่อย ${subtask_name} สำเร็จ!`,
           showConfirmButton: false,
           timer: 1500,
         })
       } else {
-        throw new Error('ไม่สามารถสร้างตำแหน่งวิชาการได้')
+        throw new Error('ไม่สามารถสร้างภาระงานย่อยได้')
       }
     } catch (error) {
-      console.error('Error adding position:', error)
+      console.error('Error adding sub task:', error)
       setLoading(false)
       Swal.fire({
         position: 'center',
         icon: 'error',
         title: 'เกิดข้อผิดพลาด!',
-        text: 'เกิดข้อผิดพลาดในการเพิ่มตำแหน่งวิชาการ',
+        text: 'เกิดข้อผิดพลาดในการเพิ่มภาระงานย่อย',
         showConfirmButton: false,
         timer: 1500,
       })
@@ -245,14 +376,14 @@ function PositionTable() {
 
   const handleDelete = async (
     e: React.FormEvent<HTMLFormElement> | React.MouseEvent,
-    position_id: number,
-    position_name: string
+    subtask_id: number,
+    subtask_name: string
   ) => {
     e.preventDefault()
     setLoading(true)
     try {
       if (!session?.accessToken) throw new Error('No access token')
-      await PositionServices.deletePosition(position_id, session.accessToken)
+      await SubTaskServices.deleteSubTask(subtask_id, session.accessToken)
 
       // Reset to page 1 and fetch new data
       setPage(0)
@@ -260,24 +391,24 @@ function PositionTable() {
         ...prev,
         page: 1,
       }))
-      
-      // Data will be refetched automatically by useEffect
+      // อัปเดตข้อมูลทันที
+      await getSubTasks()
 
       Swal.fire({
         icon: 'success',
         title: 'ลบสำเร็จ!',
-        text: `ลบตำแหน่งวิชาการ ${position_name} สำเร็จ!`,
+        text: `ลบภาระงานย่อย ${subtask_name} สำเร็จ!`,
         showConfirmButton: false,
         timer: 1500,
       })
     } catch (error) {
-      console.error('Error deleting position:', error)
+      console.error('Error deleting sub task:', error)
       setLoading(false)
 
       Swal.fire({
         icon: 'error',
         title: 'เกิดข้อผิดพลาด!',
-        text: 'เกิดข้อผิดพลาดในการลบตำแหน่งวิชาการ',
+        text: 'เกิดข้อผิดพลาดในการลบภาระงานย่อย',
         showConfirmButton: false,
         timer: 1500,
       })
@@ -286,16 +417,17 @@ function PositionTable() {
 
   const handleEdit = async (
     e: React.FormEvent<HTMLFormElement> | React.MouseEvent,
-    position_id: number,
-    position_name: string
+    subtask_id: number,
+    subtask_name: string,
+    task_id: number
   ) => {
     e.preventDefault()
     setLoading(true)
     try {
       if (!session?.accessToken) throw new Error('No access token')
-      const response = await PositionServices.updatePosition(
-        position_id,
-        { position_name },
+      const response = await SubTaskServices.updateSubTask(
+        subtask_id,
+        { subtask_name, task_id },
         session.accessToken
       )
 
@@ -304,97 +436,32 @@ function PositionTable() {
         const modal = document.getElementById('modal-edit') as HTMLInputElement
         if (modal) modal.checked = false
 
-        // Data will be refetched automatically by useEffect
+        // อัปเดตข้อมูลทันที
+        await getSubTasks()
 
         Swal.fire({
           icon: 'success',
           title: 'แก้ไขสำเร็จ!',
-          text: `แก้ไขตำแหน่งวิชาการ ${position_name} สำเร็จ!`,
+          text: `แก้ไขภาระงานย่อย ${subtask_name} สำเร็จ!`,
           showConfirmButton: false,
           timer: 1500,
         })
       } else {
-        throw new Error('ไม่สามารถแก้ไขตำแหน่งวิชาการได้')
+        throw new Error('ไม่สามารถแก้ไขภาระงานย่อยได้')
       }
     } catch (error) {
-      console.error('Error updating position:', error)
+      console.error('Error updating sub task:', error)
       setLoading(false)
 
       Swal.fire({
         icon: 'error',
         title: 'เกิดข้อผิดพลาด!',
-        text: 'เกิดข้อผิดพลาดในการแก้ไขตำแหน่งวิชาการ',
+        text: 'เกิดข้อผิดพลาดในการแก้ไขภาระงานย่อย',
         showConfirmButton: false,
         timer: 1500,
       })
     }
   }
-
-  // Define table columns
-  const columns: TableColumn<Position>[] = [
-    {
-      key: 'index',
-      label: '#',
-      width: '80px',
-      align: 'center',
-      render: (_, __, index) => (
-        <span className="font-regular text-sm text-gray-600 dark:text-gray-300">
-          {page * rowsPerPage + index + 1}
-        </span>
-      ),
-    },
-    {
-      key: 'position_name',
-      label: 'ตำแหน่งวิชาการ',
-      align: 'left',
-      sortable: true,
-      render: (value) => (
-        <span className="text-sm font-light text-gray-500 dark:text-gray-400">
-          {value || '-'}
-        </span>
-      ),
-    },
-    {
-      key: 'actions',
-      label: 'จัดการ',
-      width: '120px',
-      align: 'center',
-      render: (_, row , index) => (
-        <div className="w-full flex justify-center gap-2 p-0">
-          <button
-            type="button"
-            className="cursor-pointer rounded-md p-1 text-yellow-500 transition duration-300 ease-in-out hover:bg-yellow-500 hover:text-white"
-            onClick={() => {
-              setSelectedPositionId(row.position_id)
-              setSelectedPositionName(row.position_name)
-              // Trigger modal
-              const modal = document.getElementById(
-                `modal-edit`
-              ) as HTMLInputElement
-              if (modal) modal.checked = true
-            }}
-          >
-            <Edit2 className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            className="cursor-pointer rounded-md p-1 text-red-500 transition duration-300 ease-in-out hover:bg-red-500 hover:text-white"
-            onClick={() => {
-              setSelectedPositionId(row.position_id)
-              setSelectedPositionName(row.position_name)
-              // Trigger modal
-              const modal = document.getElementById(
-                `modal-delete`
-              ) as HTMLInputElement
-              if (modal) modal.checked = true
-            }}
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        </div>
-      ),
-    },
-  ]
 
   const totalPages = Math.ceil(total / rowsPerPage)
 
@@ -414,7 +481,7 @@ function PositionTable() {
           <div className="relative flex w-full items-center md:w-52">
             <input
               className="w-full rounded-md border border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
-              placeholder="ค้นหาด้วยชื่อตำแหน่งวิชาการ"
+              placeholder="ค้นหาด้วยชื่อภาระงานย่อยหรือภาระงานหลัก"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
             />
@@ -432,7 +499,7 @@ function PositionTable() {
               htmlFor={`modal-create`}
               className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-md bg-success px-4 py-2.5 text-sm font-light text-white transition duration-300 ease-in-out hover:bg-success/80 md:w-52"
             >
-              เพิ่มตำแหน่งวิชาการ
+              เพิ่มภาระงานย่อย
               <Plus className="h-4 w-4" />
             </label>
           </div>
@@ -457,27 +524,31 @@ function PositionTable() {
         onSort={handleSort}
         rowsPerPageOptions={[10, 20, 50, 100, 200]}
       />
-
       <CreateModal
         isLoading={loading}
         handleSubmit={handleSubmit}
         formData={FormData}
         handleInputChange={handleInputChange}
+        setFormData={setFormData}
+        mainTasks={mainTasks}
       />
       <DeleteModal
         isLoading={loading}
-        position_id={selectedPositionId}
-        position_name={selectedPositionName}
+        subtask_id={selectedSubTaskId}
+        subtask_name={selectedSubTaskName}
         handleDelete={handleDelete}
       />
       <EditModal
         isLoading={loading}
-        position_id={selectedPositionId}
-        position_name={selectedPositionName}
+        subtask_id={selectedSubTaskId}
+        subtask_name={selectedSubTaskName}
+        task_id={selectedTaskId}
         handleEdit={handleEdit}
+        task_name={selectedTaskName}
+        mainTasks={mainTasks}
       />
     </div>
   )
 }
 
-export default PositionTable
+export default SubTaskTable

@@ -26,6 +26,9 @@ import {
   NotepadText,
   BarChartIcon as ChartColumn,
   ClipboardCheck,
+  LayoutList,
+  Logs,
+  CheckSquare,
 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useAssessor } from '@/hooks/useAssessor'
@@ -102,9 +105,17 @@ const adminMenuItems = [
       { id: 3, label: 'ตำแหน่งบริหาร', icon: Sofa, href: '/admin/ex-position' },
       { id: 4, label: 'สาขา', icon: GraduationCap, href: '/admin/branch' },
       { id: 5, label: 'หลักสูตร', icon: LibraryBigIcon, href: '/admin/course' },
-      { id: 6, label: 'ประเภทบุคลากร', icon: UserPen,href: '/admin/personal-type' },
+      { id: 6, label: 'ประเภทบุคลากร', icon: UserPen, href: '/admin/personal-type' },
       // { id: 7, label: 'ระดับผู้ใช้งาน', icon: CircleUser, href: '/admin/user-level' },
       // { id: 8, label: 'รอบการประเมิน', icon: Calendar, href: '/admin/round' },
+    ],
+  },
+  {
+    title: 'จัดการแบบประเมินภาระงาน',
+    items: [
+      { id: 1, label: 'กลุ่มภาระงาน', icon: CheckSquare, href: '/admin/workload-group' },
+      { id: 2, label: 'ภาระงานหลัก', icon: LayoutList, href: '/admin/main-task' },
+      { id: 3, label: 'ภาระงานย่อย', icon: Logs, href: '/admin/sub-task' },
     ],
   },
   {

@@ -205,7 +205,6 @@ function PersonalTypeTable() {
     params.sort,
     params.order,
     session?.accessToken,
-    getPersonalTypes,
   ])
 
 
@@ -370,6 +369,10 @@ function PersonalTypeTable() {
       )
 
       if (response && (response as any).status === true) {
+        // ปิด modal ก่อน
+        const modal = document.getElementById('modal-edit') as HTMLInputElement
+        if (modal) modal.checked = false
+
         getPersonalTypes(
           params.search || '',
           params.limit,

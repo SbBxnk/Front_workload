@@ -218,24 +218,54 @@ const {setBreadcrumbs} = useUtility()
           }),
         ])
 
-        const subtaskData: Subtask = subtaskResponse.data.data
-        const taskSubtasks: Subtask[] = taskSubtasksResponse.data.data
+        console.log('🔍 Subtask API Response:', subtaskResponse.data)
+        console.log('🔍 Task Subtasks API Response:', taskSubtasksResponse.data)
+        console.log('🔍 Subtask Response Structure:', {
+          hasData: !!subtaskResponse.data?.data,
+          hasPayload: !!subtaskResponse.data?.payload,
+          fullData: subtaskResponse.data
+        })
+        console.log('🔍 Task Subtasks Response Structure:', {
+          hasData: !!taskSubtasksResponse.data?.data,
+          hasPayload: !!taskSubtasksResponse.data?.payload,
+          fullData: taskSubtasksResponse.data
+        })
+        
+        const subtaskData: Subtask = subtaskResponse.data?.data || subtaskResponse.data?.payload
+        const taskSubtasks: Subtask[] = taskSubtasksResponse.data?.data || taskSubtasksResponse.data?.payload || []
 
-        setSubtask(subtaskData)
+        console.log('🔍 Subtask Data:', subtaskData)
+        console.log('🔍 Task Subtasks:', taskSubtasks)
+        console.log('🔍 Is Array:', Array.isArray(taskSubtasks))
 
-        const sortedSubtasks = taskSubtasks.sort(
-          (a, b) => a.subtask_id - b.subtask_id
-        )
-        const index = sortedSubtasks.findIndex(
-          (st) => st.subtask_id === Number(subtask_id)
-        )
+        if (subtaskData && subtaskData.subtask_id) {
+          setSubtask(subtaskData)
+        } else {
+          console.log('🔍 No subtask data found, setting fallback')
+          setSubtask({ subtask_id: 0, subtask_name: 'ไม่พบข้อมูล' })
+        }
 
-        setSubtaskIndex(
-          index !== -1 ? `${task_id}.${index + 1}` : 'Subtask ไม่พบ'
-        )
-      } catch (err) {
+        if (Array.isArray(taskSubtasks) && taskSubtasks.length > 0) {
+          const sortedSubtasks = taskSubtasks.sort(
+            (a, b) => a.subtask_id - b.subtask_id
+          )
+          const index = sortedSubtasks.findIndex(
+            (st) => st.subtask_id === Number(subtask_id)
+          )
+
+          setSubtaskIndex(
+            index !== -1 ? `${task_id}.${index + 1}` : 'Subtask ไม่พบ'
+          )
+        } else {
+          console.log('🔍 No subtasks found, setting fallback index')
+          setSubtaskIndex('Subtask ไม่พบ')
+        }
+      } catch (err: any) {
+        console.error('❌ Error fetching data:', err)
+        console.error('❌ Error details:', err.response?.data)
         setError('เกิดข้อผิดพลาดในการโหลดข้อมูล')
-        console.error('Error fetching data:', err)
+        setSubtask({ subtask_id: 0, subtask_name: 'ไม่พบข้อมูล' })
+        setSubtaskIndex('Subtask ไม่พบ')
       } finally {
         setLoading(false)
       }
@@ -1317,8 +1347,7 @@ const {setBreadcrumbs} = useUtility()
           </div>
           <label
             htmlFor={`modal-forminfo`}
-            className="inline-flex w-full cursor-pointer items-center justify-center rounded-lg border border-gray-300 py-2.5 text-sm font-medium text-gray-600 transition-colors duration-150 hover:border-gray-400 hover:text-gray-700 dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400 dark:hover:border-zinc-500"
-          >
+            className="inline-flex w-full cursor-pointer items-center justify-center rounded-lg border border-gray-300 py-2.5 text-sm font-medium text-gray-600 transition-colors duration-150 hover:border-gray-400 hover:text-gray-700 dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400 dark:hover:border-zinc-500">
             <Plus className="mr-2 h-4 w-4" />
             เพิ่มรายละเอียดภาระงาน
           </label>

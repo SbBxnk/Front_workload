@@ -42,20 +42,41 @@ export default function WorkloadSubtask() {
 
     const fetchTaskAndSubtasks = async () => {
       try {
+        console.log('🔍 Fetching subtasks for task_id:', task_id)
         const subtaskResponse = await axios.get(
           `${process.env.NEXT_PUBLIC_API}/subtask/task/${task_id}`,
-          { headers }
+          { 
+            headers,
+            params: {
+              sort: 'subtask_id',  // เรียงตาม subtask_id
+              order: 'asc',        // เรียงจากน้อยไปมาก
+              limit: 100           // เพิ่ม limit เพื่อให้ได้ข้อมูลทั้งหมด
+            }
+          }
         )
-        const fetchedSubtasks = subtaskResponse.data.data.map(
+        
+        console.log('🔍 Subtask API Response:', subtaskResponse.data)
+        
+        const subtaskData = subtaskResponse.data.data || subtaskResponse.data.payload || []
+        console.log('🔍 Subtask Data:', subtaskData)
+        console.log('🔍 Subtask IDs order:', subtaskData.map((item: SubTaskDetail) => item.subtask_id))
+        
+        const fetchedSubtasks = Array.isArray(subtaskData) ? subtaskData.map(
           (subtask: SubTaskDetail) => ({
             ...subtask,
             subsubtasks: [],
           })
-        )
-        setSubtasks(fetchedSubtasks)
+        ) : []
+        
+        // เรียงลำดับใน frontend เป็น fallback
+        const sortedSubtasks = fetchedSubtasks.sort((a: SubTaskDetail, b: SubTaskDetail) => a.subtask_id - b.subtask_id)
+        console.log('🔍 Sorted Subtask IDs:', sortedSubtasks.map((item: SubTaskDetail) => item.subtask_id))
+        
+        setSubtasks(sortedSubtasks)
       } catch (err) {
-        console.error(err)
+        console.error('❌ Error fetching subtasks:', err)
         setError('Failed to load task or subtasks')
+        setSubtasks([]) // Set empty array as fallback
       } finally {
         setLoading(false)
       }
@@ -93,22 +114,33 @@ export default function WorkloadSubtask() {
     <div className="">
       <div className="mb-4 rounded-md bg-white p-4 shadow dark:bg-zinc-900 dark:text-gray-400">
         <div className="space-y-4">
-          {subtasks.map((subtask, index) => (
-            <button
-              key={subtask.subtask_id}
-              onClick={() => handleSubTaskClick(subtask.subtask_id, round_list_id)}
-              className="flex w-full cursor-pointer items-center justify-start gap-4 text-nowrap rounded-md border border-gray-200 px-4 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800"
-            >
-              <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-business1/60 text-white">
-                <span className="flex h-full w-full items-center justify-center text-sm">
-                  {index + 1}
-                </span>
+          {Array.isArray(subtasks) && subtasks.length > 0 ? (
+            subtasks.map((subtask, index) => (
+              <button
+                key={subtask.subtask_id}
+                onClick={() => handleSubTaskClick(subtask.subtask_id, round_list_id)}
+                className="flex w-full cursor-pointer items-center justify-start gap-4 text-nowrap rounded-md border border-gray-200 px-4 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800"
+              >
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-business1/60 text-white">
+                  <span className="flex h-full w-full items-center justify-center text-sm">
+                    {index + 1}
+                  </span>
+                </div>
+                <p className="overflow-hidden truncate text-nowrap font-light text-gray-600 dark:text-gray-300">
+                  {subtask?.subtask_name || 'Unknown Subtask'}
+                </p>
+              </button>
+            ))
+          ) : (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <div className="text-lg font-medium text-gray-500 dark:text-gray-400 mb-2">
+                ไม่พบข้อมูลภาระงานย่อย
               </div>
-              <p className="overflow-hidden truncate text-nowrap font-light text-gray-600 dark:text-gray-300">
-                {subtask.subtask_name}
-              </p>
-            </button>
-          ))}
+              <div className="text-sm text-gray-400 dark:text-gray-500">
+                กรุณาติดต่อผู้ดูแลระบบ
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

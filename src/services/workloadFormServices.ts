@@ -213,16 +213,6 @@ const WorkloadFormServices = {
     })
   },
 
-  // Get workload form status by set_asses_list_id
-  getWorkloadFormStatus: (
-    setAssesListId: number,
-    accessToken: string
-  ): Promise<ResponsePayload<{ set_asses_list_id: number; status: number }>> => {
-    return http.get(`/workload_form/status/${setAssesListId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
-  },
-
   // Get assessor evaluation status
   getAssessorEvaluationStatus: (
     setAssesListId: number,
@@ -234,6 +224,22 @@ const WorkloadFormServices = {
     evaluation_status: 'not_started' | 'in_progress' | 'completed';
   }>> => {
     return http.get(`/workload_form/evaluation_status/${setAssesListId}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+  },
+
+  // Submit workload form
+  submitWorkloadForm: (
+    userId: number,
+    roundId: number,
+    accessToken: string
+  ): Promise<ResponsePayload<{ 
+    user_id: number;
+    round_list_id: number;
+    set_asses_list_id: number;
+    status: number;
+  }>> => {
+    return http.patch(`/workload_form/submit/${userId}/${roundId}`, {}, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
   },

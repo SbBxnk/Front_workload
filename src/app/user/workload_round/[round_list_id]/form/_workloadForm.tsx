@@ -649,10 +649,10 @@ export default function _workloadForm({ selectedGroupName, terms = [], userId, r
         doc.text('เกณฑ์การประเมินภาระงาน', 14, currentY)
         currentY += 10
 
-        const uniqueTasks = [...new Set(terms.map((term) => term.task_name))]
+        const uniqueTasks = [...new Set(terms.map((term) => term?.task_name || 'Unknown Task'))]
         const uniqueGroups = selectedGroupName
           ? [selectedGroupName]
-          : [...new Set(terms.map((term) => term.workload_group_name))]
+          : [...new Set(terms.map((term) => term?.workload_group_name || 'Unknown Group'))]
 
         const criteriaTableData: any[] = []
 
@@ -662,7 +662,7 @@ export default function _workloadForm({ selectedGroupName, terms = [], userId, r
           const row = [taskName]
           uniqueGroups.forEach((groupName) => {
             const item = terms.find(
-              (term) => term.task_name === taskName && term.workload_group_name === groupName
+              (term) => term?.task_name === taskName && term?.workload_group_name === groupName
             )
             row.push(item ? item.quantity_workload_hours.toString() : '0')
           })
@@ -673,7 +673,7 @@ export default function _workloadForm({ selectedGroupName, terms = [], userId, r
         uniqueGroups.forEach((groupName) => {
           const total = uniqueTasks.reduce((sum, taskName) => {
             const item = terms.find(
-              (term) => term.task_name === taskName && term.workload_group_name === groupName
+              (term) => term?.task_name === taskName && term?.workload_group_name === groupName
             )
             return sum + (item ? item.quantity_workload_hours : 0)
           }, 0)
@@ -713,10 +713,10 @@ export default function _workloadForm({ selectedGroupName, terms = [], userId, r
       const tableData: any[] = []
       const rowLinks: Array<string | null> = []
 
-      workloadData.forEach((task) => {
+      Array.isArray(workloadData) && workloadData.forEach((task) => {
         const taskTitle = task.quantity_workload_hours
-          ? `${task.task_id}. ${task.task_name} (ภาระงานขั้นต่ำ) : ${task.quantity_workload_hours} ภาระงาน/สัปดาห์`
-          : `${task.task_id}. ${task.task_name}`
+          ? `${task.task_id}. ${task?.task_name || 'Unknown Task'} (ภาระงานขั้นต่ำ) : ${task.quantity_workload_hours} ภาระงาน/สัปดาห์`
+          : `${task.task_id}. ${task?.task_name || 'Unknown Task'}`
 
         tableData.push([
           {
@@ -737,7 +737,7 @@ export default function _workloadForm({ selectedGroupName, terms = [], userId, r
         Object.values(task.subtasks).forEach((subtask, subtaskIndex) => {
           tableData.push([
             {
-              content: `    ${task.task_id}.${subtaskIndex + 1} ${subtask.subtask_name}`,
+              content: `    ${task.task_id}.${subtaskIndex + 1} ${subtask?.subtask_name || 'Unknown Subtask'}`,
               colSpan: 6,
               styles: {
                 fillColor: [255, 255, 255],
@@ -825,19 +825,19 @@ export default function _workloadForm({ selectedGroupName, terms = [], userId, r
       })
 
 
-      const totalItems = workloadData.reduce((sum, task) =>
+      const totalItems = Array.isArray(workloadData) ? workloadData.reduce((sum, task) =>
         sum + Object.values(task.subtasks).reduce((subSum, subtask) =>
           subSum + subtask.form_infos.length, 0
         ), 0
-      )
+      ) : 0
 
-      const totalWorkload = workloadData.reduce((sum, task) =>
+      const totalWorkload = Array.isArray(workloadData) ? workloadData.reduce((sum, task) =>
         sum + Object.values(task.subtasks).reduce((subSum, subtask) =>
           subSum + subtask.form_infos.reduce((formSum, formInfo) =>
             formSum + (formInfo.quality * formInfo.workload), 0
           ), 0
         ), 0
-      )
+      ) : 0
 
       // Generate table with autoTable
       const startY = terms && terms.length > 0 ? (doc as any).lastAutoTable.finalY + 10 : currentY
@@ -967,7 +967,7 @@ export default function _workloadForm({ selectedGroupName, terms = [], userId, r
 
       let totalSummary = 0
 
-      workloadData.forEach((task, index) => {
+      Array.isArray(workloadData) && workloadData.forEach((task, index) => {
         if (index < 5) { // เฉพาะภาระงาน 1-5
           const taskTotal = Object.values(task.subtasks).reduce((subSum, subtask) =>
             subSum + subtask.form_infos.reduce((formSum, formInfo) =>
@@ -1075,7 +1075,7 @@ export default function _workloadForm({ selectedGroupName, terms = [], userId, r
         <button
           id="export-pdf-btn"
           onClick={handleExportPDFWithLinks}
-          disabled={exporting || workloadData.length === 0}
+          disabled={exporting || !Array.isArray(workloadData) || workloadData.length === 0}
           className="inline-flex h-10 items-center px-4 py-2 bg-transparent border border-red-500 text-red-500 rounded-lg hover:text-white hover:bg-red-600 transition-colors duration-200"
           title="Export PDF พร้อม clickable links"
         >
@@ -1110,7 +1110,7 @@ export default function _workloadForm({ selectedGroupName, terms = [], userId, r
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-zinc-900">
-              {workloadData.length === 0 ? (
+              {!Array.isArray(workloadData) || workloadData.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="border border-gray-300 px-4 py-8 text-center text-gray-500 dark:text-gray-400">
                     <div className="flex flex-col items-center">
@@ -1120,14 +1120,14 @@ export default function _workloadForm({ selectedGroupName, terms = [], userId, r
                   </td>
                 </tr>
               ) : (
-                workloadData.map((task) => (
+                Array.isArray(workloadData) && workloadData.map((task) => (
                   <React.Fragment key={task.task_id}>
                     {/* Task Row */}
                     <tr className="bg-business1 text-white dark:bg-zinc-900">
                       <td colSpan={6} className="border border-gray-300 px-4 py-3 dark:text-gray-200 font-normal">
                         <div className="flex items-center justify-between">
                           <span className="">
-                            {task.task_id}. {task.task_name} (ภาระงานขั้นต่ำ)
+                            {task.task_id}. {task?.task_name || 'Unknown Task'} (ภาระงานขั้นต่ำ)
                           </span>
                           {task.quantity_workload_hours && (
                             <span className="text-sm bg-white text-business1 px-2 py-1 rounded">
@@ -1146,7 +1146,7 @@ export default function _workloadForm({ selectedGroupName, terms = [], userId, r
                           <td colSpan={6} className="border border-gray-300 px-4 py-2 text-gray-700 dark:text-gray-300">
                             <div className="ml-6 flex items-center gap-2">
                               <span className="text-sm">
-                                {task.task_id}.{subtaskIndex + 1} {subtask.subtask_name}
+                                {task.task_id}.{subtaskIndex + 1} {subtask?.subtask_name || 'Unknown Subtask'}
                               </span>
                             </div>
                           </td>
@@ -1306,7 +1306,7 @@ export default function _workloadForm({ selectedGroupName, terms = [], userId, r
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-zinc-900">
-              {workloadData.slice(0, 5).map((task, index) => {
+              {Array.isArray(workloadData) && workloadData.slice(0, 5).map((task, index) => {
                 const taskTotal = Object.values(task.subtasks).reduce((subSum, subtask) =>
                   subSum + subtask.form_infos.reduce((formSum, formInfo) =>
                     formSum + (formInfo.quality * formInfo.workload), 0
@@ -1340,13 +1340,13 @@ export default function _workloadForm({ selectedGroupName, terms = [], userId, r
                   รวม
                 </td>
                 <td className="border border-gray-300 px-4 py-2 text-center font-normal text-sm">
-                  {workloadData.slice(0, 5).reduce((sum, task) =>
+                  {Array.isArray(workloadData) ? workloadData.slice(0, 5).reduce((sum, task) =>
                     sum + Object.values(task.subtasks).reduce((subSum, subtask) =>
                       subSum + subtask.form_infos.reduce((formSum, formInfo) =>
                         formSum + (formInfo.quality * formInfo.workload), 0
                       ), 0
                     ), 0
-                  )}
+                  ) : 0}
                 </td>
                 <td className="border border-gray-300 px-4 py-2 text-center text-gray-500 dark:text-gray-400">
 
@@ -1369,23 +1369,23 @@ export default function _workloadForm({ selectedGroupName, terms = [], userId, r
           <div>
             <span className="font-medium text-green-700 dark:text-green-300">จำนวนรายการ:</span>
             <span className="ml-2 text-green-600 dark:text-green-400">
-              {workloadData.reduce((sum, task) =>
+              {Array.isArray(workloadData) ? workloadData.reduce((sum, task) =>
                 sum + Object.values(task.subtasks).reduce((subSum, subtask) =>
                   subSum + subtask.form_infos.length, 0
                 ), 0
-              )} รายการ
+              ) : 0} รายการ
             </span>
           </div>
           <div>
             <span className="font-medium text-green-700 dark:text-green-300">รวมภาระงานทั้งหมด:</span>
             <span className="ml-2 text-green-600 dark:text-green-400">
-              {workloadData.reduce((sum, task) =>
+              {Array.isArray(workloadData) ? workloadData.reduce((sum, task) =>
                 sum + Object.values(task.subtasks).reduce((subSum, subtask) =>
                   subSum + subtask.form_infos.reduce((formSum, formInfo) =>
                     formSum + (formInfo.quality * formInfo.workload), 0
                   ), 0
                 ), 0
-              )} ชั่วโมง
+              ) : 0} ชั่วโมง
             </span>
           </div>
         </div>

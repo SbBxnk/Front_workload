@@ -71,14 +71,34 @@ export default function WorkLoadForm() {
 
     const fetchWorkloads = async () => {
       try {
+        console.log('🔍 Fetching workload data...')
         const response = await axios.get(
           `${process.env.NEXT_PUBLIC_API}/maintask`,
-          { headers }
+          { 
+            headers,
+            params: {
+              sort: 'task_id',  // เรียงตาม task_id
+              order: 'asc',     // เรียงจากน้อยไปมาก
+              limit: 100        // เพิ่ม limit เพื่อให้ได้ข้อมูลทั้งหมด
+            }
+          }
         )
-        setWorkload(response.data.data)
+        
+        console.log('🔍 Workload API Response:', response.data)
+        
+        const workloadData = response.data.payload || []
+        console.log('🔍 Setting workload data:', workloadData)
+        console.log('🔍 Task IDs order:', workloadData.map((item: Workload) => item.task_id))
+        
+        // เรียงลำดับใน frontend เป็น fallback
+        const sortedWorkloadData = workloadData.sort((a: Workload, b: Workload) => a.task_id - b.task_id)
+        console.log('🔍 Sorted Task IDs:', sortedWorkloadData.map((item: Workload) => item.task_id))
+        
+        setWorkload(sortedWorkloadData)
       } catch (err) {
-        console.error(err)
+        console.error('❌ Error fetching workload:', err)
         setError('Failed to load tasks')
+        setWorkload([]) // Set empty array as fallback
       } finally {
         setLoading(false)
       }
@@ -100,7 +120,7 @@ export default function WorkLoadForm() {
     }
 
     try {
-      const response = await WorkloadFormServices.updateWorkloadFormStatus(user.id, parseInt(round_list_id), session?.accessToken || '')
+      const response = await WorkloadFormServices.submitWorkloadForm(user.id, parseInt(round_list_id), session?.accessToken || '')
 
       if (response.success) {
         router.push('/user/workload_round')
@@ -114,7 +134,7 @@ export default function WorkLoadForm() {
 
   if (loading) {
     return (
-      <div className="rounded-md bg-white p-4 shadow transition-all duration-300 ease-in-out dark:bg-zinc-900 dark:text-gray-400">
+      <div className="rounded-md bg-white p-4 shadow ">
         <div className="flex flex-col gap-4">
           {[...Array(6)].map((_, index) => (
             <div
@@ -133,25 +153,36 @@ export default function WorkLoadForm() {
   if (error) return <p className="text-red-500">{error}</p>
 
   return (
-    <div className="rounded-md bg-white p-4 shadow transition-all duration-300 ease-in-out dark:bg-zinc-900 dark:text-gray-400">
+    <div className="rounded-md bg-white p-4 shadow ">
     
       <div className="flex flex-col gap-4">
-        {workload.map((item, index) => (
-          <button
-            key={item.task_id}
-            onClick={() => handleTaskClick(item.task_id, round_list_id)}
-            className="flex w-full cursor-pointer items-center justify-start gap-4 text-nowrap rounded-md border border-gray-200 px-4 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800"
-          >
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-business1 text-white">
-              <span className="flex h-full w-full items-center justify-center text-sm">
-                {index + 1}
-              </span>
+        {Array.isArray(workload) && workload.length > 0 ? (
+          workload.map((item, index) => (
+            <button
+              key={item.task_id}
+              onClick={() => handleTaskClick(item.task_id, round_list_id)}
+              className="flex w-full cursor-pointer items-center justify-start gap-4 text-nowrap rounded-md border border-gray-200 px-4 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800"
+            >
+              <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-business1 text-white">
+                <span className="flex h-full w-full items-center justify-center text-sm">
+                  {index + 1}
+                </span>
+              </div>
+              <p className="overflow-hidden truncate text-nowrap font-light text-gray-600 dark:text-gray-300">
+                {item?.task_name || 'Unknown Task'}
+              </p>
+            </button>
+          ))
+        ) : (
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <div className="text-lg font-medium text-gray-500 dark:text-gray-400 mb-2">
+              ไม่พบข้อมูลภาระงาน
             </div>
-            <p className="overflow-hidden truncate text-nowrap font-light text-gray-600 dark:text-gray-300">
-              {item.task_name}
-            </p>
-          </button>
-        ))}
+            <div className="text-sm text-gray-400 dark:text-gray-500">
+              กรุณาติดต่อผู้ดูแลระบบ
+            </div>
+          </div>
+        )}
       </div>
       <StickyFooter
         onSubmit={() => {

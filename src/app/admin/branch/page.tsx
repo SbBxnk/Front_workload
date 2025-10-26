@@ -246,7 +246,6 @@ function PositionTable() {
     params.sort,
     params.order,
     session?.accessToken,
-    getBranches,
   ])
 
   const clearSearch = () => {
@@ -400,6 +399,10 @@ function PositionTable() {
       )
 
       if (response && (response as any).status === true) {
+        // ปิด modal ก่อน
+        const modal = document.getElementById('modal-edit') as HTMLInputElement
+        if (modal) modal.checked = false
+
         getBranches(
           params.search || '',
           params.limit,

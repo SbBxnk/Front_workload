@@ -74,10 +74,15 @@ const isDateInRange = (startDate: string, endDate: string): boolean => {
   return currentDate >= start && currentDate <= end
 }
 
-const getRoundStatusLabel = (startDate: string, endDate: string, hasCompletedForms?: number): string => {
+const getRoundStatusLabel = (startDate: string, endDate: string, hasCompletedForms?: number, hasAssessorData?: boolean): string => {
   if (!startDate || !endDate) return 'รอดำเนินการ'
 
-  // ถ้ามีฟอร์มที่เสร็จสิ้นแล้ว (status = 1) ให้แสดง "สำเร็จ"
+  // ถ้าไม่มี assessor data ในรอบนี้เลย ให้แสดง "สิ้นสุดการดำเนินการ"
+  if (hasAssessorData === false) {
+    return 'สิ้นสุดการดำเนินการ'
+  }
+
+  // ถ้ามีฟอร์มที่เสร็จสิ้นแล้ว (status = 1) ให้แสดง "เสร็จสิ้น"
   if (hasCompletedForms === 1) {
     return 'เสร็จสิ้น'
   }
@@ -91,12 +96,18 @@ const getRoundStatusLabel = (startDate: string, endDate: string, hasCompletedFor
   } else if (currentDate >= start && currentDate <= end) {
     return 'กำลังดำเนินการ'
   } else {
-    return 'สิ้นสุดการดำเนินการ'
+    // เลยวันที่กำหนดแล้ว แต่ยังมี assessor data ให้แสดง "กำลังดำเนินการ"
+    return 'กำลังดำเนินการ'
   }
 }
 
-const getRoundStatusColor = (startDate: string, endDate: string, hasCompletedForms?: number): string => {
+const getRoundStatusColor = (startDate: string, endDate: string, hasCompletedForms?: number, hasAssessorData?: boolean): string => {
   if (!startDate || !endDate) return 'bg-gray-300 text-gray-500'
+
+  // ถ้าไม่มี assessor data ในรอบนี้เลย ให้แสดงสีเทา
+  if (hasAssessorData === false) {
+    return 'bg-gray-200 text-gray-500'
+  }
 
   // ถ้ามีฟอร์มที่เสร็จสิ้นแล้ว (status = 1) ให้แสดงสีเขียว
   if (hasCompletedForms === 1) {
@@ -112,7 +123,8 @@ const getRoundStatusColor = (startDate: string, endDate: string, hasCompletedFor
   } else if (currentDate >= start && currentDate <= end) {
     return 'text-white bg-blue-500'
   } else {
-    return 'bg-gray-200 text-gray-500'
+    // เลยวันที่กำหนดแล้ว แต่ยังมี assessor data ให้แสดงสีน้ำเงิน
+    return 'text-white bg-blue-500'
   }
 }
 
@@ -467,29 +479,38 @@ function SetAssessor() {
       label: 'สถานะ',
       align: 'left',
       sortable: true,
-      render: (_, record) => (
-        <span className={`text-xs font-normal rounded-md px-2 py-1 ${getRoundStatusColor(record.date_start, record.date_end, record.has_completed_forms)}`}>
-          {getRoundStatusLabel(record.date_start, record.date_end, record.has_completed_forms)}
-        </span>
-      ),
+      render: (_, record) => {
+        const hasAssessorData = roundsWithAssessorData.includes(record.round_list_id)
+        return (
+          <span className={`text-xs font-normal rounded-md px-2 py-1 ${getRoundStatusColor(record.date_start, record.date_end, record.has_completed_forms, hasAssessorData)}`}>
+            {getRoundStatusLabel(record.date_start, record.date_end, record.has_completed_forms, hasAssessorData)}
+          </span>
+        )
+      },
     },
     {
       key: 'actions',
       label: 'จัดการ',
       width: '200px',
       align: 'center',
-      render: (_, record) => (
-        <div className="w-full flex justify-center gap-2 p-0">
-          {record.has_completed_forms === 1 ? (
-            <button
-              type="button"
-              className="cursor-pointer rounded-md p-1 text-blue-500 transition duration-300 ease-in-out hover:bg-blue-500 hover:text-white"
-              onClick={() => handleSetAssessorInfo(record.round_list_id)}
-            >
-              <Eye className="h-4 w-4" />
-            </button>
-          ) : isDateInRange(record.date_start, record.date_end) ? (
-            <>
+      render: (_, record) => {
+        const currentDate = new Date()
+        const start = new Date(record.date_start)
+        const end = new Date(record.date_end)
+        const isInRange = currentDate >= start && currentDate <= end
+        const hasAssessorData = roundsWithAssessorData.includes(record.round_list_id)
+        
+        return (
+          <div className="w-full flex justify-center gap-2 p-0">
+            {record.has_completed_forms === 1 ? (
+              <button
+                type="button"
+                className="cursor-pointer rounded-md p-1 text-blue-500 transition duration-300 ease-in-out hover:bg-blue-500 hover:text-white"
+                onClick={() => handleSetAssessorInfo(record.round_list_id)}
+              >
+                <Eye className="h-4 w-4" />
+              </button>
+            ) : hasAssessorData ? (
               <button
                 type="button"
                 className="cursor-pointer rounded-md p-1 text-amber-500 transition duration-300 ease-in-out hover:bg-amber-500 hover:text-white"
@@ -497,18 +518,18 @@ function SetAssessor() {
               >
                 <Edit className="h-4 w-4" />
               </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              className="cursor-pointer rounded-md p-1 text-blue-500 transition duration-300 ease-in-out hover:bg-blue-500 hover:text-white"
-              onClick={() => handleSetAssessorInfo(record.round_list_id)}
-            >
-              <Eye className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-      ),
+            ) : (
+              <button
+                type="button"
+                className="cursor-pointer rounded-md p-1 text-blue-500 transition duration-300 ease-in-out hover:bg-blue-500 hover:text-white"
+                onClick={() => handleSetAssessorInfo(record.round_list_id)}
+              >
+                <Eye className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        )
+      },
     },
   ]
 

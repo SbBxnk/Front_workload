@@ -177,7 +177,6 @@ function PositionTable() {
     params.sort,
     params.order,
     session?.accessToken,
-    getExpositions,
   ])
 
   const clearSearch = () => {
@@ -327,6 +326,10 @@ function PositionTable() {
       )
 
       if (response && (response as any).status === true) {
+        // ปิด modal ก่อน
+        const modal = document.getElementById('modal-edit') as HTMLInputElement
+        if (modal) modal.checked = false
+
         getExpositions(
           params.search || '',
           params.limit,

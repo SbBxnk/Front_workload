@@ -838,13 +838,13 @@ export default function ExDetailsPage() {
     
     for (const assessor of assessors) {
       try {
-        const response = await WorkloadFormServices.getWorkloadFormStatus(
+        const response = await WorkloadFormServices.getAssessorEvaluationStatus(
           assessor.set_asses_list_id,
           session.accessToken
         )
         
         if (response.success && response.payload && response.payload.length > 0) {
-          states[assessor.set_asses_list_id] = response.payload[0].status === 1
+          states[assessor.set_asses_list_id] = response.payload[0].form_status === 1
         } else {
           states[assessor.set_asses_list_id] = false
         }
@@ -928,6 +928,43 @@ export default function ExDetailsPage() {
       if (response.success && response.payload && Array.isArray(response.payload)) {
         const dataAssesDetail = response.payload as Assessor[]
         setAssessors(dataAssesDetail)
+
+        // ดึงสถานะ checkbox และสถานะการประเมินของแต่ละ assessor ใหม่
+        await Promise.all([
+          fetchCheckboxStates(dataAssesDetail),
+          fetchEvaluationStatuses(dataAssesDetail)
+        ])
+
+        // Check which assessors have related data
+        const idsWithData: number[] = []
+        for (const assessor of dataAssesDetail) {
+          try {
+            const assessorInfoResponse = await SetAssessorServices.getSetAssessorInfo(
+              assessor.set_asses_list_id,
+              session.accessToken
+            )
+            if (
+              assessorInfoResponse.payload &&
+              Array.isArray(assessorInfoResponse.payload) &&
+              assessorInfoResponse.payload.length > 0
+            ) {
+              idsWithData.push(assessor.set_asses_list_id)
+            }
+          } catch (error) {
+            console.error(
+              `Error checking data for assessor ${assessor.set_asses_list_id}:`,
+              error
+            )
+          }
+        }
+        setCheckDelete({ set_asses_list_id: idsWithData })
+
+        // Update allUsersAdded status
+        const assessorUserIds = dataAssesDetail.map((assessor) => assessor.as_u_id)
+        const allAdded = users.every((user: User) =>
+          assessorUserIds.includes(user.u_id)
+        )
+        setAllUsersAdded(allAdded)
 
         // Find the newly created assessors and add them to workload form
         if (createResponse.payload && Array.isArray(createResponse.payload)) {

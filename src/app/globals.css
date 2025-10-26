@@ -5,6 +5,18 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Force line-clamp to work */
+.line-clamp-2 {
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+  line-height: 1.4 !important;
+  max-height: 2.8em !important;
+  white-space: normal !important;
+}
+
 /* React Select Custom Styles */
 .react-select-container .react-select__control {
   @apply border-gray-300 dark:border-zinc-600 dark:bg-zinc-800;

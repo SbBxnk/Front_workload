@@ -98,6 +98,7 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [formStatus, setFormStatus] = useState<number | null>(null)
   const [hasAssessorData, setHasAssessorData] = useState<boolean | null>(null)
+  const [hasFormInRound, setHasFormInRound] = useState<boolean | null>(null)
   const infoIconRef = useRef<HTMLDivElement>(null)
   const { data: session } = useSession()
   const params = useParams()
@@ -125,16 +126,34 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
     const checkWorkloadGroup = async () => {
       if (userId && roundId) {
         try {
+          console.log('🔍 Checking workload group from tb_set_assessorlist:', {
+            userId,
+            roundId,
+            endpoint: `/workload_form/check_workload_group/${userId}/${roundId}`
+          })
+          
           const response = await axios.get(
             `${process.env.NEXT_PUBLIC_API}/workload_form/check_workload_group/${userId}/${roundId}`,
             { headers }
           )
-          setWorkloadGroupInfo(response.data.data[0] || null)
+          
+          console.log('🔍 Workload Group Check Response:', response.data)
+          
+          const workloadGroupData = response.data.data[0] || null
+          setWorkloadGroupInfo(workloadGroupData)
+          
+          console.log('🔍 Workload Group Info Set:', {
+            workloadGroupData,
+            workload_group_id: workloadGroupData?.workload_group_id,
+            isNull: workloadGroupData?.workload_group_id === null
+          })
         } catch (error: unknown) {
           if (axios.isAxiosError(error) && error.response?.status === 404) {
+            console.log('🔍 No workload group found (404)')
             setWorkloadGroupInfo(null)
           } else {
-            console.error('Error checking workload group:', error)
+            console.error('❌ Error checking workload group:', error)
+            setWorkloadGroupInfo(null)
           }
         }
       }
@@ -172,7 +191,7 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
     checkUserAccess()
   }, [userId, roundId, session?.accessToken])
 
-  // เช็ค status ของ workload form
+  // เช็ค status ของ workload form และว่าผู้ใช้มีฟอร์มในรอบนี้หรือไม่
   useEffect(() => {
     const checkFormStatus = async () => {
       if (userId && roundId && session?.accessToken) {
@@ -183,15 +202,18 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
               // ยังไม่มีข้อมูล workload form ในระบบ
               console.log('No form status found - user may not have workload form data yet')
               setFormStatus(0) // ตั้งค่าเป็น 0 (ยังไม่ได้เริ่มต้น)
+              setHasFormInRound(true) // ให้แสดงฟอร์มเพื่อให้ผู้ใช้เลือกภาระงาน
             } else if (response.payload) {
               const data = Array.isArray(response.payload) ? response.payload[0] : response.payload
               if (data) {
                 setFormStatus(data.status)
+                setHasFormInRound(true) // มีฟอร์มในรอบนี้
               }
             }
           }
         } catch (error) {
           console.error('Error checking form status:', error)
+          setHasFormInRound(false) // เกิดข้อผิดพลาด ให้เป็น false
         }
       }
     }
@@ -203,37 +225,71 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
     const fetchData = async () => {
       setLoading(true)
       try {
+        console.log('🔍 Starting to fetch data...')
+        
         const responseTerms = await axios.get(
           `${process.env.NEXT_PUBLIC_API}/workload_form/terms`,
           { headers }
         )
+        console.log('🔍 Terms API Response:', responseTerms.data)
+        
         const responseWorkloadGroups = await axios.get(
           `${process.env.NEXT_PUBLIC_API}/workload_group`,
           { headers }
         )
+        console.log('🔍 Workload Groups API Response:', responseWorkloadGroups.data)
+        
         const responseRounds = await SetAssessorServices.getAllRounds(session?.accessToken || '')
+        console.log('🔍 Rounds API Response:', responseRounds)
 
-        setWorkloadGroups(responseWorkloadGroups.data.data)
-        setTerms(responseTerms.data.data)
+        console.log('🔍 API Response Debug:', {
+          terms: responseTerms.data,
+          workloadGroups: responseWorkloadGroups.data,
+          rounds: responseRounds
+        })
+
+        const workloadGroupsData = responseWorkloadGroups.data.payload || []
+        const termsData = responseTerms.data.data || []
+        
+        console.log('🔍 Setting data:', {
+          workloadGroupsData,
+          termsData,
+          workloadGroupsLength: workloadGroupsData.length,
+          termsLength: termsData.length
+        })
+
+        setWorkloadGroups(workloadGroupsData)
+        setTerms(termsData)
 
         const fetchedRounds = Array.isArray(responseRounds.payload) ? responseRounds.payload : []
         setAllRounds(fetchedRounds as unknown as Round[])
 
-        const currentDate = new Date()
-        const activeRound = fetchedRounds.find((round: any) => {
-          const startDate = new Date(round.date_start)
-          const endDate = new Date(round.date_end)
-          return currentDate >= startDate && currentDate <= endDate
-        })
-
         // หารอบที่ผู้ใช้พยายามเข้าถึง
         const targetRoundData = roundId ? fetchedRounds.find((round: any) => round.round_list_id === roundId) : null
         setTargetRound(targetRoundData as unknown as Round || null)
-        setCurrentRound(activeRound as unknown as Round || null)
+        // ใช้ targetRound เป็น currentRound เพื่อไม่เช็ควันที่
+        setCurrentRound(targetRoundData as unknown as Round || null)
       } catch (error) {
-        console.error('Error fetching data:', error)
+        console.error('❌ Error fetching data:', error)
+        
+        if (axios.isAxiosError(error)) {
+          console.error('❌ Axios Error Details:', {
+            message: error.message,
+            status: error.response?.status,
+            statusText: error.response?.statusText,
+            data: error.response?.data,
+            url: error.config?.url
+          })
+        }
+        
+        // Set fallback values to prevent undefined errors
+        console.log('🔍 Setting fallback values due to error')
+        setWorkloadGroups([])
+        setTerms([])
+        setAllRounds([])
       } finally {
         setLoading(false)
+        console.log('🔍 Data fetching completed')
       }
     }
 
@@ -275,24 +331,13 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
     return total
   }
 
-  // ตรวจสอบสถานะของรอบ
+  // ตรวจสอบสถานะของรอบ - ไม่เช็ควันที่แล้ว
   const getRoundStatus = (round: Round | null) => {
     if (!round) {
       return 'not_found'
     }
-
-    const currentDate = new Date()
-    const startDate = new Date(round.date_start)
-    const endDate = new Date(round.date_end)
-
-
-
-    if (currentDate < startDate) {
-      return 'not_started'
-    }
-    if (currentDate > endDate) {
-      return 'ended'
-    }
+    
+    // ไม่เช็ควันที่แล้ว - ให้แสดงฟอร์มเสมอ
     return 'active'
   }
 
@@ -303,14 +348,23 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
       return
     }
 
-    const payload = {
-      workload_group_id: workload_group.workload_group_id,
-      round_id: currentRound.round_list_id,
-    }
+    console.log('🔍 Selecting Workload Group:', {
+      userId,
+      roundId: currentRound.round_list_id,
+      workloadGroupId: workload_group.workload_group_id,
+      workloadGroupName: workload_group.workload_group_name
+    })
 
     try {
-      const response = await WorkloadFormServices.selectWorkloadFormGroup(userId, workload_group.workload_group_id, currentRound.round_list_id, session?.accessToken || '')
+      // Update workload_group_id ใน tb_set_assessorlist
+      const response = await WorkloadFormServices.selectWorkloadFormGroup(
+        userId, 
+        workload_group.workload_group_id, 
+        currentRound.round_list_id, 
+        session?.accessToken || ''
+      )
 
+      console.log('🔍 API Response:', response)
 
       if (response.status) {
         // อัปเดต workloadGroupInfo และ selectedGroup
@@ -319,11 +373,15 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
           workload_group_name: workload_group.workload_group_name,
         })
         setSelectedGroup(workload_group.workload_group_name)
+        
+        console.log('✅ Workload group selected successfully')
       } else {
-        console.error('Error from API:', response.message)
+        console.error('❌ Error from API:', response.message)
+        alert('ไม่สามารถเลือกกลุ่มภาระงานได้ กรุณาลองใหม่')
       }
     } catch (error) {
-      console.error('Error updating workload group:', error)
+      console.error('❌ Error updating workload group:', error)
+      alert('เกิดข้อผิดพลาดในการเลือกกลุ่มภาระงาน กรุณาลองใหม่')
     }
   }
 
@@ -423,8 +481,20 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
 
   const targetRoundStatus = getRoundStatus(targetRound)
 
-  // ตรวจสอบว่าผู้ใช้มีสิทธิ์เข้าถึงรอบนี้หรือไม่
-  const hasAccessToRound = hasAssessorData === true || (hasAssessorData === null && formStatus !== null)
+  // Debug: แสดงข้อมูลสถานะ
+  console.log('🔍 Layout Debug:', {
+    targetRoundStatus,
+    currentRound: currentRound?.round_list_name,
+    targetRound: targetRound?.round_list_name,
+    hasAssessorData,
+    formStatus,
+    hasFormInRound,
+    roundId,
+    isUserAssessor,
+    workloadGroupInfo,
+    workloadGroups: workloadGroups?.length || 0,
+    terms: terms?.length || 0
+  })
 
   return (
     <>
@@ -445,72 +515,10 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
             </div>
           </div>
         </div>
-      ) : targetRoundStatus === 'not_started' ? (
-        <div className="h-[calc(100vh-6rem)] rounded-md bg-white p-6 shadow dark:bg-zinc-900 dark:text-gray-400">
-          <div className="flex flex-col items-center justify-center gap-4 py-8 text-center">
-            <ClockAlert className="h-12 w-12 text-amber-500 md:h-24 md:w-24" />
-            <div className="">
-              <h2 className="mb-2 text-4xl font-medium text-gray-700 dark:text-gray-300">
-                กำลังรอดำเนินการ
-              </h2>
-              <p className="text-gray-500 dark:text-gray-400">
-                รอบการประเมินนี้ยังไม่เริ่มต้น
-                กรุณาตรวจสอบอีกครั้งในภายหลัง
-              </p>
-            </div>
-          </div>
-        </div>
-      ) : targetRoundStatus === 'ended' ? (
-        <div className="h-[calc(100vh-6rem)] rounded-md bg-white p-6 shadow dark:bg-zinc-900 dark:text-gray-400">
-          <div className="flex flex-col items-center justify-center gap-4 py-8 text-center">
-            <TriangleAlertIcon className="h-12 w-12 text-red-500 md:h-24 md:w-24" />
-            <div className="">
-              <h2 className="mb-2 text-4xl font-medium text-gray-700 dark:text-gray-300">
-                การประเมินสิ้นสุด
-              </h2>
-              <p className="text-gray-500 dark:text-gray-400">
-                รอบการประเมินนี้สิ้นสุดแล้ว
-                ไม่สามารถเข้าถึงได้อีกต่อไป
-              </p>
-            </div>
-          </div>
-        </div>
-      ) : !currentRound ? (
-        <div className="h-[calc(100vh-6rem)] rounded-md bg-white p-6 shadow dark:bg-zinc-900 dark:text-gray-400">
-          <div className="flex flex-col items-center justify-center gap-4 py-8 text-center">
-            <ClockAlert className="h-12 w-12 text-blue-500 md:h-24 md:w-24" />
-            <div className="">
-              <h2 className="mb-2 text-4xl font-medium text-gray-700 dark:text-gray-300">
-                ยังไม่มีรอบการประเมิน
-              </h2>
-              <p className="text-gray-500 dark:text-gray-400">
-                ไม่พบรอบการประเมินที่ตรงกับวันที่ปัจจุบัน
-                กรุณาตรวจสอบอีกครั้งในภายหลัง
-              </p>
-            </div>
-          </div>
-        </div>
-      ) : !hasAccessToRound ? (
-        <div className="h-[calc(100vh-6rem)] rounded-md bg-white p-6 shadow dark:bg-zinc-900 dark:text-gray-400">
-          <div className="flex flex-col items-center justify-center gap-4 py-8 text-center">
-            <CircleX className="h-12 w-12 text-red-500 md:h-24 md:w-24" />
-            <div className="">
-              <h2 className="mb-2 text-4xl font-medium text-gray-700 dark:text-gray-300">
-                ไม่พบรอบการประเมิน
-              </h2>
-              <p className="text-gray-500 dark:text-gray-400">
-                คุณไม่ได้ถูกกำหนดให้เป็นผู้ประเมินในรอบนี้
-              </p>
-              <p className="text-gray-500 dark:text-gray-400">
-                กรุณาติดต่อผู้ดูแลระบบหากคิดว่านี่เป็นข้อผิดพลาด
-              </p>
-            </div>
-          </div>
-        </div>
       ) : (
         <>
-          {/* รอบปัจจุบัน - แสดงเฉพาะเมื่อมีสิทธิในการประเมิน */}
-          {isUserAssessor && (
+          {/* รอบปัจจุบัน - แสดงเฉพาะเมื่อมีฟอร์มในรอบนี้ */}
+          {hasFormInRound && currentRound && (
             <div className="mb-4 rounded-md bg-white p-4 shadow dark:bg-zinc-900 dark:text-gray-400">
               <h2 className="mb-4 text-lg font-medium text-gray-700 dark:text-gray-300">
                 รอบการประเมินปัจจุบัน
@@ -575,12 +583,29 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
             </div>
           )}
 
-          {/* เลือกกลุ่มภาระงาน - แสดงเฉพาะเมื่อเป็นผู้ประเมิน */}
-          {isUserAssessor ? (
-            !workloadGroupInfo ||
-              workloadGroupInfo.workload_group_id === 0 ||
+          {/* เลือกกลุ่มภาระงาน - แสดงเมื่อ workload_group_id เป็น null ใน tb_set_assessorlist */}
+          {(() => {
+            // แสดงกลุ่มภาระงานเมื่อ:
+            // 1. มีฟอร์มในรอบนี้ (hasFormInRound = true)
+            // 2. workloadGroupInfo เป็น null หรือ workload_group_id เป็น null
+            const shouldShowWorkloadSelection = hasFormInRound && (
+              !workloadGroupInfo || 
               workloadGroupInfo.workload_group_id === null ||
-              !workloadGroupInfo.workload_group_name ? (
+              workloadGroupInfo.workload_group_id === 0
+            )
+            
+            console.log('🔍 Workload Selection Debug:', {
+              hasFormInRound,
+              workloadGroupInfo,
+              shouldShowWorkloadSelection,
+              condition1: !workloadGroupInfo,
+              condition2: workloadGroupInfo?.workload_group_id === null,
+              condition3: workloadGroupInfo?.workload_group_id === 0,
+              explanation: 'แสดงกลุ่มภาระงานเมื่อ workload_group_id เป็น null ใน tb_set_assessorlist'
+            })
+            
+            return shouldShowWorkloadSelection
+          })() ? (
               <div className="space-y-4">
                 {Array.isArray(terms) && terms.length > 0 && (
                   <div className="rounded-md bg-white px-4 pt-4 pb-1 shadow transition-all duration-300 ease-in-out dark:bg-zinc-900 dark:text-gray-400">
@@ -647,21 +672,55 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
                     กรุณาเลือกภาระงานก่อน:
                   </h2>
                   <div className="mt-4 flex flex-wrap gap-2">
-                    {workloadGroups.map((group: WorkloadGroup) => (
-                      <label
-                        key={group.workload_group_id}
-                        htmlFor={`confirm-modal`}
-                        onClick={() => setSelectedWorkloadGroup(group)}
-                        className="cursor-pointer rounded bg-blue-500 px-4 py-2 text-white transition duration-300 ease-in-out hover:bg-blue-600"
-                      >
-                        {group.workload_group_name}
-                      </label>
-                    ))}
+                    {(() => {
+                      console.log('🔍 Workload Groups Debug:', {
+                        workloadGroups,
+                        isArray: Array.isArray(workloadGroups),
+                        length: workloadGroups?.length || 0
+                      })
+                      
+                      if (!Array.isArray(workloadGroups) || workloadGroups.length === 0) {
+                        return (
+                          <div className="w-full rounded bg-yellow-100 p-4 text-yellow-800">
+                            <p className="font-medium">ไม่พบข้อมูลกลุ่มภาระงาน</p>
+                            <p className="text-sm">กรุณาติดต่อผู้ดูแลระบบ</p>
+                          </div>
+                        )
+                      }
+                      
+                      return workloadGroups.map((group: WorkloadGroup) => (
+                        <label
+                          key={group.workload_group_id}
+                          htmlFor={`confirm-modal`}
+                          onClick={() => setSelectedWorkloadGroup(group)}
+                          className="cursor-pointer rounded bg-blue-500 px-4 py-2 text-white transition duration-300 ease-in-out hover:bg-blue-600"
+                        >
+                          {group.workload_group_name}
+                        </label>
+                      ))
+                    })()}
                   </div>
                   <ConfirmModal
                     handleSelectWorkloadGroup={handleSelectWorkloadGroup}
                     workload_group={selectedWorkloadGroup}
                   />
+                </div>
+              </div>
+            ) : !hasFormInRound ? (
+              <div className="mb-4 rounded-md bg-white p-6 shadow dark:bg-zinc-900 dark:text-gray-400">
+                <div className="flex flex-col items-center justify-center gap-4 py-8 text-center">
+                  <TriangleAlertIcon className="h-12 w-12 text-red-500 md:h-24 md:w-24" />
+                  <div className="">
+                    <h2 className="mb-2 text-4xl font-medium text-gray-700 dark:text-gray-300">
+                      การประเมินสิ้นสุดแล้ว
+                    </h2>
+                    <p className="text-gray-500 dark:text-gray-400">
+                      คุณไม่ได้ถูกกำหนดให้เป็นผู้ประเมินในรอบนี้
+                    </p>
+                    <p className="text-gray-500 dark:text-gray-400">
+                      กรุณาติดต่อผู้ดูแลระบบหากคิดว่านี่เป็นข้อผิดพลาด
+                    </p>
+                  </div>
                 </div>
               </div>
             ) : formStatus === 1 ? (
@@ -674,22 +733,7 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
             ) : (
               <div>{children}</div>
             )
-          ) : (
-            <div className="mb-4 rounded-md bg-white p-6 shadow dark:bg-zinc-900 dark:text-gray-400">
-              <div className="flex flex-col items-center justify-center gap-4 py-8 text-center">
-                <TriangleAlertIcon className="h-12 w-12 text-red-500 md:h-24 md:w-24" />
-                <div className="">
-                  <h2 className="mb-2 text-4xl font-medium text-gray-700 dark:text-gray-300">
-                    ไม่พบสิทธิในการประเมินภาระงาน
-                  </h2>
-                  <p className="text-gray-500 dark:text-gray-400">
-                    คุณไม่ได้ถูกกำหนดให้เป็นผู้ประเมินในรอบนี้
-                    กรุณาติดต่อผู้ดูแลระบบหากคิดว่านี่เป็นข้อผิดพลาด
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+          }
         </>
       )}
     </>

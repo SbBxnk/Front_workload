@@ -202,8 +202,6 @@ function CourseTable() {
     params.sort,
     params.order,
     session?.accessToken,
-    getBranches,
-    getCourses,
   ])
 
   const clearSearch = () => {
@@ -359,6 +357,10 @@ function CourseTable() {
       )
 
       if (response && (response as any).status === true) {
+        // ปิด modal ก่อน
+        const modal = document.getElementById('modal-edit') as HTMLInputElement
+        if (modal) modal.checked = false
+
         getCourses(
           params.search || '',
           params.limit,
