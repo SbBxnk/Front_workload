@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { jwtDecode } from 'jwt-decode'
 import useUtility from '@/hooks/useUtility'
-import _workloadForm from '../_workloadForm'
+import WorkloadForm from '../_workloadForm'
 import type { Terms } from '@/Types'
 import axios from 'axios'
 import WorkloadFormServices from '@/services/workloadFormServices'
@@ -99,7 +99,7 @@ export default function PreviewPage() {
         <div className="rounded-md bg-white p-4 shadow">
            
             
-            <_workloadForm
+            <WorkloadForm
                 terms={terms}
                 selectedGroupName={workloadGroupInfo?.workload_group_name || undefined}
                 userId={user?.id || undefined}

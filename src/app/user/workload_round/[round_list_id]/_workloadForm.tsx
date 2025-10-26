@@ -63,7 +63,7 @@ interface Task {
   subtasks: { [key: number]: Subtask }
 }
 
-export default function _workloadForm({ selectedGroupName, terms = [], userId, roundId, isPreview = false }: WorkloadFormProps) {
+export default function WorkloadForm({ selectedGroupName, terms = [], userId, roundId, isPreview = false }: WorkloadFormProps) {
   const [workloadData, setWorkloadData] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
@@ -272,7 +272,7 @@ export default function _workloadForm({ selectedGroupName, terms = [], userId, r
         { name: 'กลุ่มเน้นบริการวิชาการ', selected: false }
       ]
 
-      let checkboxY = 42
+      const checkboxY = 42
       groups.forEach((group, index) => {
         const x = 14 + (index % 2) * 100
         const y = checkboxY + Math.floor(index / 2) * 8
@@ -714,7 +714,8 @@ export default function _workloadForm({ selectedGroupName, terms = [], userId, r
       const tableData: any[] = []
       const rowLinks: Array<string | null> = []
 
-      Array.isArray(workloadData) && workloadData.forEach((task) => {
+      if (Array.isArray(workloadData)) {
+        workloadData.forEach((task) => {
         const taskTitle = task.quantity_workload_hours
           ? `${task.task_id}. ${task?.task_name || 'Unknown Task'} (ภาระงานขั้นต่ำ) : ${task.quantity_workload_hours} ภาระงาน/สัปดาห์`
           : `${task.task_id}. ${task?.task_name || 'Unknown Task'}`
@@ -823,7 +824,8 @@ export default function _workloadForm({ selectedGroupName, terms = [], userId, r
           ''
         ])
         rowLinks.push(null)
-      })
+        })
+      }
 
 
       const totalItems = Array.isArray(workloadData) ? workloadData.reduce((sum, task) =>
@@ -968,7 +970,8 @@ export default function _workloadForm({ selectedGroupName, terms = [], userId, r
 
       let totalSummary = 0
 
-      Array.isArray(workloadData) && workloadData.forEach((task, index) => {
+      if (Array.isArray(workloadData)) {
+        workloadData.forEach((task, index) => {
         if (index < 5) { // เฉพาะภาระงาน 1-5
           const taskTotal = Object.values(task.subtasks).reduce((subSum, subtask) =>
             subSum + subtask.form_infos.reduce((formSum, formInfo) =>
@@ -984,7 +987,8 @@ export default function _workloadForm({ selectedGroupName, terms = [], userId, r
 
           totalSummary += taskTotal
         }
-      })
+        })
+      }
 
       // เพิ่มแถวสรุป
       summaryTableData.push(['(6) รวม', totalSummary.toString(), ''])

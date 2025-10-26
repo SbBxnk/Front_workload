@@ -471,7 +471,7 @@ function QuantityWorkloadTable() {
 
   const totalPages = Math.ceil(total / rowsPerPage)
   const selectedLabel =
-    data.find((pos) => pos.quantity_workload_hours === selectedQuantityWorkload)?.quantity_workload_hours ||
+    data.find((pos) => pos.quantity_workload_hours === parseInt(selectedQuantityWorkload))?.quantity_workload_hours ||
     'เลือกปริมาณงาน'
 
   return (

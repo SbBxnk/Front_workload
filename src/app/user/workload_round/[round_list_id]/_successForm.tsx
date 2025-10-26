@@ -1,7 +1,7 @@
 'use client'
 import React from 'react'
 import type { Terms } from '@/Types'
-import _workloadForm from './_workloadForm'
+import WorkloadForm from './_workloadForm'
 
 interface _successFormProps {
   terms?: Terms[]
@@ -113,7 +113,7 @@ export default function _successForm({ terms = [], selectedGroupName, userId, ro
       )}
 
       {/* ฟอร์มภาระงานใหม่ */}
-      <_workloadForm 
+      <WorkloadForm 
         selectedGroupName={selectedGroupName}
         terms={terms}
         userId={userId}

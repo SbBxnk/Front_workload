@@ -8,8 +8,7 @@ import StickyFooter from '@/components/StickyFooter'
 import ConfirmSubmitFormModal from './confirmSubmitModal'
 import WorkloadFormServices from '@/services/workloadFormServices'
 import _successForm from './_successForm'
-import _workloadForm from './_workloadForm'
-import type { Terms, WorkloadGroup } from '@/Types'
+import type { Terms } from '@/Types'
 import axios from 'axios'
 
 export default function ExpositionSelection() {

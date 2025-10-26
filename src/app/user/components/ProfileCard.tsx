@@ -41,7 +41,7 @@ function ProfileCard() {
       href="../user/profile"
       className="h-full w-full rounded-md bg-white p-4 shadow transition-all duration-300 ease-in-out dark:bg-zinc-900 lg:sticky lg:top-[8.6rem] lg:w-1/3"
     >
-      <div className="mb-2 border-b border-gray-400 pb-2 pb-[16px] dark:border-zinc-400">
+      <div className="mb-2 border-b border-gray-400 pb-2 dark:border-zinc-400">
         <h2 className="font-regular text-center text-lg text-gray-600 dark:text-gray-400 md:text-2xl">
           ข้อมูลส่วนตัว
         </h2>
