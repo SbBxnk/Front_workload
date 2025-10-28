@@ -235,7 +235,7 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
       doc.setTextColor(0, 0, 0)
       doc.setFontSize(14)
       const currentYear = year
-      doc.setFont('THSarabunNew', 'normal')
+      doc.setFont('THSarabunNew', 'bold')
       doc.text('ข้อตกลงและแบบประเมินผลการปฏิบัติงานของบุคลากรสายวิชาการ', doc.internal.pageSize.getWidth() / 2, 15, { align: 'center' })
       doc.text('มหาวิทยาลัยเทคโนโลยีราชมงคลล้านนา' + ' ' + `ประจำปีงบประมาณ ${currentYear}`, doc.internal.pageSize.getWidth() / 2, 22, { align: 'center' })
 
@@ -592,11 +592,11 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
 
       // อัปเดต currentY หลังจากตาราง
       currentY = tableStartY + (leaveData.length * cellHeight) + 10
-       // ลงชื่อ
-       doc.setFontSize(14)
-       doc.setFont('THSarabunNew', 'normal')
-       doc.text('ลงชื่อ', doc.internal.pageSize.getWidth() / 2 - 90, currentY)
-       doc.text('ผู้ปฏิบัติหน้าที่ตรวจสอบการมาปฏิบัติราชการของหน่วยงาน', doc.internal.pageSize.getWidth() / 2 + 15, currentY)
+      // ลงชื่อ
+      doc.setFontSize(14)
+      doc.setFont('THSarabunNew', 'normal')
+      doc.text('ลงชื่อ..........................................................................................................................', doc.internal.pageSize.getWidth() / 2 - 90, currentY)
+      doc.text('ผู้ปฏิบัติหน้าที่ตรวจสอบการมาปฏิบัติราชการของหน่วยงาน', doc.internal.pageSize.getWidth() / 2 + 15, currentY)
 
       // ข้อ 4: การกระทำผิดวินัย/การถูกลงโทษ
       currentY += 14
@@ -640,9 +640,244 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
       currentY += 15
 
 
+      // ตรวจสอบว่าหัวข้อจะอยู่ในหน้าที่ถูกต้องหรือไม่
+      const docPageHeight = doc.internal.pageSize.getHeight()
+      const docMargin = 20
+      const availableHeight = docPageHeight - docMargin
+
+      console.log('🔍 Page info:', {
+        currentY,
+        docPageHeight,
+        availableHeight,
+        willFitOnPage: currentY < availableHeight
+      })
+
+      // ถ้าหัวข้อจะเกินหน้า ให้ขึ้นหน้าใหม่
+      if (currentY > availableHeight) {
+        doc.addPage()
+        currentY = docMargin
+        console.log('🔍 Added new page, currentY reset to:', currentY)
+      }
+
+      doc.setFontSize(14)
+      doc.setFont('THSarabunNew', 'bold')
+      doc.text('ส่วนที่ 1 องค์ประกอบที่ 1 ผลสัมฤทธิ์ของงาน', 14, currentY)
 
       // อัปเดต currentY หลังจากลงชื่อ
-      currentY += 35
+      currentY -= 5
+
+      // เพิ่มตารางภาระงานด้านล่างหัวข้อ
+      const workloadTableData: any[] = []
+      const workloadRowLinks: Array<string | null> = []
+
+      if (Array.isArray(workloadData)) {
+        workloadData.forEach((task) => {
+          const taskTitle = task.quantity_workload_hours
+            ? `${task.task_id}. ${task?.task_name || 'Unknown Task'} (ภาระงานขั้นต่ำ) : ${task.quantity_workload_hours} ภาระงาน/สัปดาห์`
+            : `${task.task_id}. ${task?.task_name || 'Unknown Task'}`
+
+          workloadTableData.push([
+            {
+              content: taskTitle,
+              colSpan: 6,
+              styles: {
+                fillColor: [255, 255, 255],
+                textColor: [0, 0, 0],
+                fontStyle: 'bold',
+                fontSize: 14,
+                font: 'THSarabunNew'
+              }
+            },
+            '', '', '', '', ''
+          ])
+          workloadRowLinks.push(null)
+
+          Object.values(task.subtasks).forEach((subtask, subtaskIndex) => {
+            workloadTableData.push([
+              {
+                content: `    ${task.task_id}.${subtaskIndex + 1} ${subtask?.subtask_name || 'Unknown Subtask'}`,
+                colSpan: 6,
+                styles: {
+                  fillColor: [255, 255, 255],
+                  textColor: [0, 0, 0],
+                  fontSize: 14,
+                  font: 'THSarabunNew'
+                }
+              },
+              '', '', '', '', ''
+            ])
+            workloadRowLinks.push(null)
+
+            subtask.form_infos.forEach((formInfo, index) => {
+              const rowKey = `${task.task_id}-${subtask.subtask_id}-${index}`
+
+              let evidenceText = '-'
+              let evidenceLinks: string[] = []
+
+              if (formInfo.files && formInfo.files.length > 0) {
+                evidenceText = formInfo.files.map(f => f.file_name).join(', ')
+                evidenceLinks = formInfo.files.map(f => `${baseUrl}/files/${f.file_name}`)
+              } else if (formInfo.links && formInfo.links.length > 0) {
+                evidenceText = formInfo.links.map(l => l.link_name || l.link_path).join(', ')
+                evidenceLinks = formInfo.links.map(l => {
+                  let url = l.link_path || ''
+                  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                    url = `https://${url}`
+                  }
+                  return url
+                })
+              } else if (formInfo.evidence) {
+                if (formInfo.file_type === 'link') {
+                  let url = formInfo.link_path || formInfo.evidence || ''
+                  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                    url = `https://${url}`
+                  }
+                  evidenceText = formInfo.link_name || formInfo.evidence
+                  evidenceLinks = [url]
+                } else {
+                  evidenceText = formInfo.evidence
+                  evidenceLinks = [`${baseUrl}/files/${formInfo.evidence}`]
+                }
+              }
+
+              workloadTableData.push([
+                `        ${task.task_id}.${subtaskIndex + 1}.${index + 1} ${formInfo.form_title}`,
+                evidenceText,
+                formInfo.quality.toString(),
+                formInfo.workload.toString(),
+                (formInfo.quality * formInfo.workload).toString(),
+                formInfo.description && formInfo.description !== '-' ? formInfo.description : '-'
+              ])
+              workloadRowLinks.push(evidenceLinks.length > 0 ? evidenceLinks[0] : null)
+            })
+          })
+
+          const taskTotal = Object.values(task.subtasks).reduce((subSum, subtask) =>
+            subSum + subtask.form_infos.reduce((formSum, formInfo) =>
+              formSum + (formInfo.quality * formInfo.workload), 0
+            ), 0
+          )
+
+          const isBelowRequired = task.quantity_workload_hours && taskTotal < task.quantity_workload_hours
+
+          console.log(`Task ${task.task_id} total:`, taskTotal)
+
+          workloadTableData.push([
+            '',
+            '',
+            '',
+            { content: 'รวมภาระงาน', styles: { halign: 'right', font: 'THSarabunNew', fontSize: 14, textColor: [0, 0, 0], fillColor: [255, 255, 255] } },
+            {
+              content: taskTotal.toString(),
+              styles: {
+                halign: 'center',
+                font: 'THSarabunNew',
+                fontSize: 14,
+                textColor: isBelowRequired ? [255, 0, 0] : [0, 0, 0],
+                fillColor: [255, 255, 255]
+              }
+            },
+            ''
+          ])
+          workloadRowLinks.push(null)
+        })
+      }
+
+      // สร้างตารางภาระงาน
+      autoTable(doc, {
+        startY: currentY + 10,
+        margin: { left: 10, right: 10 },
+        head: [[
+          '(1)\nภาระงาน/กิจกรรม/โครงการ/งาน',
+          '(2)\nหลักฐาน',
+          '(3)\nจำนวน',
+          '(4)\nภาระงาน',
+          '(5)\nรวมภาระงาน\n(3 x 4)',
+          'หมายเหตุ'
+        ]],
+        body: workloadTableData,
+        theme: 'grid',
+        styles: {
+          font: 'THSarabunNew',
+          fontSize: 14,
+          cellPadding: 2,
+          lineColor: [0, 0, 0],
+          lineWidth: 0.1,
+          textColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+          overflow: 'linebreak',
+          cellWidth: 'wrap'
+        },
+        headStyles: {
+          fillColor: [255, 255, 255],
+          textColor: [0, 0, 0],
+          fontStyle: 'bold',
+          halign: 'center',
+          fontSize: 14,
+          font: 'THSarabunNew',
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0]
+        },
+        columnStyles: {
+          0: {
+            cellWidth: 50,
+            font: 'THSarabunNew',
+            textColor: [0, 0, 0],
+            overflow: 'linebreak',
+            halign: 'left'
+          },
+          1: {
+            cellWidth: 35,
+            textColor: [37, 99, 235],
+            font: 'THSarabunNew',
+            overflow: 'linebreak'
+          },
+          2: {
+            cellWidth: 23,
+            halign: 'center',
+            font: 'THSarabunNew',
+            textColor: [0, 0, 0]
+          },
+          3: {
+            cellWidth: 25,
+            halign: 'center',
+            font: 'THSarabunNew',
+            textColor: [0, 0, 0]
+          },
+          4: {
+            cellWidth: 27,
+            halign: 'center',
+            textColor: [0, 0, 0],
+            font: 'THSarabunNew'
+          },
+          5: {
+            cellWidth: 30,
+            font: 'THSarabunNew',
+            textColor: [0, 0, 0],
+            overflow: 'linebreak',
+            halign: 'left'
+          }
+        },
+        showHead: 'everyPage',
+        showFoot: 'everyPage',
+        didDrawCell: (data: any) => {
+          if (data.cell.section === 'body' && data.column.index === 1) {
+            const link = workloadRowLinks[data.row.index] || null
+            if (link) {
+              doc.link(
+                data.cell.x,
+                data.cell.y,
+                data.cell.width,
+                data.cell.height,
+                { url: link }
+              )
+            }
+          }
+        }
+      })
+
+      // อัปเดต currentY หลังจากตาราง
+      currentY = (doc as any).lastAutoTable.finalY + 15
 
       if (terms && terms.length > 0) {
         doc.setFontSize(14)
@@ -654,6 +889,9 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
         const uniqueGroups = selectedGroupName
           ? [selectedGroupName]
           : [...new Set(terms.map((term) => term?.workload_group_name || 'Unknown Group'))]
+
+        console.log('🔍 Unique tasks:', uniqueTasks)
+        console.log('🔍 Unique groups:', uniqueGroups)
 
         const criteriaTableData: any[] = []
 
@@ -716,34 +954,18 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
 
       if (Array.isArray(workloadData)) {
         workloadData.forEach((task) => {
-        const taskTitle = task.quantity_workload_hours
-          ? `${task.task_id}. ${task?.task_name || 'Unknown Task'} (ภาระงานขั้นต่ำ) : ${task.quantity_workload_hours} ภาระงาน/สัปดาห์`
-          : `${task.task_id}. ${task?.task_name || 'Unknown Task'}`
+          const taskTitle = task.quantity_workload_hours
+            ? `${task.task_id}. ${task?.task_name || 'Unknown Task'} (ภาระงานขั้นต่ำ) : ${task.quantity_workload_hours} ภาระงาน/สัปดาห์`
+            : `${task.task_id}. ${task?.task_name || 'Unknown Task'}`
 
-        tableData.push([
-          {
-            content: taskTitle,
-            colSpan: 6,
-            styles: {
-              fillColor: [255, 255, 255],
-              textColor: [0, 0, 0],
-              fontStyle: 'bold',
-              fontSize: 14,
-              font: 'THSarabunNew'
-            }
-          },
-          '', '', '', '', ''
-        ])
-        rowLinks.push(null)
-
-        Object.values(task.subtasks).forEach((subtask, subtaskIndex) => {
           tableData.push([
             {
-              content: `    ${task.task_id}.${subtaskIndex + 1} ${subtask?.subtask_name || 'Unknown Subtask'}`,
+              content: taskTitle,
               colSpan: 6,
               styles: {
                 fillColor: [255, 255, 255],
                 textColor: [0, 0, 0],
+                fontStyle: 'bold',
                 fontSize: 14,
                 font: 'THSarabunNew'
               }
@@ -752,78 +974,94 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
           ])
           rowLinks.push(null)
 
-          subtask.form_infos.forEach((formInfo, index) => {
-            const rowKey = `${task.task_id}-${subtask.subtask_id}-${index}`
-
-            let evidenceText = '-'
-            let evidenceLinks: string[] = []
-
-            if (formInfo.files && formInfo.files.length > 0) {
-              evidenceText = formInfo.files.map(f => f.file_name).join(', ')
-              evidenceLinks = formInfo.files.map(f => `${baseUrl}/files/${f.file_name}`)
-            } else if (formInfo.links && formInfo.links.length > 0) {
-              evidenceText = formInfo.links.map(l => l.link_name || l.link_path).join(', ')
-              evidenceLinks = formInfo.links.map(l => {
-                let url = l.link_path || ''
-                if (!url.startsWith('http://') && !url.startsWith('https://')) {
-                  url = `https://${url}`
-                }
-                return url
-              })
-            } else if (formInfo.evidence) {
-              if (formInfo.file_type === 'link') {
-                let url = formInfo.link_path || formInfo.evidence || ''
-                if (!url.startsWith('http://') && !url.startsWith('https://')) {
-                  url = `https://${url}`
-                }
-                evidenceText = formInfo.link_name || formInfo.evidence
-                evidenceLinks = [url]
-              } else {
-                evidenceText = formInfo.evidence
-                evidenceLinks = [`${baseUrl}/files/${formInfo.evidence}`]
-              }
-            }
-
+          Object.values(task.subtasks).forEach((subtask, subtaskIndex) => {
             tableData.push([
-              `        ${task.task_id}.${subtaskIndex + 1}.${index + 1} ${formInfo.form_title}`,
-              evidenceText,
-              formInfo.quality.toString(),
-              formInfo.workload.toString(),
-              (formInfo.quality * formInfo.workload).toString(),
-              formInfo.description && formInfo.description !== '-' ? formInfo.description : '-'
+              {
+                content: `    ${task.task_id}.${subtaskIndex + 1} ${subtask?.subtask_name || 'Unknown Subtask'}`,
+                colSpan: 6,
+                styles: {
+                  fillColor: [255, 255, 255],
+                  textColor: [0, 0, 0],
+                  fontSize: 14,
+                  font: 'THSarabunNew'
+                }
+              },
+              '', '', '', '', ''
             ])
-            rowLinks.push(evidenceLinks.length > 0 ? evidenceLinks[0] : null)
+            rowLinks.push(null)
+
+            subtask.form_infos.forEach((formInfo, index) => {
+              const rowKey = `${task.task_id}-${subtask.subtask_id}-${index}`
+
+              let evidenceText = '-'
+              let evidenceLinks: string[] = []
+
+              if (formInfo.files && formInfo.files.length > 0) {
+                evidenceText = formInfo.files.map(f => f.file_name).join(', ')
+                evidenceLinks = formInfo.files.map(f => `${baseUrl}/files/${f.file_name}`)
+              } else if (formInfo.links && formInfo.links.length > 0) {
+                evidenceText = formInfo.links.map(l => l.link_name || l.link_path).join(', ')
+                evidenceLinks = formInfo.links.map(l => {
+                  let url = l.link_path || ''
+                  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                    url = `https://${url}`
+                  }
+                  return url
+                })
+              } else if (formInfo.evidence) {
+                if (formInfo.file_type === 'link') {
+                  let url = formInfo.link_path || formInfo.evidence || ''
+                  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                    url = `https://${url}`
+                  }
+                  evidenceText = formInfo.link_name || formInfo.evidence
+                  evidenceLinks = [url]
+                } else {
+                  evidenceText = formInfo.evidence
+                  evidenceLinks = [`${baseUrl}/files/${formInfo.evidence}`]
+                }
+              }
+
+              tableData.push([
+                `        ${task.task_id}.${subtaskIndex + 1}.${index + 1} ${formInfo.form_title}`,
+                evidenceText,
+                formInfo.quality.toString(),
+                formInfo.workload.toString(),
+                (formInfo.quality * formInfo.workload).toString(),
+                formInfo.description && formInfo.description !== '-' ? formInfo.description : '-'
+              ])
+              rowLinks.push(evidenceLinks.length > 0 ? evidenceLinks[0] : null)
+            })
           })
-        })
 
-        const taskTotal = Object.values(task.subtasks).reduce((subSum, subtask) =>
-          subSum + subtask.form_infos.reduce((formSum, formInfo) =>
-            formSum + (formInfo.quality * formInfo.workload), 0
-          ), 0
-        )
+          const taskTotal = Object.values(task.subtasks).reduce((subSum, subtask) =>
+            subSum + subtask.form_infos.reduce((formSum, formInfo) =>
+              formSum + (formInfo.quality * formInfo.workload), 0
+            ), 0
+          )
 
-        const isBelowRequired = task.quantity_workload_hours && taskTotal < task.quantity_workload_hours
+          const isBelowRequired = task.quantity_workload_hours && taskTotal < task.quantity_workload_hours
 
-        console.log(`Task ${task.task_id} total:`, taskTotal)
+          console.log(`Task ${task.task_id} total:`, taskTotal)
 
-        tableData.push([
-          '',
-          '',
-          '',
-          { content: 'รวมภาระงาน', styles: { halign: 'right', font: 'THSarabunNew', fontSize: 14, textColor: [0, 0, 0], fillColor: [255, 255, 255] } },
-          {
-            content: taskTotal.toString(),
-            styles: {
-              halign: 'center',
-              font: 'THSarabunNew',
-              fontSize: 14,
-              textColor: isBelowRequired ? [255, 0, 0] : [0, 0, 0],
-              fillColor: [255, 255, 255]
-            }
-          },
-          ''
-        ])
-        rowLinks.push(null)
+          tableData.push([
+            '',
+            '',
+            '',
+            { content: 'รวมภาระงาน', styles: { halign: 'right', font: 'THSarabunNew', fontSize: 14, textColor: [0, 0, 0], fillColor: [255, 255, 255] } },
+            {
+              content: taskTotal.toString(),
+              styles: {
+                halign: 'center',
+                font: 'THSarabunNew',
+                fontSize: 14,
+                textColor: isBelowRequired ? [255, 0, 0] : [0, 0, 0],
+                fillColor: [255, 255, 255]
+              }
+            },
+            ''
+          ])
+          rowLinks.push(null)
         })
       }
 
@@ -842,210 +1080,9 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
         ), 0
       ) : 0
 
-      // Generate table with autoTable
-      const startY = terms && terms.length > 0 ? (doc as any).lastAutoTable.finalY + 10 : currentY
+      // ตารางถูกลบออกตามที่ร้องขอ
 
-      autoTable(doc, {
-        startY: startY,
-        margin: { left: margin, right: margin },
-        head: [[
-          '(1)\nภาระงาน/กิจกรรม/โครงการ/งาน',
-          '(2)\nหลักฐาน',
-          '(3)\nจำนวน',
-          '(4)\nภาระงาน',
-          '(5)\nรวมภาระงาน\n(3 x 4)',
-          'หมายเหตุ'
-        ]],
-        body: tableData,
-        theme: 'grid',
-        styles: {
-          font: 'THSarabunNew',
-          fontSize: 14,
-          cellPadding: 2,
-          lineColor: [0, 0, 0],
-          lineWidth: 0.1,
-          textColor: [0, 0, 0],
-          fillColor: [255, 255, 255],
-          overflow: 'linebreak',
-          cellWidth: 'wrap'
-        },
-        headStyles: {
-          fillColor: [255, 255, 255],
-          textColor: [0, 0, 0],
-          fontStyle: 'bold',
-          halign: 'center',
-          fontSize: 14,
-          font: 'THSarabunNew',
-          lineWidth: 0.1,
-          lineColor: [0, 0, 0]
-        },
-        columnStyles: {
-          0: {
-            cellWidth: 50, // ปรับให้พอดี A4 portrait
-            font: 'THSarabunNew',
-            textColor: [0, 0, 0],
-            overflow: 'linebreak',
-            halign: 'left'
-          },
-          1: {
-            cellWidth: 35, // ปรับให้พอดี A4 portrait
-            textColor: [37, 99, 235],
-            font: 'THSarabunNew',
-            overflow: 'linebreak'
-          },
-          2: {
-            cellWidth: 23, // ปรับให้พอดี A4 portrait
-            halign: 'center',
-            font: 'THSarabunNew',
-            textColor: [0, 0, 0]
-          },
-          3: {
-            cellWidth: 25, // ปรับให้พอดี A4 portrait
-            halign: 'center',
-            font: 'THSarabunNew',
-            textColor: [0, 0, 0]
-          },
-          4: {
-            cellWidth: 27, // ปรับให้พอดี A4 portrait
-            halign: 'center',
-            textColor: [0, 0, 0],
-            font: 'THSarabunNew'
-          },
-          5: {
-            cellWidth: 30, // ปรับให้พอดี A4 portrait
-            font: 'THSarabunNew',
-            textColor: [0, 0, 0],
-            overflow: 'linebreak',
-            halign: 'left'
-          }
-        },
-        // เพิ่มการตั้งค่าเพื่อป้องกันเส้นซ้อนกัน
-        tableLineColor: [0, 0, 0],
-        tableLineWidth: 0.1,
-        // ป้องกันเส้นซ้อนกัน
-        showHead: 'everyPage',
-        showFoot: 'everyPage',
-        // ไม่ซ่อนเส้นใดๆ - ให้แถวสรุปเป็นช่องตารางปกติ
-        didDrawCell: (data: any) => {
-
-
-          if (data.cell.section === 'body' && data.column.index === 1) {
-            const link = rowLinks[data.row.index] || null
-            if (link) {
-              // Add a single link annotation covering the evidence cell
-              doc.link(
-                data.cell.x,
-                data.cell.y,
-                data.cell.width,
-                data.cell.height,
-                { url: link }
-              )
-            }
-          }
-        }
-      })
-
-      // Add summary section
-      const finalY = (doc as any).lastAutoTable.finalY + 15
-
-      doc.setTextColor(0, 0, 0)
-      doc.setFontSize(14)
-      doc.setFont('THSarabunNew', 'normal')
-      doc.text('สรุปภาระงาน', 14, finalY)
-
-      // สร้างตารางสรุปภาระงาน 1-5
-      const summaryTableData = []
-
-      // เพิ่ม header สำหรับตารางสรุป
-      summaryTableData.push(['ภาระงาน/กิจกรรม/โครงการ/งาน', 'รวมภาระงาน', 'หมายเหตุ'])
-
-      // เพิ่มข้อมูลภาระงาน 1-5
-      const taskNames = [
-        '1. ภาระงานสอน',
-        '2. ภาระงานวิจัยและงานวิชาการอื่นที่ปรากฏเป็นผลงานวิชาการตามหลักเกณฑ์ที่ ก.พ.อ.กำหนด',
-        '3. ภาระงานบริการทางวิชาการ',
-        '4. ภาระงานทำนุบำรุงศิลปวัฒนธรรม',
-        '5. ภาระงานอื่น ๆ ที่สอดคล้องกับพันธกิจของคณะ มหาวิทยาลัย'
-      ]
-
-      let totalSummary = 0
-
-      if (Array.isArray(workloadData)) {
-        workloadData.forEach((task, index) => {
-        if (index < 5) { // เฉพาะภาระงาน 1-5
-          const taskTotal = Object.values(task.subtasks).reduce((subSum, subtask) =>
-            subSum + subtask.form_infos.reduce((formSum, formInfo) =>
-              formSum + (formInfo.quality * formInfo.workload), 0
-            ), 0
-          )
-
-          summaryTableData.push([
-            taskNames[index],
-            taskTotal.toString(),
-            '-'
-          ])
-
-          totalSummary += taskTotal
-        }
-        })
-      }
-
-      // เพิ่มแถวสรุป
-      summaryTableData.push(['(6) รวม', totalSummary.toString(), ''])
-
-      autoTable(doc, {
-        startY: finalY + 10,
-        margin: { left: margin, right: margin },
-        head: [summaryTableData[0]],
-        body: summaryTableData.slice(1),
-        theme: 'grid',
-        styles: {
-          font: 'THSarabunNew',
-          fontSize: 14,
-          cellPadding: 2,
-          lineColor: [0, 0, 0],
-          lineWidth: 0.1,
-          textColor: [0, 0, 0],
-          fillColor: [255, 255, 255]
-        },
-        headStyles: {
-          fillColor: [200, 200, 200],
-          textColor: [0, 0, 0],
-          fontStyle: 'bold',
-          halign: 'center',
-          fontSize: 14,
-          font: 'THSarabunNew'
-        },
-        columnStyles: {
-          0: {
-            cellWidth: 120,
-            font: 'THSarabunNew',
-            textColor: [0, 0, 0],
-            overflow: 'linebreak',
-            halign: 'left'
-          },
-          1: {
-            cellWidth: 30,
-            halign: 'center',
-            font: 'THSarabunNew',
-            textColor: [0, 0, 0]
-          },
-          2: {
-            cellWidth: 40,
-            halign: 'center',
-            font: 'THSarabunNew',
-            textColor: [0, 0, 0]
-          }
-        }
-      })
-
-      // สรุปข้อมูลทั่วไป
-      const generalSummaryY = (doc as any).lastAutoTable.finalY + 15
-      doc.setFontSize(14)
-      doc.setFont('THSarabunNew', 'normal')
-      doc.text(`กลุ่มภาระงานที่เลือก: ${selectedGroupName || 'ยังไม่ได้เลือก'}`, 14, generalSummaryY)
-      doc.text(`จำนวนรายการ: ${totalItems} รายการ`, 100, generalSummaryY)
-      doc.text(`รวมภาระงานทั้งหมด: ${totalWorkload} ชั่วโมง`, 180, generalSummaryY)
+      // ตารางสรุปถูกลบออกตามที่ร้องขอ
 
       // Save PDF
       doc.save(`workload-report-${roundId || 'export'}.pdf`)
@@ -1076,21 +1113,25 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
 
   return (
     <div id="workload-content" className="space-y-4">
-      <div className="flex justify-end gap-3 mb-4">
-        <button
-          id="export-pdf-btn"
-          onClick={handleExportPDFWithLinks}
-          disabled={exporting || !Array.isArray(workloadData) || workloadData.length === 0}
-          className="inline-flex h-10 items-center px-4 py-2 bg-transparent border border-red-500 text-red-500 rounded-lg hover:text-white hover:bg-red-600 transition-colors duration-200"
-          title="Export PDF พร้อม clickable links"
-        >
-          <FileDown className="mr-2 h-4 w-4" />
-          ส่งออกเป็น PDF
-        </button>
-      </div>
-
-      <div className="rounded-md p-4 bg-white dark:bg-zinc-900">
+      <div className="flex flex-col gap-10 rounded-md p-4 bg-white dark:bg-zinc-900">
+        <div className="flex justify-end gap-3 mb-4">
+          <button
+            id="export-pdf-btn"
+            onClick={handleExportPDFWithLinks}
+            disabled={exporting || !Array.isArray(workloadData) || workloadData.length === 0}
+            className="inline-flex h-10 items-center px-4 py-2 bg-red-500 text-white rounded-lg hover:text-white hover:bg-red-600 transition-colors duration-200"
+            title="Export PDF พร้อม clickable links"
+          >
+            <FileDown className="mr-2 h-4 w-4" />
+            ส่งออกเป็น PDF
+          </button>
+        </div>
         <div className="overflow-x-auto">
+          <div className="">
+            <p className="text-lg font-light text-center text-gray-800 dark:text-gray-200">ข้อตกลงและแบบประเมินผลการปฏิบัติงานของบุคลากรสายวิชาการ</p>
+            <p className="text-lg font-light text-center text-gray-800 dark:text-gray-200 mb-8">มหาวิทยาลัยเทคโนโลยีราชมงคลล้านนา</p>
+            <p className="text-md font-normal text-gray-800 dark:text-gray-200 mb-4">ส่วนที่ 1 องค์ประกอบที่ 1 ผลสัมฤทธิ์ของงาน</p>
+          </div>
           <table className="w-full border-collapse border border-gray-300 dark:border-gray-600">
             <thead className="bg-gray-50 dark:bg-gray-800">
               <tr>
@@ -1289,12 +1330,7 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
             </tbody>
           </table>
         </div>
-      </div>
 
-      <div className="rounded-md bg-white p-4 dark:bg-zinc-900">
-        <h4 className="text-md font-normal text-gray-800 dark:text-gray-200 mb-4">
-          ส่วนที่ 1 องค์ประกอบที่ 1 ผลสัมฤทธิ์ของงาน
-        </h4>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse border border-gray-300 dark:border-gray-600">
             <thead className="bg-gray-50 dark:bg-gray-800">
@@ -1310,7 +1346,7 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white dark:bg-zinc-900">
+            <tbody className="bg-white dark:bg-white">
               {Array.isArray(workloadData) && workloadData.slice(0, 5).map((task, index) => {
                 const taskTotal = Object.values(task.subtasks).reduce((subSum, subtask) =>
                   subSum + subtask.form_infos.reduce((formSum, formInfo) =>
@@ -1326,35 +1362,83 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
                   '5. ภาระงานอื่น ๆ ที่สอดคล้องกับพันธกิจของคณะ มหาวิทยาลัย'
                 ]
 
-                return (
-                  <tr key={task.task_id} className="hover:bg-gray-50 dark:hover:bg-zinc-800">
-                    <td className="border border-gray-300 px-4 py-2 text-gray-800 font-light text-sm dark:text-gray-200">
-                      {taskNames[index]}
-                    </td>
-                    <td className="border border-gray-300 px-4 py-2 text-center font-normal text-sm dark:text-green-400">
-                      {taskTotal}
-                    </td>
-                    <td className="border border-gray-300 px-4 py-2 text-center text-gray-500 dark:text-gray-400">
+                // ข้อมูลภาระงานแต่ละกลุ่ม
+                const workloadGroups = [
+                  { name: 'กลุ่มทั่วไป', hours: [15, 6, 5, 3, 6] },
+                  { name: 'กลุ่มเน้นสอน', hours: [20, 6, 3, 3, 3] },
+                  { name: 'กลุ่มเน้นวิจัย', hours: [9, 21, 2, 2, 1] },
+                  { name: 'กลุ่มเน้นบริการวิชาการ', hours: [9, 6, 17, 2, 1] }
+                ]
 
-                    </td>
-                  </tr>
+                return (
+                  <React.Fragment key={task.task_id}>
+                    {/* แสดงหัวข้อภาระงานหลัก */}
+                    <tr className="bg-white">
+                      <td className={`px-4 py-2 text-gray-800 font-normal text-sm underline ${
+                        index > 0 ? 'border-t border-l border-r border-gray-300' : 'border-l border-r border-gray-300'
+                      }`}>
+                        {taskNames[index]}
+                      </td>
+                      <td rowSpan={5} className="border border-gray-300 px-4 py-3 text-center font-semibold text-sm text-blue-600 bg-white">
+                        {taskTotal}
+                      </td>
+                      <td rowSpan={5} className="border border-gray-300 px-4 py-3 text-center text-gray-500 bg-white">
+                        
+                      </td>
+                    </tr>
+                    
+                    {/* แสดงตัวเลือกแต่ละกลุ่ม */}
+                    {workloadGroups.map((group, groupIndex) => {
+                      const isSelected = selectedGroupName === group.name || 
+                        (selectedGroupName?.includes('สอน') && group.name === 'กลุ่มเน้นสอน') ||
+                        (selectedGroupName?.includes('วิจัย') && group.name === 'กลุ่มเน้นวิจัย') ||
+                        (selectedGroupName?.includes('บริการ') && group.name === 'กลุ่มเน้นบริการวิชาการ') ||
+                        (selectedGroupName?.includes('ทั่วไป') && group.name === 'กลุ่มทั่วไป')
+                      
+                      return (
+                        <tr key={`${task.task_id}-${groupIndex}`} className="bg-white">
+                          <td className="border-l border-r border-gray-300 px-4 pb-2 text-gray-800 font-light text-sm">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-4 h-4 border rounded flex items-center justify-center ${
+                                isSelected 
+                                  ? 'border-red-500 bg-red-500' 
+                                  : 'border-gray-400'
+                              }`}>
+                                {isSelected && (
+                                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                )}
+                              </div>
+                              <span className={isSelected ? 'text-red-500 font-light' : 'text-gray-700'}>
+                                {group.name} {group.hours[index]} ภาระงาน/สัปดาห์
+                              </span>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </React.Fragment>
                 )
               })}
-              <tr className="bg-gray-100 dark:bg-gray-800 font-bold">
-                <td className="border border-gray-300 px-4 py-2 text-end text-sm font-normal text-gray-700 dark:text-gray-300">
+              
+              {/* แถวสรุป */}
+              <tr className="bg-white font-bold">
+                <td className="border border-gray-300 px-4 py-3 text-end text-sm font-semibold text-gray-800">
                   รวม
                 </td>
-                <td className="border border-gray-300 px-4 py-2 text-center font-normal text-sm">
-                  {Array.isArray(workloadData) ? workloadData.slice(0, 5).reduce((sum, task) =>
-                    sum + Object.values(task.subtasks).reduce((subSum, subtask) =>
-                      subSum + subtask.form_infos.reduce((formSum, formInfo) =>
-                        formSum + (formInfo.quality * formInfo.workload), 0
+                <td className="border border-gray-300 px-4 py-3 text-center font-semibold text-sm">
+                  <span className="text-blue-600 font-bold">
+                    {Array.isArray(workloadData) ? workloadData.slice(0, 5).reduce((sum, task) =>
+                      sum + Object.values(task.subtasks).reduce((subSum, subtask) =>
+                        subSum + subtask.form_infos.reduce((formSum, formInfo) =>
+                          formSum + (formInfo.quality * formInfo.workload), 0
+                        ), 0
                       ), 0
-                    ), 0
-                  ) : 0}
+                    ) : 0}
+                  </span>
                 </td>
-                <td className="border border-gray-300 px-4 py-2 text-center text-gray-500 dark:text-gray-400">
-
+                <td className="border border-gray-300 px-4 py-3 text-center text-gray-500">
                 </td>
               </tr>
             </tbody>

@@ -45,16 +45,9 @@ export default function PreviewPage() {
             try {
                 setLoading(true)
 
-                // ดึงข้อมูล terms
-                const termsResponse = await axios.get(
-                    `${process.env.NEXT_PUBLIC_API}/workload_form/terms`,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${session.accessToken}`
-                        }
-                    }
-                )
-                setTerms(termsResponse.data.payload || [])
+                // ดึงข้อมูล terms ผ่าน service
+                const termsResponse = await WorkloadFormServices.getTerms(session.accessToken)
+                setTerms(termsResponse.payload || [])
 
                 // ตรวจสอบ workload group ของผู้ใช้
                 const workloadGroupResponse = await WorkloadFormServices.checkWorkloadGroup(

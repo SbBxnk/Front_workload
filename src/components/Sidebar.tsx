@@ -140,18 +140,8 @@ const baseUserMenuItems = [
     items: [
       { id: 1, label: 'แดชบอร์ด', icon: LayoutDashboard, href: '/user' },
       { id: 2, label: 'ข้อมูลส่วนตัว', icon: User, href: '/user/profile' },
-      {
-        id: 3,
-        label: 'ฟอร์มประเมินภาระงาน',
-        icon: NotepadText,
-        href: '/user/workload_round',
-      },
-      {
-        id: 4,
-        label: 'ประวัติการประเมิน',
-        icon: ChartColumn,
-        href: '/user/workload_form_history',
-      },
+      { id: 3, label: 'ฟอร์มประเมินภาระงาน', icon: NotepadText, href: '/user/workload_round' },
+      { id: 4, label: 'ประวัติการประเมิน', icon: ChartColumn, href: '/user/workload_form_history' },
     ],
   },
 ]
@@ -159,12 +149,7 @@ const baseUserMenuItems = [
 const assessorMenuItem = {
   title: 'การประเมิน',
   items: [
-    {
-      id: 1,
-      label: 'ตรวจประเมินภาระงาน',
-      icon: ClipboardCheck,
-      href: '/user/assessment',
-    },
+    { id: 1, label: 'ตรวจประเมินภาระงาน', icon: ClipboardCheck, href: '/user/assessment' },
   ],
 }
 

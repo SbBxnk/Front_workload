@@ -10,6 +10,8 @@ import { jwtDecode } from 'jwt-decode'
 import { useSession } from 'next-auth/react'
 import { useAssessor } from '@/hooks/useAssessor'
 import SetAssessorServices from '@/services/setAssessorServices'
+import WorkloadFormServices from '@/services/workloadFormServices'
+import WorkloadGroupServices from '@/services/workloadGroupServices'
 import { useParams } from 'next/navigation'
 import {
   CalendarClock,
@@ -25,7 +27,6 @@ import ConfirmModal from './confirmModal'
 import InfoHoverModal from './infoTermModal'
 import _successForm from '../_successForm'
 import useUtility from '@/hooks/useUtility'
-import WorkloadFormServices from '@/services/workloadFormServices'
 
 interface Round {
   round_list_id: number
@@ -81,7 +82,6 @@ const formatThaiDate = (dateString: string) => {
 
 function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const [, setSelectedGroup] = useState<string | null>(null)
-  const [terms, setTerms] = useState<Terms[]>([])
   const { setBreadcrumbs } = useUtility()
   const [workloadGroups, setWorkloadGroups] = useState<WorkloadGroup[]>([])
   const [allRounds, setAllRounds] = useState<Round[]>([])
@@ -215,23 +215,19 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
       setLoading(true)
       try {
         
-        const responseTerms = await axios.get(
-          `${process.env.NEXT_PUBLIC_API}/workload_form/terms`,
-          { headers }
-        )
-        
-        const responseWorkloadGroups = await axios.get(
-          `${process.env.NEXT_PUBLIC_API}/workload_group`,
-          { headers }
-        )
+        const responseWorkloadGroups = await WorkloadGroupServices.getAllWorkloadGroups(session?.accessToken || '', {
+          search: '',
+          page: 1,
+          limit: 1000,
+          sort: 'workload_group_name',
+          order: 'asc'
+        })
         
         const responseRounds = await SetAssessorServices.getAllRounds(session?.accessToken || '')
 
-        const workloadGroupsData = responseWorkloadGroups.data.payload || []
-        const termsData = responseTerms.data.data || []
+        const workloadGroupsData = responseWorkloadGroups.payload || []
         
         setWorkloadGroups(workloadGroupsData)
-        setTerms(termsData)
 
         const fetchedRounds = Array.isArray(responseRounds.payload) ? responseRounds.payload : []
         setAllRounds(fetchedRounds as unknown as Round[])
@@ -255,7 +251,7 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
         }
         
         setWorkloadGroups([])
-        setTerms([])
+        setWorkloadGroups([])
         setAllRounds([])
       } finally {
         setLoading(false)
@@ -268,47 +264,7 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId])
 
-  // ดึงรายการภาระงานที่ไม่ซ้ำกันจากข้อมูล API 
-  const uniqueTasks = Array.isArray(terms)
-    ? [...new Set(terms.map((term) => term.task_name))].reverse()
-    : []
 
-  // ดึงกลุ่มงานที่ไม่ซ้ำกันจากข้อมูล API
-  const uniqueGroups = Array.isArray(terms)
-    ? [...new Set(terms.map((term) => term.workload_group_name))]
-    : []
-
-  // ฟังก์ชันหาจำนวนชั่วโมงตามภาระงานและกลุ่มงาน
-  const getWorkloadHours = (taskName: string, groupName: string) => {
-    if (!Array.isArray(terms)) return 0
-
-    const item = terms.find(
-      (term) =>
-        term.task_name === taskName && term.workload_group_name === groupName
-    )
-    return item ? item.quantity_workload_hours : 0
-  }
-
-  // คำนวณผลรวมของแต่ละกลุ่ม
-  const calculateGroupTotal = (groupName: string) => {
-    if (!Array.isArray(terms)) return 0
-
-    let total = 0
-    uniqueTasks.forEach((taskName) => {
-      total += getWorkloadHours(taskName, groupName)
-    })
-    return total
-  }
-
-  // ตรวจสอบสถานะของรอบ - ไม่เช็ควันที่แล้ว
-  const getRoundStatus = (round: Round | null) => {
-    if (!round) {
-      return 'not_found'
-    }
-    
-    // ไม่เช็ควันที่แล้ว - ให้แสดงฟอร์มเสมอ
-    return 'active'
-  }
 
   const handleSelectWorkloadGroup = async (workload_group: WorkloadGroup) => {
     if (!userId || !currentRound) {
@@ -434,104 +390,32 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
     )
   }
 
-  const targetRoundStatus = getRoundStatus(targetRound)
-
-
   return (
     <>
-      {targetRoundStatus === 'not_found' ? (
-        <div className="mb-4 rounded-md bg-white p-6 shadow dark:bg-zinc-900 dark:text-gray-400">
-          <div className="flex flex-col items-center justify-center gap-4 py-8 text-center">
-            <CircleX className="h-12 w-12 text-red-500 md:h-24 md:w-24" />
-            <div className="">
-              <h2 className="mb-2 text-4xl font-medium text-gray-700 dark:text-gray-300">
-                ไม่พบรอบการประเมิน
-              </h2>
-              <p className="text-gray-500 dark:text-gray-400">
-                คุณไม่ได้ถูกกำหนดให้เป็นผู้ประเมินในรอบนี้
-              </p>
-              <p className="text-gray-500 dark:text-gray-400">
-                กรุณาติดต่อผู้ดูแลระบบหากคิดว่านี่เป็นข้อผิดพลาด
-              </p>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <>
-          {/* เลือกกลุ่มภาระงาน - แสดงเมื่อ workload_group_id เป็น null ใน tb_set_assessorlist */}
-          {(() => {
-            // แสดงกลุ่มภาระงานเมื่อ:
-            // 1. มีฟอร์มในรอบนี้ (hasFormInRound = true)
-            // 2. workloadGroupInfo เป็น null หรือ workload_group_id เป็น null
-            const shouldShowWorkloadSelection = hasFormInRound && (
-              !workloadGroupInfo || 
-              workloadGroupInfo.workload_group_id === null ||
-              workloadGroupInfo.workload_group_id === 0
-            )
-            
-            return shouldShowWorkloadSelection
-          })() ? (
-              <div className="space-y-4">
-                {Array.isArray(terms) && terms.length > 0 && (
-                  <div className="rounded-md bg-white px-4 pt-4 pb-1 shadow transition-all duration-300 ease-in-out dark:bg-zinc-900 dark:text-gray-400">
-                    <h2 className="text-lg font-medium text-gray-700">
-                      เกณฑ์การประเมินภาระงานของแต่ละด้านภาระงาน
-                    </h2>
-                    <div className="my-4 overflow-x-auto">
-                      <table className="w-full overflow-x-auto border border-gray-300 bg-white dark:border-gray-700 dark:bg-zinc-900 md:table-auto">
-                        <thead className="bg-gray-100 dark:bg-zinc-800">
-                          <tr>
-                            <th className="border-b border-r border-gray-300 px-4 py-3 text-left text-gray-700 dark:text-gray-300"></th>
-                            {uniqueGroups.map((group, index) => (
-                              <th
-                                key={index}
-                                className="text-md text-nowrap border-b border-r border-gray-300 px-4 py-2 text-center font-normal text-gray-600 dark:text-gray-300"
-                              >
-                                {group}
-                                <div className="text-nowrap text-xs text-gray-500 dark:text-gray-400">
-                                  (ภาระงานต่อสัปดาห์)
-                                </div>
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {uniqueTasks.map((taskName, taskIndex) => (
-                            <tr
-                              key={taskIndex}
-                              className="hover:bg-gray-50 dark:hover:bg-zinc-800"
-                            >
-                              <td className="text-md md:max-w-[450px] break-words border-b border-r border-gray-300 px-4 py-2 font-normal text-gray-700">
-                                {taskIndex + 1}. {taskName}
-                              </td>
-                              {uniqueGroups.map((group, groupIndex) => (
-                                <td
-                                  key={groupIndex}
-                                  className="border-b border-r border-gray-300 px-4 py-2 text-center text-gray-500"
-                                >
-                                  {getWorkloadHours(taskName, group)}
-                                </td>
-                              ))}
-                            </tr>
-                          ))}
-                          <tr className="bg-gray-100 font-bold dark:bg-zinc-800">
-                            <td className="border-b border-r border-gray-300 px-4 py-2 text-center font-normal text-gray-600">
-                              ผลรวม (ไม่น้อยกว่า)
-                            </td>
-                            {uniqueGroups.map((group, groupIndex) => (
-                              <td
-                                key={groupIndex}
-                                className="border-b border-r border-gray-300 px-4 py-2 text-center font-normal text-business1"
-                              >
-                                {calculateGroupTotal(group)}
-                              </td>
-                            ))}
-                          </tr>
-                        </tbody>
-                      </table>
+      {/* เลือกกลุ่มภาระงาน - แสดงเมื่อ workload_group_id เป็น null ใน tb_set_assessorlist */}
+      {(() => {
+        // แสดงกลุ่มภาระงานเมื่อ:
+        // 1. มีฟอร์มในรอบนี้ (hasFormInRound = true)
+        // 2. workloadGroupInfo เป็น null หรือ workload_group_id เป็น null
+        const shouldShowWorkloadSelection = hasFormInRound && (
+          !workloadGroupInfo || 
+          workloadGroupInfo.workload_group_id === null ||
+          workloadGroupInfo.workload_group_id === 0
+        )
+        
+        return shouldShowWorkloadSelection
+      })() ? (
+        <div className="space-y-4">
+                <div className="rounded-md bg-white px-4 pt-4 pb-1 shadow transition-all duration-300 ease-in-out dark:bg-zinc-900 dark:text-gray-400">
+                  <h2 className="text-lg font-medium text-gray-700">
+                    เกณฑ์การประเมินภาระงานของแต่ละด้านภาระงาน
+                  </h2>
+                  <div className="my-4 overflow-x-auto">
+                    <div className="p-4 text-center text-gray-500">
+                      ไม่มีข้อมูล terms
                     </div>
                   </div>
-                )}
+                </div>
                 <div className="rounded-md bg-white p-4 shadow transition-all duration-300 ease-in-out dark:bg-zinc-900 dark:text-gray-400">
                   <h2 className="text-lg font-medium text-gray-700">
                     กรุณาเลือกภาระงานก่อน:
@@ -571,26 +455,8 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
                   />
                 </div>
               </div>
-            ) : !hasFormInRound ? (
-              <div className="mb-4 rounded-md bg-white p-6 shadow dark:bg-zinc-900 dark:text-gray-400">
-                <div className="flex flex-col items-center justify-center gap-4 py-8 text-center">
-                  <TriangleAlertIcon className="h-12 w-12 text-red-500 md:h-24 md:w-24" />
-                  <div className="">
-                    <h2 className="mb-2 text-4xl font-medium text-gray-700 dark:text-gray-300">
-                      การประเมินสิ้นสุดแล้ว
-                    </h2>
-                    <p className="text-gray-500 dark:text-gray-400">
-                      คุณไม่ได้ถูกกำหนดให้เป็นผู้ประเมินในรอบนี้
-                    </p>
-                    <p className="text-gray-500 dark:text-gray-400">
-                      กรุณาติดต่อผู้ดูแลระบบหากคิดว่านี่เป็นข้อผิดพลาด
-                    </p>
-                  </div>
-                </div>
-              </div>
             ) : formStatus === 1 ? (
               <_successForm
-                terms={terms}
                 selectedGroupName={workloadGroupInfo?.workload_group_name || undefined}
                 userId={userId || undefined}
                 roundId={roundId || undefined}
@@ -598,9 +464,7 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
             ) : (
               <div>{children}</div>
             )
-          }
-        </>
-      )}
+      }
     </>
   )
 }

@@ -1,13 +1,9 @@
 'use client'
-import axios from 'axios'
 import type React from 'react'
-import { useEffect, useState, useRef } from 'react'
-import type { Terms, WorkloadGroup } from '@/Types'
-import { jwtDecode } from 'jwt-decode'
-import { useSession } from 'next-auth/react'
-import { useAssessor } from '@/hooks/useAssessor'
-import SetAssessorServices from '@/services/setAssessorServices'
+import { useRef, useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
+import { useSession } from 'next-auth/react'
+import { jwtDecode } from 'jwt-decode'
 import {
   CalendarClock,
   Book,
@@ -21,34 +17,8 @@ import {
 import InfoHoverModal from './form/infoTermModal'
 import useUtility from '@/hooks/useUtility'
 import WorkloadFormServices from '@/services/workloadFormServices'
-
-interface Round {
-  round_list_id: number
-  round_list_name: string
-  year: string
-  round: number
-  date_start: string
-  date_end: string
-}
-
-interface Assessor {
-  as_id: number
-  as_u_id: number
-  as_round_list_id: number
-  as_status: string
-  ex_u_id: number
-  ex_u_fname: string
-  ex_u_lname: string
-}
-
-interface DecodedToken {
-  id: number
-}
-
-interface CheckWorkloadGroupResponse {
-  workload_group_id: number | null
-  workload_group_name: string | null
-}
+import SetAssessorServices from '@/services/setAssessorServices'
+import WorkloadGroupServices from '@/services/workloadGroupServices'
 
 const formatThaiDate = (dateString: string) => {
   const date = new Date(dateString)
@@ -75,164 +45,145 @@ const formatThaiDate = (dateString: string) => {
 }
 
 function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  const [, setSelectedGroup] = useState<string | null>(null)
-  const [terms, setTerms] = useState<Terms[]>([])
   const { setBreadcrumbs } = useUtility()
-  const [workloadGroups, setWorkloadGroups] = useState<WorkloadGroup[]>([])
-  const [allRounds, setAllRounds] = useState<Round[]>([])
-  const [currentRound, setCurrentRound] = useState<Round | null>(null)
-  const [targetRound, setTargetRound] = useState<Round | null>(null)
-  const [loading, setLoading] = useState(true)
-  // ใช้ useAssessor hook แทน state และ API call
-  const { isAssessor: isUserAssessor } = useAssessor()
-  const [workloadGroupInfo, setWorkloadGroupInfo] = useState<CheckWorkloadGroupResponse | null>(null)
-  const [userId, setUserId] = useState<number | null>(null)
-  const [selectedWorkloadGroup, setSelectedWorkloadGroup] =
-    useState<WorkloadGroup | null>(null)
+  const { data: session } = useSession()
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [formStatus, setFormStatus] = useState<number | null>(null)
-  const [hasAssessorData, setHasAssessorData] = useState<boolean | null>(null)
-  const [hasFormInRound, setHasFormInRound] = useState<boolean>(false)
   const infoIconRef = useRef<HTMLDivElement>(null)
+  
+  // State สำหรับข้อมูล
+  const [currentRound, setCurrentRound] = useState<any>(null)
+  const [workloadGroupInfo, setWorkloadGroupInfo] = useState<any>(null)
+  const [hasFormInRound, setHasFormInRound] = useState<boolean | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [isCheckingAccess, setIsCheckingAccess] = useState(false)
+  const [user, setUser] = useState<any>(null)
 
   const params = useParams()
   const round_list_id = params.round_list_id as string
-  const { data: session } = useSession()
 
+  // ตรวจสอบสถานะของรอบ - ไม่เช็ควันที่แล้ว
+  const getRoundStatus = (round: any | null) => {
+    if (!round) {
+      return 'not_found'
+    }
+    
+    // ไม่เช็ควันที่แล้ว - ให้แสดงฟอร์มเสมอ
+    return 'active'
+  }
+
+  // ดึงข้อมูล user จาก token
   useEffect(() => {
     if (session?.accessToken) {
       try {
-        const decoded: DecodedToken = jwtDecode(session.accessToken)
-        setUserId(decoded.id)
+        const decoded = jwtDecode(session.accessToken) as any
+        setUser(decoded)
       } catch (error) {
-        console.error('JWT Decode Error:', error)
+        console.error('Error decoding token:', error)
       }
     }
   }, [session?.accessToken])
 
+  // ยิง API ทั้งหมดครั้งเดียวเมื่อ user และ session พร้อม
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchAllData = async () => {
+      if (!user || !session?.accessToken) return
+
       try {
-        if (!session?.accessToken) return
+        setLoading(true)
+        setIsCheckingAccess(true)
 
-        // ดึงข้อมูลรอบการประเมินทั้งหมด
-        const roundsResponse = await SetAssessorServices.getAllRoundLists(session.accessToken, {
-          limit: 1000
-        })
+        const userId = user.id
 
-        if (roundsResponse.payload && Array.isArray(roundsResponse.payload)) {
-          setAllRounds(roundsResponse.payload)
-          
-          // หารอบปัจจุบัน
-          const currentRoundData = roundsResponse.payload.find(
-            (round: Round) => round.round_list_id === parseInt(round_list_id)
-          )
-          
-          if (currentRoundData) {
-            setCurrentRound(currentRoundData)
-            setTargetRound(currentRoundData)
-            setHasFormInRound(true)
-          }
+        // ยิง API ทั้งหมดพร้อมกันผ่าน service
+        const [
+          userAccessResponse,
+          workloadGroupResponse,
+          formStatusResponse,
+          termsResponse,
+          workloadGroupsResponse,
+          setAssessorResponse
+        ] = await Promise.allSettled([
+          // ตรวจสอบสิทธิ์การเข้าถึง
+          SetAssessorServices.checkUserAccessToRound(userId, parseInt(round_list_id), session.accessToken),
+          // ตรวจสอบ workload group
+          WorkloadFormServices.checkWorkloadGroup(userId, parseInt(round_list_id), session.accessToken),
+          // ตรวจสอบสถานะฟอร์ม
+          WorkloadFormServices.checkWorkloadFormStatus(userId, parseInt(round_list_id), session.accessToken),
+          // ดึงข้อมูล terms
+          WorkloadFormServices.getTerms(session.accessToken),
+          // ดึงข้อมูล workload groups
+          WorkloadGroupServices.getAllWorkloadGroups(session.accessToken, {
+            search: '',
+            page: 1,
+            limit: 1000,
+            sort: 'workload_group_name',
+            order: 'asc'
+          }),
+          // ดึงข้อมูล set assessor round
+          SetAssessorServices.getAllRoundLists(session.accessToken, {
+            search: '',
+            page: 1,
+            limit: 1000,
+            sort: 'date_save',
+            order: 'desc',
+            year: ''
+          })
+        ])
+
+        // ประมวลผลผลลัพธ์
+        let roundInfo: any = null
+        let hasAccess = false
+
+        // ประมวลผล user access
+        if (userAccessResponse.status === 'fulfilled') {
+          hasAccess = userAccessResponse.value.success
         }
 
-        // ดึงข้อมูล workload groups
-        try {
-          const workloadGroupsResponse = await axios.get(
-            `${process.env.NEXT_PUBLIC_API}/workload_group`,
-            { 
-              headers: {
-                Authorization: `Bearer ${session.accessToken}`
-              }
+        // ประมวลผล set assessor round เพื่อหา round info
+        if (setAssessorResponse.status === 'fulfilled') {
+          const rounds = setAssessorResponse.value.payload || []
+          const foundRound = rounds.find((round: any) => round.round_list_id === parseInt(round_list_id))
+          if (foundRound) {
+            roundInfo = {
+              round_list_id: foundRound.round_list_id,
+              round_list_name: foundRound.round_list_name,
+              round: foundRound.round,
+              year: foundRound.year,
+              date_start: foundRound.date_start,
+              date_end: foundRound.date_end
             }
-          )
-          setWorkloadGroups(workloadGroupsResponse.data.payload || [])
-        } catch (error) {
-          console.error('Error fetching workload groups:', error)
-          setWorkloadGroups([])
+          }
         }
 
-        // ดึงข้อมูล terms
-        try {
-          const termsResponse = await axios.get(
-            `${process.env.NEXT_PUBLIC_API}/workload_form/terms`,
-            { 
-              headers: {
-                Authorization: `Bearer ${session.accessToken}`
-              }
+        // ประมวลผล workload group
+        let groupInfo: any = { workload_group_id: null, workload_group_name: null }
+        if (workloadGroupResponse.status === 'fulfilled') {
+          const groupData = workloadGroupResponse.value.data || []
+          if (groupData.length > 0) {
+            groupInfo = {
+              workload_group_id: groupData[0].workload_group_id || null,
+              workload_group_name: groupData[0].workload_group_name || null
             }
-          )
-          setTerms(termsResponse.data.payload || [])
-        } catch (error) {
-          console.error('Error fetching terms:', error)
-          setTerms([])
-        }
-
-        // ตรวจสอบ workload group ของผู้ใช้
-        if (userId) {
-          try {
-            const workloadGroupResponse = await WorkloadFormServices.checkWorkloadGroup(
-              userId,
-              parseInt(round_list_id),
-              session.accessToken
-            )
-            setWorkloadGroupInfo({
-              workload_group_id: workloadGroupResponse.data?.[0]?.workload_group_id || null,
-              workload_group_name: workloadGroupResponse.data?.[0]?.workload_group_name || null
-            })
-          } catch (error) {
-            console.error('Error fetching workload group:', error)
-            setWorkloadGroupInfo(null)
           }
         }
 
-        // ตรวจสอบสถานะฟอร์ม
-        if (userId) {
-          try {
-            const formStatusResponse = await axios.get(
-              `${process.env.NEXT_PUBLIC_API}/workload_form/status/${userId}/${round_list_id}`,
-              { 
-                headers: {
-                  Authorization: `Bearer ${session.accessToken}`
-                }
-              }
-            )
-            setFormStatus(formStatusResponse.data.status || 0)
-          } catch (error) {
-            console.error('Error fetching form status:', error)
-            setFormStatus(0)
-          }
-        }
-
-        // ตรวจสอบว่ามี assessor data หรือไม่
-        if (userId) {
-          try {
-            const assessorDataResponse = await SetAssessorServices.getSetAssessorListByRound(
-              parseInt(round_list_id),
-              session.accessToken
-            )
-            setHasAssessorData(assessorDataResponse.payload && assessorDataResponse.payload.length > 0)
-          } catch (error) {
-            console.error('Error fetching assessor data:', error)
-            setHasAssessorData(false)
-          }
-        }
+        // อัปเดต state
+        setCurrentRound(roundInfo)
+        setWorkloadGroupInfo(groupInfo)
+        setHasFormInRound(hasAccess)
 
       } catch (error) {
         console.error('Error fetching data:', error)
       } finally {
         setLoading(false)
+        setIsCheckingAccess(false)
       }
     }
 
-    fetchData()
-  }, [session?.accessToken, userId, round_list_id])
+    fetchAllData()
+  }, [user, session?.accessToken, round_list_id]) // dependencies ที่สำคัญ
 
-  const handleSubmitForm = async () => {
-    // ไม่ต้องใช้ในหน้าเลือกสมรรถนะ
-    console.log('Submit form not needed in exposition selection')
-  }
-
-  if (loading) {
+  if (loading || isCheckingAccess || hasFormInRound === null) {
     return (
       <div className="space-y-4">
         {/* Skeleton for round info */}
@@ -270,75 +221,115 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
     )
   }
 
+  const targetRoundStatus = getRoundStatus(currentRound)
+
   return (
-    <div className="space-y-4">
-      {hasFormInRound && currentRound && (
-        <div className="rounded-md bg-white p-4 shadow dark:bg-zinc-900 dark:text-gray-400">
-          <h2 className="mb-4 text-lg font-medium text-gray-700 dark:text-gray-300">
-            รอบการประเมินปัจจุบัน
-          </h2>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+    <>
+      {targetRoundStatus === 'not_found' ? (
+        <div className="mb-4 rounded-md bg-white p-6 shadow dark:bg-zinc-900 dark:text-gray-400">
+          <div className="flex flex-col items-center justify-center gap-4 py-8 text-center">
+            <CircleX className="h-12 w-12 text-red-500 md:h-24 md:w-24" />
             <div className="">
-              <p className="flex items-center gap-2 text-sm font-light text-gray-500">
-                <Tag className="h-4 w-4" />
-                ชื่อรอบการประเมิน
+              <h2 className="mb-2 text-4xl font-medium text-gray-700 dark:text-gray-300">
+                ไม่พบรอบการประเมิน
+              </h2>
+              <p className="text-gray-500 dark:text-gray-400">
+                คุณไม่ได้ถูกกำหนดให้เป็นผู้ประเมินในรอบนี้
               </p>
-              <p className="text-md text-md p-2 font-normal">
-                {currentRound.round_list_name}
+              <p className="text-gray-500 dark:text-gray-400">
+                กรุณาติดต่อผู้ดูแลระบบหากคิดว่านี่เป็นข้อผิดพลาด
               </p>
-            </div>
-            <div className="">
-              <p className="flex items-center gap-2 text-sm font-light text-gray-500">
-                <Calendar className="h-4 w-4" />
-                รอบ / ปีงบประมาณ
-              </p>
-              <p className="text-md text-md p-2 font-normal">
-                {currentRound.round} / {currentRound.year}
-              </p>
-            </div>
-            <div className="">
-              <p className="flex items-center gap-2 text-sm font-light text-gray-500">
-                <CalendarClock className="h-4 w-4" />
-                ระยะเวลา
-              </p>
-              <p className="text-md text-md p-2 font-normal">
-                {formatThaiDate(currentRound.date_start)} -{' '}
-                {formatThaiDate(currentRound.date_end)}
-              </p>
-            </div>
-            <div className="">
-              <p className="flex items-center gap-2 text-sm font-light text-gray-500">
-                <Book className="h-4 w-4" />
-                กลุ่มภาระงาน
-              </p>
-              <div className="text-md text-md relative flex items-center gap-2 p-2 font-normal">
-                {workloadGroupInfo?.workload_group_name || '-'}
-                {/* หากไม่มีการเลือก workload_group_id จะไม่แสดง info */}
-                {workloadGroupInfo?.workload_group_id && (
-                  <div
-                    ref={infoIconRef}
-                    className="cursor-pointer text-gray-400 hover:text-gray-500"
-                    onMouseEnter={() => setIsModalOpen(true)}
-                    onMouseLeave={() => setIsModalOpen(false)}
-                  >
-                    <AlertCircle className="h-4 w-4" />
-                    {isModalOpen && (
-                      <InfoHoverModal
-                        workloadGroupInfo={workloadGroupInfo}
-                        isOpen={isModalOpen}
-                      />
-                    )}
-                  </div>
-                )}
-              </div>
             </div>
           </div>
         </div>
-      )}
+      ) : hasFormInRound === false ? (
+        <div className="mb-4 rounded-md bg-white p-6 shadow dark:bg-zinc-900 dark:text-gray-400">
+          <div className="flex flex-col items-center justify-center gap-4 py-8 text-center">
+            <TriangleAlertIcon className="h-12 w-12 text-red-500 md:h-24 md:w-24" />
+            <div className="">
+              <h2 className="mb-2 text-4xl font-medium text-gray-700 dark:text-gray-300">
+                การประเมินสิ้นสุดแล้ว
+              </h2>
+              <p className="text-gray-500 dark:text-gray-400">
+                คุณไม่ได้ถูกกำหนดให้เป็นผู้ประเมินในรอบนี้
+              </p>
+              <p className="text-gray-500 dark:text-gray-400">
+                กรุณาติดต่อผู้ดูแลระบบหากคิดว่านี่เป็นข้อผิดพลาด
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : hasFormInRound === true ? (
+        <div className="space-y-4">
+          {currentRound && (
+            <div className="rounded-md bg-white p-4 shadow dark:bg-zinc-900 dark:text-gray-400">
+              <h2 className="mb-4 text-lg font-medium text-gray-700 dark:text-gray-300">
+                รอบการประเมินปัจจุบัน
+              </h2>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+                <div className="">
+                  <p className="flex items-center gap-2 text-sm font-light text-gray-500">
+                    <Tag className="h-4 w-4" />
+                    ชื่อรอบการประเมิน
+                  </p>
+                  <p className="text-md text-md p-2 font-normal">
+                    {currentRound.round_list_name}
+                  </p>
+                </div>
+                <div className="">
+                  <p className="flex items-center gap-2 text-sm font-light text-gray-500">
+                    <Calendar className="h-4 w-4" />
+                    รอบ / ปีงบประมาณ
+                  </p>
+                  <p className="text-md text-md p-2 font-normal">
+                    {currentRound.round} / {currentRound.year}
+                  </p>
+                </div>
+                <div className="">
+                  <p className="flex items-center gap-2 text-sm font-light text-gray-500">
+                    <CalendarClock className="h-4 w-4" />
+                    ระยะเวลา
+                  </p>
+                  <p className="text-md text-md p-2 font-normal">
+                    {formatThaiDate(currentRound.date_start)} -{' '}
+                    {formatThaiDate(currentRound.date_end)}
+                  </p>
+                </div>
+                <div className="">
+                  <p className="flex items-center gap-2 text-sm font-light text-gray-500">
+                    <Book className="h-4 w-4" />
+                    กลุ่มภาระงาน
+                  </p>
+                  <div className="text-md text-md relative flex items-center gap-2 p-2 font-normal">
+                    {workloadGroupInfo?.workload_group_name || '-'}
+                    {/* หากไม่มีการเลือก workload_group_id จะไม่แสดง info */}
+                    {workloadGroupInfo?.workload_group_id && (
+                      <div
+                        ref={infoIconRef}
+                        className="cursor-pointer text-gray-400 hover:text-gray-500"
+                        onMouseEnter={() => setIsModalOpen(true)}
+                        onMouseLeave={() => setIsModalOpen(false)}
+                      >
+                        <AlertCircle className="h-4 w-4" />
+                        {isModalOpen && (
+                          <InfoHoverModal
+                            workloadGroupInfo={workloadGroupInfo}
+                            isOpen={isModalOpen}
+                          />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
-      {/* แสดงเนื้อหาหลัก */}
-      {children}
-    </div>
+          {/* แสดงเนื้อหาหลัก */}
+          {children}
+        </div>
+      ) : null}
+    </>
   )
 }
 

@@ -8,8 +8,6 @@ import StickyFooter from '@/components/StickyFooter'
 import ConfirmSubmitFormModal from './confirmSubmitModal'
 import WorkloadFormServices from '@/services/workloadFormServices'
 import _successForm from './_successForm'
-import type { Terms } from '@/Types'
-import axios from 'axios'
 
 export default function ExpositionSelection() {
     const params = useParams()
@@ -21,7 +19,6 @@ export default function ExpositionSelection() {
     const [user, setUser] = useState<any>(null)
     const [formStatus, setFormStatus] = useState<number | null>(null)
     const [workloadGroupInfo, setWorkloadGroupInfo] = useState<any>(null)
-    const [terms, setTerms] = useState<Terms[]>([])
     const [loading, setLoading] = useState<boolean>(true)
 
     useEffect(() => {
@@ -42,6 +39,7 @@ export default function ExpositionSelection() {
         }
     }, [session?.accessToken])
 
+    // ดึงข้อมูลครั้งเดียวเมื่อ user พร้อม
     useEffect(() => {
         const fetchData = async () => {
             if (!user || !session?.accessToken) return
@@ -49,18 +47,7 @@ export default function ExpositionSelection() {
             try {
                 setLoading(true)
 
-                // ดึงข้อมูล terms
-                const termsResponse = await axios.get(
-                    `${process.env.NEXT_PUBLIC_API}/workload_form/terms`,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${session.accessToken}`
-                        }
-                    }
-                )
-                setTerms(termsResponse.data.payload || [])
-
-                // ตรวจสอบ workload group ของผู้ใช้
+                // ตรวจสอบ workload group ของผู้ใช้ผ่าน service
                 const workloadGroupResponse = await WorkloadFormServices.checkWorkloadGroup(
                     user.id,
                     parseInt(round_list_id),
@@ -71,21 +58,17 @@ export default function ExpositionSelection() {
                     workload_group_name: workloadGroupResponse.data?.[0]?.workload_group_name || null
                 })
 
-                // ตรวจสอบสถานะฟอร์ม
+                // ตรวจสอบสถานะฟอร์มผ่าน service
                 try {
-                    const formStatusResponse = await axios.get(
-                        `${process.env.NEXT_PUBLIC_API}/workload_form/status/${user.id}/${round_list_id}`,
-                        {
-                            headers: {
-                                Authorization: `Bearer ${session.accessToken}`
-                            }
-                        }
+                    const formStatusResponse = await WorkloadFormServices.checkWorkloadFormStatus(
+                        user.id,
+                        parseInt(round_list_id),
+                        session.accessToken
                     )
-                    console.log('🔍 Form Status Response:', formStatusResponse.data)
 
                     // API response มีโครงสร้าง: { success: true, payload: [{ status: 1 }] }
-                    if (formStatusResponse.data.success && formStatusResponse.data.payload && formStatusResponse.data.payload.length > 0) {
-                        setFormStatus(formStatusResponse.data.payload[0].status || 0)
+                    if (formStatusResponse.success && formStatusResponse.payload && formStatusResponse.payload.length > 0) {
+                        setFormStatus(formStatusResponse.payload[0].status || 0)
                     } else {
                         setFormStatus(0) // ไม่มีข้อมูล = ยังไม่ส่ง
                     }
@@ -102,7 +85,7 @@ export default function ExpositionSelection() {
         }
 
         fetchData()
-    }, [user, session?.accessToken, round_list_id])
+    }, [user, session?.accessToken, round_list_id]) // dependencies ที่สำคัญ
 
     const handleSubmitForm = async () => {
         if (!user || !round_list_id) {
@@ -115,7 +98,6 @@ export default function ExpositionSelection() {
 
             if (response.success) {
                 // อัปเดต status เป็น 1
-                setFormStatus(1)
                 router.push('/user/workload_round')
             } else {
                 console.error('❌ Failed to submit form:', response.message)
@@ -154,14 +136,10 @@ export default function ExpositionSelection() {
         )
     }
 
-    console.log('🔍 Current state:', { formStatus, loading, user: user?.id, round_list_id })
-
     // แสดง _successForm เมื่อ status = 1
     if (formStatus === 1) {
-        console.log('🔍 Showing _successForm because formStatus = 1')
         return (
             <_successForm
-                terms={terms}
                 selectedGroupName={workloadGroupInfo?.workload_group_name || undefined}
                 userId={user?.id || undefined}
                 roundId={parseInt(round_list_id) || undefined}
@@ -206,7 +184,6 @@ export default function ExpositionSelection() {
 
                 <StickyFooter
                     onSubmit={() => {
-                        console.log('Submit button clicked, opening modal')
                         setConfirmSubmitFormModal(true)
                     }}
                     onPreview={() => {

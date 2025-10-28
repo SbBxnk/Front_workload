@@ -1,16 +1,41 @@
 'use client'
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import type { Terms } from '@/Types'
 import WorkloadForm from './_workloadForm'
+import WorkloadFormServices from '@/services/workloadFormServices'
+import { useSession } from 'next-auth/react'
 
 interface _successFormProps {
-  terms?: Terms[]
   selectedGroupName?: string
   userId?: number
   roundId?: number
 }
 
-export default function _successForm({ terms = [], selectedGroupName, userId, roundId }: _successFormProps) {
+export default function _successForm({ selectedGroupName, userId, roundId }: _successFormProps) {
+  const { data: session } = useSession()
+  const [terms, setTerms] = useState<Terms[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchTerms = async () => {
+      if (!session?.accessToken) return
+
+      try {
+        const response = await WorkloadFormServices.getTerms(session.accessToken)
+        setTerms(response.payload || [])
+      } catch (error) {
+        console.error('Error fetching terms:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchTerms()
+  }, [session?.accessToken])
+
+  if (loading) {
+    return <div>Loading...</div>
+  }
   // ดึงรายการภาระงานที่ไม่ซ้ำกันจากข้อมูล API
   const uniqueTasks = Array.isArray(terms)
     ? [...new Set(terms.map((term) => term.task_name))].reverse()
