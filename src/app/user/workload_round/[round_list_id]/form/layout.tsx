@@ -23,7 +23,7 @@ import {
   AlertCircle,
   CircleX
 } from 'lucide-react'
-import ConfirmModal from './confirmModal'
+import ConfirmModal from '../confirmWorkloadModal'
 import InfoHoverModal from './infoTermModal'
 import _successForm from '../_successForm'
 import useUtility from '@/hooks/useUtility'
@@ -326,147 +326,8 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
     }
   }, [infoIconRef])
 
-  if (loading) {
-    return (
-      <div className="rounded-md transition-all duration-300 ease-in-out dark:text-gray-400">
-        <div className="flex flex-col gap-4">
-          {/* Skeleton for workload criteria table */}
-          <div className="rounded-md bg-white px-4 pt-4 pb-1 shadow dark:bg-zinc-900 dark:text-gray-400">
-            <div className="mb-4 h-6 w-80 animate-pulse rounded bg-gray-200 dark:bg-zinc-700"></div>
-            <div className="my-4 overflow-x-auto">
-              <table className="w-full overflow-x-auto border border-gray-300 bg-white dark:border-gray-700 dark:bg-zinc-900 md:table-auto">
-                <thead className="bg-gray-100 dark:bg-zinc-800">
-                  <tr>
-                    <th className="border-b border-r border-gray-300 px-4 py-3 text-left text-gray-700 dark:text-gray-300">
-                      <div className="h-4 w-20 animate-pulse rounded bg-gray-200 dark:bg-zinc-700"></div>
-                    </th>
-                    {[...Array(4)].map((_, index) => (
-                      <th key={index} className="text-md text-nowrap border-b border-r border-gray-300 px-4 py-2 text-center font-normal text-gray-600 dark:text-gray-300">
-                        <div className="h-4 w-24 animate-pulse rounded bg-gray-200 dark:bg-zinc-700 mx-auto"></div>
-                        <div className="mt-1 h-3 w-20 animate-pulse rounded bg-gray-200 dark:bg-zinc-700 mx-auto"></div>
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {[...Array(5)].map((_, taskIndex) => (
-                    <tr key={taskIndex} className="hover:bg-gray-50 dark:hover:bg-zinc-800">
-                      <td className="text-md text-nowrap border-b border-r border-gray-300 px-4 py-3 font-normal text-gray-700">
-                        <div className="h-4 w-48 animate-pulse rounded bg-gray-200 dark:bg-zinc-700"></div>
-                      </td>
-                      {[...Array(4)].map((_, groupIndex) => (
-                        <td key={groupIndex} className="border-b border-r border-gray-300 px-4 py-2 text-center text-gray-500">
-                          <div className="h-4 w-8 animate-pulse rounded bg-gray-200 dark:bg-zinc-700 mx-auto"></div>
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                  <tr className="bg-gray-100 font-bold dark:bg-zinc-800">
-                    <td className="border-b border-r border-gray-300 px-4 py-2 text-center font-normal text-gray-600">
-                      <div className="h-4 w-32 animate-pulse rounded bg-gray-200 dark:bg-zinc-700 mx-auto"></div>
-                    </td>
-                    {[...Array(4)].map((_, groupIndex) => (
-                      <td key={groupIndex} className="border-b border-r border-gray-300 px-4 py-2 text-center font-normal text-business1">
-                        <div className="h-4 w-8 animate-pulse rounded bg-gray-200 dark:bg-zinc-700 mx-auto"></div>
-                      </td>
-                    ))}
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Skeleton for workload group selection */}
-          <div className="rounded-md bg-white p-4 shadow dark:bg-zinc-900 dark:text-gray-400">
-            <div className="mb-4 h-6 w-48 animate-pulse rounded bg-gray-200 dark:bg-zinc-700"></div>
-            <div className="flex flex-wrap gap-2">
-              {[...Array(4)].map((_, index) => (
-                <div key={index} className="h-10 w-24 animate-pulse rounded bg-gray-200 dark:bg-zinc-700"></div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <>
-      {/* เลือกกลุ่มภาระงาน - แสดงเมื่อ workload_group_id เป็น null ใน tb_set_assessorlist */}
-      {(() => {
-        // แสดงกลุ่มภาระงานเมื่อ:
-        // 1. มีฟอร์มในรอบนี้ (hasFormInRound = true)
-        // 2. workloadGroupInfo เป็น null หรือ workload_group_id เป็น null
-        const shouldShowWorkloadSelection = hasFormInRound && (
-          !workloadGroupInfo || 
-          workloadGroupInfo.workload_group_id === null ||
-          workloadGroupInfo.workload_group_id === 0
-        )
-        
-        return shouldShowWorkloadSelection
-      })() ? (
-        <div className="space-y-4">
-                <div className="rounded-md bg-white px-4 pt-4 pb-1 shadow transition-all duration-300 ease-in-out dark:bg-zinc-900 dark:text-gray-400">
-                  <h2 className="text-lg font-medium text-gray-700">
-                    เกณฑ์การประเมินภาระงานของแต่ละด้านภาระงาน
-                  </h2>
-                  <div className="my-4 overflow-x-auto">
-                    <div className="p-4 text-center text-gray-500">
-                      ไม่มีข้อมูล terms
-                    </div>
-                  </div>
-                </div>
-                <div className="rounded-md bg-white p-4 shadow transition-all duration-300 ease-in-out dark:bg-zinc-900 dark:text-gray-400">
-                  <h2 className="text-lg font-medium text-gray-700">
-                    กรุณาเลือกภาระงานก่อน:
-                  </h2>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {(() => {
-                      console.log('🔍 Workload Groups Debug:', {
-                        workloadGroups,
-                        isArray: Array.isArray(workloadGroups),
-                        length: workloadGroups?.length || 0
-                      })
-                      
-                      if (!Array.isArray(workloadGroups) || workloadGroups.length === 0) {
-                        return (
-                          <div className="w-full rounded bg-yellow-100 p-4 text-yellow-800">
-                            <p className="font-medium">ไม่พบข้อมูลกลุ่มภาระงาน</p>
-                            <p className="text-sm">กรุณาติดต่อผู้ดูแลระบบ</p>
-                          </div>
-                        )
-                      }
-                      
-                      return workloadGroups.map((group: WorkloadGroup) => (
-                        <label
-                          key={group.workload_group_id}
-                          htmlFor={`confirm-modal`}
-                          onClick={() => setSelectedWorkloadGroup(group)}
-                          className="cursor-pointer rounded bg-blue-500 px-4 py-2 text-white transition duration-300 ease-in-out hover:bg-blue-600"
-                        >
-                          {group.workload_group_name}
-                        </label>
-                      ))
-                    })()}
-                  </div>
-                  <ConfirmModal
-                    handleSelectWorkloadGroup={handleSelectWorkloadGroup}
-                    workload_group={selectedWorkloadGroup}
-                  />
-                </div>
-              </div>
-            ) : formStatus === 1 ? (
-              <_successForm
-                selectedGroupName={workloadGroupInfo?.workload_group_name || undefined}
-                userId={userId || undefined}
-                roundId={roundId || undefined}
-              />
-            ) : (
-              <div>{children}</div>
-            )
-      }
-    </>
-  )
+  // เงื่อนไขเลือกกลุ่มภาระงานและตารางเกณฑ์ ถูกย้ายไปที่ layout.tsx ระดับรอบแล้ว
+  return <div>{children}</div>
 }
 
 export default ClientLayout

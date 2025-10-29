@@ -33,10 +33,7 @@ export default function _successForm({ selectedGroupName, userId, roundId }: _su
     fetchTerms()
   }, [session?.accessToken])
 
-  if (loading) {
-    return <div>Loading...</div>
-  }
-  // ดึงรายการภาระงานที่ไม่ซ้ำกันจากข้อมูล API
+ 
   const uniqueTasks = Array.isArray(terms)
     ? [...new Set(terms.map((term) => term.task_name))].reverse()
     : []
@@ -143,6 +140,7 @@ export default function _successForm({ selectedGroupName, userId, roundId }: _su
         terms={terms}
         userId={userId}
         roundId={roundId}
+        forceSnapshot={true}
       />
     </div>
   )

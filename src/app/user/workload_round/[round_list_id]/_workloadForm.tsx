@@ -2,13 +2,14 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import type { Terms } from '@/Types'
 import useAuthHeaders from '@/hooks/Header'
-import { LinkIcon, FileText, ImageIcon, FileDown } from 'lucide-react'
+import { LinkIcon, FileText, ImageIcon, FileDown  } from 'lucide-react'
 import axios from 'axios'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { jwtDecode } from 'jwt-decode'
 import { useSession } from 'next-auth/react'
 import SetAssessorServices from '@/services/setAssessorServices'
+import SnapshotService from '@/services/snapshotService'
 
 interface WorkloadFormProps {
   selectedGroupName?: string
@@ -16,6 +17,7 @@ interface WorkloadFormProps {
   userId?: number
   roundId?: number
   isPreview?: boolean
+  forceSnapshot?: boolean // เพิ่ม prop สำหรับบังคับให้ใช้ snapshot
 }
 
 // เพิ่มฟังก์ชันสำหรับตรวจสอบประเภทไฟล์
@@ -63,7 +65,7 @@ interface Task {
   subtasks: { [key: number]: Subtask }
 }
 
-export default function WorkloadForm({ selectedGroupName, terms = [], userId, roundId, isPreview = false }: WorkloadFormProps) {
+export default function WorkloadForm({ selectedGroupName, terms = [], userId, roundId, isPreview = false, forceSnapshot = false }: WorkloadFormProps) {
   const [workloadData, setWorkloadData] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
@@ -74,12 +76,127 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
 
   const memoizedHeaders = useMemo(() => headers, [headers.Authorization])
 
-  useEffect(() => {
-    const fetchWorkloadData = async () => {
-      if (!userId || !roundId) return
+  // ฟังก์ชันดึงข้อมูลภาระงาน
+  const fetchWorkloadData = async () => {
+    if (!userId || !roundId) return
 
-      try {
-        setLoading(true)
+    try {
+      setLoading(true)
+      
+      // ถ้า forceSnapshot = true ให้ใช้ snapshot เสมอ
+      if (forceSnapshot) {
+        console.log('Force snapshot mode - fetching from snapshot')
+        const forceFormlistResponse = await SnapshotService.getFormlistId(
+          userId,
+          roundId
+        )
+
+        if (forceFormlistResponse.success && forceFormlistResponse.payload && forceFormlistResponse.payload.length > 0) {
+          const formlist_id = forceFormlistResponse.payload[0].formlist_id
+          try {
+          const snapshotResponse = await SnapshotService.getFormInfoWithSnapshot(
+            formlist_id,
+            1, // subtask_id
+            userId,
+            roundId
+          )
+
+          if (snapshotResponse.success && snapshotResponse.payload && Array.isArray(snapshotResponse.payload) && snapshotResponse.payload.length > 0) {
+            console.log('Snapshot Response (Force):', snapshotResponse.payload)
+            
+            // จัดกลุ่มข้อมูลตาม task_id และ subtask_id
+            const taskMap = new Map();
+            
+            snapshotResponse.payload.forEach((item) => {
+              const taskId = item.task_id || 1;
+              const subtaskId = item.subtask_id || 1;
+              
+              if (!taskMap.has(taskId)) {
+                taskMap.set(taskId, {
+                  task_id: taskId,
+                  task_name: item.task_name || "ภาระงานสอน",
+                  workload_group_id: item.workload_group_id,
+                  workload_group_name: item.workload_group_name,
+                  quantity_workload_hours: item.quantity_workload_hours || 20,
+                  subtasks: new Map()
+                });
+              }
+              
+              const task = taskMap.get(taskId);
+              
+              if (!task.subtasks.has(subtaskId)) {
+                task.subtasks.set(subtaskId, {
+                  subtask_id: subtaskId,
+                  subtask_name: item.subtask_name || "ภาระงานเกณฑ์การคิดภาระงานสอนชั่วโมงทฤษฎี",
+                  form_infos: []
+                });
+              }
+              
+              const subtask = task.subtasks.get(subtaskId);
+              subtask.form_infos.push({
+                form_id: item.form_id,
+                form_title: item.form_title,
+                description: item.description,
+                workload: item.workload,
+                quality: item.quality,
+                file_type: item.file_type,
+                ex_score: item.ex_score,
+                files: item.files || [],
+                links: item.links || []
+              });
+            });
+            
+            // แปลง Map เป็น Array
+            const convertedData: Task[] = Array.from(taskMap.values()).map(task => ({
+              ...task,
+              subtasks: Object.fromEntries(task.subtasks)
+            }));
+            
+            setWorkloadData(convertedData)
+            return
+          } else {
+            // ถ้าไม่มีข้อมูลใน snapshot ให้ fallback ไปใช้ API ปกติ
+            console.warn('Snapshot response is empty, falling back to regular API')
+            throw new Error('Snapshot data is empty')
+          }
+          } catch (snapshotError: any) {
+            console.error('Error fetching snapshot data (Force):', snapshotError)
+            
+            // ถ้า snapshot error ให้ใช้ API ปกติ
+            try {
+              const response = await axios.get(
+                `${process.env.NEXT_PUBLIC_API}/workload_form/items/${userId}/${roundId}`,
+                { headers: memoizedHeaders }
+              )
+
+              if (response.data.success && response.data.payload) {
+                console.log('Fallback to regular API successful:', response.data.payload)
+                setWorkloadData(response.data.payload)
+                return
+              } else {
+                console.error('Regular API response is not successful:', response.data)
+                // ให้ fall through ไปใช้ logic ถัดไป
+              }
+            } catch (fallbackError) {
+              console.error('Fallback API also failed:', fallbackError)
+              // ให้ fall through ไปใช้ logic ถัดไป
+            }
+          }
+        } else {
+          console.warn('No formlist_id found for force snapshot mode, will use regular flow')
+          // ให้ fall through ไปใช้ logic ถัดไป
+        }
+      }
+      
+      // ดึง formlist_id ก่อน
+      const formlistResponse = await SnapshotService.getFormlistId(
+        userId,
+        roundId
+      )
+
+      if (!formlistResponse.success || !formlistResponse.payload) {
+        console.log('No formlist found, using regular API')
+        // ถ้าไม่มี formlist ให้ใช้ API ปกติ
         const response = await axios.get(
           `${process.env.NEXT_PUBLIC_API}/workload_form/items/${userId}/${roundId}`,
           { headers: memoizedHeaders }
@@ -90,37 +207,195 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
           console.log('Number of tasks:', response.data.payload.length)
           setWorkloadData(response.data.payload)
         }
-      } catch (error) {
-        console.error('Error fetching workload data:', error)
-        const mockData: Task[] = [
-          {
-            task_id: 1,
-            task_name: "ภาระงานสอน",
-            subtasks: {
-              1: {
-                subtask_id: 1,
-                subtask_name: "ภาระงานเกณฑ์การคิดภาระงานสอนชั่วโมงทฤษฎี",
-                form_infos: [
-                  {
-                    form_id: 1,
-                    form_title: "ภาระงานสอนชั่วโมงทฤษฎี 1/2567",
-                    description: "จำนวน 12 ชม/สัปดาห์",
-                    workload: 2,
-                    quality: 6,
-                    file_type: "external file",
-                    ex_score: 0
+        return
+      }
+
+      const formlist_id = formlistResponse.payload[0].formlist_id
+      const status = formlistResponse.payload[0].status
+
+      // ถ้า status = 1 (ส่งแล้ว) ให้ดึงข้อมูลจาก snapshot
+      if (status === 1) {
+        console.log('Form submitted, fetching from snapshot')
+        try {
+          const snapshotResponse = await SnapshotService.getFormInfoWithSnapshot(
+            formlist_id,
+            1, // subtask_id - อาจต้องปรับตามความต้องการ
+            userId,
+            roundId
+          )
+
+          if (snapshotResponse.success && snapshotResponse.payload) {
+          console.log('Snapshot Response:', snapshotResponse.payload)
+          
+          // จัดกลุ่มข้อมูลตาม task_id และ subtask_id
+          const taskMap = new Map();
+          
+          snapshotResponse.payload.forEach((item) => {
+            const taskId = item.task_id || 1;
+            const subtaskId = item.subtask_id || 1;
+            
+            if (!taskMap.has(taskId)) {
+              taskMap.set(taskId, {
+                task_id: taskId,
+                task_name: item.task_name || "ภาระงานสอน",
+                workload_group_id: item.workload_group_id,
+                workload_group_name: item.workload_group_name,
+                quantity_workload_hours: item.quantity_workload_hours || 20,
+                subtasks: new Map()
+              });
+            }
+            
+            const task = taskMap.get(taskId);
+            
+            if (!task.subtasks.has(subtaskId)) {
+              task.subtasks.set(subtaskId, {
+                subtask_id: subtaskId,
+                subtask_name: item.subtask_name || "ภาระงานเกณฑ์การคิดภาระงานสอนชั่วโมงทฤษฎี",
+                form_infos: []
+              });
+            }
+            
+            const subtask = task.subtasks.get(subtaskId);
+            subtask.form_infos.push({
+              form_id: item.form_id,
+              form_title: item.form_title,
+              description: item.description,
+              workload: item.workload,
+              quality: item.quality,
+              file_type: item.file_type,
+              ex_score: item.ex_score,
+              files: item.files || [],
+              links: item.links || []
+            });
+          });
+          
+          // แปลง Map เป็น Array
+          const convertedData: Task[] = Array.from(taskMap.values()).map(task => ({
+            ...task,
+            subtasks: Object.fromEntries(task.subtasks)
+          }));
+          
+          setWorkloadData(convertedData)
+        }
+        } catch (snapshotError) {
+          console.error('Error fetching snapshot data:', snapshotError)
+          // ถ้า snapshot error ให้ใช้ API ปกติ
+          try {
+            const response = await axios.get(
+              `${process.env.NEXT_PUBLIC_API}/workload_form/items/${userId}/${roundId}`,
+              { headers: memoizedHeaders }
+            )
+
+            if (response.data.success && response.data.payload) {
+              console.log('Fallback to regular API:', response.data.payload)
+              setWorkloadData(response.data.payload)
+            }
+          } catch (fallbackError) {
+            console.error('Fallback API also failed:', fallbackError)
+            // Use mock data as last resort
+            const mockData: Task[] = [
+              {
+                task_id: 1,
+                task_name: "ภาระงานสอน",
+                subtasks: {
+                  1: {
+                    subtask_id: 1,
+                    subtask_name: "ภาระงานเกณฑ์การคิดภาระงานสอนชั่วโมงทฤษฎี",
+                    form_infos: [
+                      {
+                        form_id: 1,
+                        form_title: "ภาระงานสอนชั่วโมงทฤษฎี 1/2567",
+                        description: "จำนวน 12 ชม/สัปดาห์",
+                        workload: 2,
+                        quality: 6,
+                        file_type: "external file",
+                        ex_score: 0
+                      }
+                    ]
                   }
-                ]
+                }
+              }
+            ]
+            setWorkloadData(mockData)
+          }
+        }
+      } else {
+        // ถ้า status = 0 (ยังไม่ส่ง) ให้ใช้ API ปกติ
+        console.log('Form not submitted, fetching from regular API')
+        try {
+          const response = await axios.get(
+            `${process.env.NEXT_PUBLIC_API}/workload_form/items/${userId}/${roundId}`,
+            { headers: memoizedHeaders }
+          )
+
+          if (response.data.success && response.data.payload) {
+            console.log('API Response:', response.data.payload)
+            console.log('Number of tasks:', response.data.payload.length)
+            setWorkloadData(response.data.payload)
+          }
+        } catch (regularApiError) {
+          console.error('Error fetching regular API:', regularApiError)
+          // ใช้ mock data เป็น fallback
+          const mockData: Task[] = [
+            {
+              task_id: 1,
+              task_name: "ภาระงานสอน",
+              subtasks: {
+                1: {
+                  subtask_id: 1,
+                  subtask_name: "ภาระงานเกณฑ์การคิดภาระงานสอนชั่วโมงทฤษฎี",
+                  form_infos: [
+                    {
+                      form_id: 1,
+                      form_title: "ภาระงานสอนชั่วโมงทฤษฎี 1/2567",
+                      description: "จำนวน 12 ชม/สัปดาห์",
+                      workload: 2,
+                      quality: 6,
+                      file_type: "external file",
+                      ex_score: 0
+                    }
+                  ]
+                }
               }
             }
-          }
-        ]
-        setWorkloadData(mockData)
-      } finally {
-        setLoading(false)
+          ]
+          setWorkloadData(mockData)
+        }
       }
+    } catch (error) {
+      console.error('Error fetching workload data:', error)
+      const mockData: Task[] = [
+        {
+          task_id: 1,
+          task_name: "ภาระงานสอน",
+          subtasks: {
+            1: {
+              subtask_id: 1,
+              subtask_name: "ภาระงานเกณฑ์การคิดภาระงานสอนชั่วโมงทฤษฎี",
+              form_infos: [
+                {
+                  form_id: 1,
+                  form_title: "ภาระงานสอนชั่วโมงทฤษฎี 1/2567",
+                  description: "จำนวน 12 ชม/สัปดาห์",
+                  workload: 2,
+                  quality: 6,
+                  file_type: "external file",
+                  ex_score: 0
+                }
+              ]
+            }
+          }
+        }
+      ]
+      setWorkloadData(mockData)
+    } finally {
+      setLoading(false)
     }
+  }
+  
 
+
+  useEffect(() => {
     fetchWorkloadData()
   }, [userId, roundId, memoizedHeaders])
 
@@ -1096,20 +1371,14 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
     }
   }
 
-  if (loading) {
-    return (
-      <div className="rounded-md bg-white p-6 shadow dark:bg-zinc-900">
-        <div className="animate-pulse">
-          <div className="h-6 w-48 bg-gray-200 rounded mb-4"></div>
-          <div className="space-y-3">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-16 bg-gray-200 rounded"></div>
-            ))}
-          </div>
-        </div>
-      </div>
-    )
-  }
+  // if (loading) {
+  //   return (
+  //     <div className="rounded-md h-[calc(93vh-200px)] w-full flex flex-col gap-4 items-center justify-center bg-white p-6 shadow dark:bg-zinc-900">
+  //       <FileText className="h-40 w-40 text-business1" />
+  //       <p className="text-lg font-light text-center text-gray-800 dark:text-gray-200 animate-pulse">กำลังโหลดข้อมูล ประเมินภาระงาน...</p>
+  //     </div>
+  //   )
+  // }
 
   return (
     <div id="workload-content" className="space-y-4">

@@ -12,13 +12,16 @@ import {
   ClockIcon as ClockAlert,
   TriangleAlertIcon,
   AlertCircle,
-  CircleX
+  CircleX,
+  FileText
 } from 'lucide-react'
 import InfoHoverModal from './form/infoTermModal'
-import useUtility from '@/hooks/useUtility'
+import type { WorkloadGroup } from '@/Types'
 import WorkloadFormServices from '@/services/workloadFormServices'
+import useUtility from '@/hooks/useUtility'
 import SetAssessorServices from '@/services/setAssessorServices'
 import WorkloadGroupServices from '@/services/workloadGroupServices'
+import ConfirmModal from './confirmWorkloadModal'
 
 const formatThaiDate = (dateString: string) => {
   const date = new Date(dateString)
@@ -49,11 +52,15 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const { data: session } = useSession()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const infoIconRef = useRef<HTMLDivElement>(null)
-  
+
   // State สำหรับข้อมูล
   const [currentRound, setCurrentRound] = useState<any>(null)
   const [workloadGroupInfo, setWorkloadGroupInfo] = useState<any>(null)
+  const [workloadGroups, setWorkloadGroups] = useState<WorkloadGroup[]>([])
+  const [terms, setTerms] = useState<any[]>([])
+  const [selectedWorkloadGroup, setSelectedWorkloadGroup] = useState<WorkloadGroup | null>(null)
   const [hasFormInRound, setHasFormInRound] = useState<boolean | null>(null)
+  const [formStatus, setFormStatus] = useState<number | null>(null) // เพิ่ม state สำหรับเก็บสถานะฟอร์ม
   const [loading, setLoading] = useState(false)
   const [isCheckingAccess, setIsCheckingAccess] = useState(false)
   const [user, setUser] = useState<any>(null)
@@ -66,7 +73,7 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
     if (!round) {
       return 'not_found'
     }
-    
+
     // ไม่เช็ควันที่แล้ว - ให้แสดงฟอร์มเสมอ
     return 'active'
   }
@@ -135,8 +142,13 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
         let hasAccess = false
 
         // ประมวลผล user access
+        // เช็คว่า as_u_id อยู่ใน tb_set_assessorlist หรือไม่
         if (userAccessResponse.status === 'fulfilled') {
-          hasAccess = userAccessResponse.value.success
+          const accessData = userAccessResponse.value
+          // เช็คว่า success เป็น true และมี payload (ไม่เป็น null และไม่ว่าง)
+          hasAccess = accessData.success && accessData.payload !== null &&
+            Array.isArray(accessData.payload) && accessData.payload.length > 0 &&
+            accessData.payload.some((record: any) => record.ex_u_id !== null)
         }
 
         // ประมวลผล set assessor round เพื่อหา round info
@@ -167,6 +179,24 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
           }
         }
 
+        // เก็บ terms จาก API
+        if (termsResponse.status === 'fulfilled') {
+          const tPayload = (termsResponse.value as any).data || (termsResponse.value as any).payload || []
+          setTerms(Array.isArray(tPayload) ? tPayload : [])
+        } else {
+          console.error('Failed to fetch terms:', termsResponse.status === 'rejected' ? termsResponse.reason : 'unknown')
+          setTerms([])
+        }
+
+        // เก็บรายการ workload groups สำหรับให้ผู้ใช้เลือกเมื่อยังไม่เลือกกลุ่ม
+        if (workloadGroupsResponse.status === 'fulfilled') {
+          const wgPayload = workloadGroupsResponse.value.payload || []
+          setWorkloadGroups(Array.isArray(wgPayload) ? (wgPayload as unknown as WorkloadGroup[]) : [])
+        } else {
+          console.error('Failed to fetch workload groups:', workloadGroupsResponse.status === 'rejected' ? workloadGroupsResponse.reason : 'unknown')
+          setWorkloadGroups([])
+        }
+
         // อัปเดต state
         setCurrentRound(roundInfo)
         setWorkloadGroupInfo(groupInfo)
@@ -174,13 +204,21 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
 
       } catch (error) {
         console.error('Error fetching data:', error)
+        // ตั้งค่า default values เมื่อเกิด error
+        setTerms([])
+        setWorkloadGroups([])
+        setCurrentRound(null)
+        setWorkloadGroupInfo({ workload_group_id: null, workload_group_name: null })
+        setHasFormInRound(false)
       } finally {
         setLoading(false)
         setIsCheckingAccess(false)
       }
     }
 
-    fetchAllData()
+    if (user && session?.accessToken) {
+      fetchAllData()
+    }
   }, [user, session?.accessToken, round_list_id]) // dependencies ที่สำคัญ
 
   if (loading || isCheckingAccess || hasFormInRound === null) {
@@ -188,7 +226,9 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
       <div className="space-y-4">
         {/* Skeleton for round info */}
         <div className="rounded-md bg-white p-4 shadow dark:bg-zinc-900 dark:text-gray-400">
-          <div className="mb-4 h-6 w-48 animate-pulse rounded bg-gray-200 dark:bg-zinc-700"></div>
+          <h2 className="mb-4 text-lg font-medium text-gray-700 dark:text-gray-300">
+            รอบการประเมินปัจจุบัน
+          </h2>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
             {[...Array(4)].map((_, index) => (
               <div key={index} className="space-y-4">
@@ -199,23 +239,61 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
           </div>
         </div>
 
-        {/* Skeleton for exposition selection */}
-        <div className="rounded-md bg-white p-4 shadow">
-          <div className="mb-4">
-            <div className="h-6 w-32 animate-pulse rounded bg-gray-200 dark:bg-zinc-700"></div>
-            <div className="mt-2 h-4 w-64 animate-pulse rounded bg-gray-200 dark:bg-zinc-700"></div>
+        <div className="rounded-md bg-white px-4 pt-4 pb-1 shadow dark:bg-zinc-900 dark:text-gray-400">
+          <h2 className="text-lg font-medium text-gray-700 dark:text-gray-300">เกณฑ์การประเมินภาระงานของแต่ละด้านภาระงาน</h2>
+          <div className="my-4 overflow-x-auto" style={{ minHeight: 'calc(5 * 3rem + 3.5rem)' }}>
+            <table className="w-full border border-gray-300 bg-white dark:border-gray-700 dark:bg-zinc-900">
+              <thead className="bg-gray-100 dark:bg-zinc-800">
+                <tr>
+                  <th className="font-normal border-b border-r border-gray-300 px-4 py-3 text-center text-gray-700 dark:text-gray-300">
+                    <div className="h-6 w-24 bg-gray-200 dark:bg-zinc-700 rounded animate-pulse mx-auto" />
+                  </th>
+                  {[...Array(4)].map((_, i) => (
+                    <th key={i} className="font-normal border-b border-r border-gray-300 px-4 py-3 text-center text-gray-700 dark:text-gray-300">
+                      <div className="h-6 w-28 bg-gray-200 dark:bg-zinc-700 rounded mx-auto animate-pulse" />
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {[...Array(5)].map((_, r) => (
+                  <tr key={r} className="hover:bg-gray-50 dark:hover:bg-zinc-800">
+                    <td className="font-light border-b border-r border-gray-300 px-4 py-3 text-gray-700">
+                      <div className="h-6 w-48 bg-gray-200 dark:bg-zinc-700 rounded animate-pulse" />
+                    </td>
+                    {[...Array(4)].map((_, c) => (
+                      <td key={`${r}-${c}`} className="font-light border-b border-r border-gray-300 px-4 py-3 text-center text-gray-700">
+                        <div className="h-6 w-8 bg-gray-200 dark:bg-zinc-700 rounded mx-auto animate-pulse" />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+                <tr className="bg-gray-50 dark:bg-zinc-800">
+                  <td className="font-normal border-b border-r border-gray-300 px-4 py-3 text-right text-gray-700">
+                    <div className="h-6 w-20 bg-gray-200 dark:bg-zinc-700 rounded ml-auto animate-pulse" />
+                  </td>
+                  {[...Array(4)].map((_, c) => (
+                    <td key={`total-${c}`} className="border-b border-r border-gray-300 px-4 py-3 text-center text-business1 font-normal">
+                      <div className="h-6 w-8 bg-gray-200 dark:bg-zinc-700 rounded mx-auto animate-pulse" />
+                    </td>
+                  ))}
+                </tr>
+              </tbody>
+            </table>
           </div>
-          <div className="flex flex-col gap-4">
-            {[...Array(2)].map((_, index) => (
+        </div>
+        <div className="rounded-md bg-white p-4 shadow dark:bg-zinc-900 dark:text-gray-400">
+          <h2 className="text-lg font-medium text-gray-700 dark:text-gray-300">กรุณาเลือกภาระงานก่อน</h2>
+          <div className="mt-4 flex flex-wrap gap-2 min-h-[2.5rem]">
+            {[...Array(4)].map((_, index) => (
               <div
                 key={index}
-                className="flex w-full animate-pulse items-center justify-start gap-4 rounded-md border border-gray-200 px-4 py-2"
-              >
-                <div className="h-8 w-8 flex-shrink-0 rounded-full bg-gray-200 dark:bg-zinc-700"></div>
-                <div className="h-4 w-3/4 rounded bg-gray-200 dark:bg-zinc-700"></div>
-              </div>
+                className="h-10 w-28 animate-pulse rounded bg-gray-200 dark:bg-zinc-700"
+              />
             ))}
           </div>
+          {/* รองรับพื้นที่ของ ConfirmModal */}
+          <div className="h-0" />
         </div>
       </div>
     )
@@ -325,8 +403,130 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
             </div>
           )}
 
-          {/* แสดงเนื้อหาหลัก */}
-          {children}
+          {/* เลือกกลุ่มภาระงาน + ตารางเกณฑ์ เมื่อยังไม่เลือกกลุ่ม */}
+          {(!workloadGroupInfo || !workloadGroupInfo.workload_group_id) ? (
+            <div className="space-y-4">
+              <div className="rounded-md bg-white px-4 pt-4 pb-1 shadow dark:bg-zinc-900 dark:text-gray-400">
+                <h2 className="text-lg font-medium text-gray-700 dark:text-gray-300">เกณฑ์การประเมินภาระงานของแต่ละด้านภาระงาน</h2>
+                <div className="my-4 overflow-x-auto" style={{ minHeight: 'calc(5 * 3rem + 3.5rem)' }}>
+                  {Array.isArray(terms) && terms.length > 0 ? (() => {
+                    // ลำดับคอลัมน์กลุ่มภาระงานให้ตรงกับปุ่มเลือกด้านล่าง
+                    const groups = (Array.isArray(workloadGroups) && workloadGroups.length > 0)
+                      ? workloadGroups.map((g: any) => g.workload_group_name)
+                      : Array.from(new Set(terms.map((t: any) => t.workload_group_name)))
+
+                    // ลำดับแถวภาระงานตามลำดับมาตรฐาน 1..5
+                    const preferredTaskOrder = [
+                      'ภาระงานสอน',
+                      'ภาระงานวิจัยและงานวิชาการอื่นที่ปรากฏเป็นผลงานวิชาการตามหลักเกณฑ์ที่ ก.พ.อ.กำหนด',
+                      'ภาระงานบริการทางวิชาการ',
+                      'ภาระงานทำนุบำรุงศิลปวัฒนธรรม',
+                      'ภาระงานอื่น ๆ ที่สอดคล้องกับพันธกิจของคณะ มหาวิทยาลัย',
+                    ]
+                    const taskSet = Array.from(new Set(terms.map((t: any) => t.task_name)))
+                    const tasks = taskSet.sort((a: any, b: any) => {
+                      const ai = preferredTaskOrder.indexOf(a)
+                      const bi = preferredTaskOrder.indexOf(b)
+                      if (ai === -1 && bi === -1) return String(a).localeCompare(String(b))
+                      if (ai === -1) return 1
+                      if (bi === -1) return -1
+                      return ai - bi
+                    })
+                    const getQty = (taskName: string, groupName: string) => {
+                      const found = terms.find((t: any) => t.task_name === taskName && t.workload_group_name === groupName)
+                      return found?.quantity_workload_hours ?? ''
+                    }
+                    // คำนวณผลรวมต่อกลุ่ม
+                    const groupTotals: Record<string, number> = {}
+                    groups.forEach((g) => {
+                      groupTotals[g as string] = terms
+                        .filter((t: any) => t.workload_group_name === g)
+                        .reduce((sum: number, t: any) => sum + (Number(t.quantity_workload_hours) || 0), 0)
+                    })
+                    return (
+                      <table className="w-full border border-gray-300 bg-white dark:border-gray-700 dark:bg-zinc-900">
+                        <thead className="bg-gray-100 dark:bg-zinc-800">
+                          <tr>
+                            <th className="font-normal border-b border-r border-gray-300 px-4 py-3 text-center text-gray-700 dark:text-gray-300">ภาระงาน</th>
+                            {groups.map((g) => (
+                              <th key={g} className="font-normal border-b border-r border-gray-300 px-4 py-3 text-center text-gray-700 dark:text-gray-300">{g}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {tasks.map((task) => (
+                            <tr key={task} className="hover:bg-gray-50 dark:hover:bg-zinc-800">
+                              <td className="font-light border-b border-r border-gray-300 px-4 py-3 text-gray-700">{task}</td>
+                              {groups.map((g) => (
+                                <td key={`${task}-${g}`} className="font-light border-b border-r border-gray-300 px-4 py-3 text-center text-gray-700">{getQty(task as string, g as string)}</td>
+                              ))}
+                            </tr>
+                          ))}
+                          <tr className="bg-gray-50 dark:bg-zinc-800">
+                            <td className="font-normal border-b border-r border-gray-300 px-4 py-3 text-right text-gray-700">รวม</td>
+                            {groups.map((g) => (
+                              <td key={`total-${g}`} className="border-b border-r border-gray-300 px-4 py-3 text-center text-business1 font-normal">{groupTotals[g as string]}</td>
+                            ))}
+                          </tr>
+                        </tbody>
+                      </table>
+                    )
+                  })() : (
+                    <div className="p-4 text-center text-gray-500">ไม่มีข้อมูล terms</div>
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-md bg-white p-4 shadow dark:bg-zinc-900 dark:text-gray-400">
+                <h2 className="text-lg font-medium text-gray-700 dark:text-gray-300">กรุณาเลือกภาระงานก่อน</h2>
+                <div className="mt-4 flex flex-wrap gap-2 min-h-[2.5rem]">
+                  {Array.isArray(workloadGroups) && workloadGroups.length > 0 ? (
+                    workloadGroups.map((group: WorkloadGroup) => (
+                      <label
+                        key={group.workload_group_id}
+                        htmlFor={`confirm-modal`}
+                        onClick={() => setSelectedWorkloadGroup(group)}
+                        className="cursor-pointer rounded bg-business1 px-4 py-2 text-white hover:bg-blue-600"
+                      >
+                        {group.workload_group_name}
+                      </label>
+                    ))
+                  ) : (
+                    <div className="w-full rounded bg-yellow-100 p-4 text-yellow-800">
+                      <p className="font-medium">ไม่พบข้อมูลกลุ่มภาระงาน</p>
+                      <p className="text-sm">กรุณาติดต่อผู้ดูแลระบบ</p>
+                    </div>
+                  )}
+                </div>
+                <ConfirmModal
+                  workload_group={selectedWorkloadGroup}
+                  handleSelectWorkloadGroup={async (group: WorkloadGroup) => {
+                    if (!user || !currentRound) return
+                    try {
+                      const resp = await WorkloadFormServices.selectWorkloadFormGroup(
+                        user.id,
+                        group.workload_group_id,
+                        currentRound.round_list_id,
+                        session?.accessToken || ''
+                      )
+                      if (resp.status) {
+                        setWorkloadGroupInfo({
+                          workload_group_id: group.workload_group_id,
+                          workload_group_name: group.workload_group_name,
+                        })
+                        setSelectedWorkloadGroup(null)
+                      }
+                    } catch (e) {
+                      console.error('Error selecting workload group:', e)
+                    }
+                  }}
+                />
+              </div>
+            </div>
+          ) : (
+            // เลือกกลุ่มแล้ว แสดงเนื้อหาหลัก
+            children
+          )}
         </div>
       ) : null}
     </>
