@@ -35,18 +35,23 @@ export interface SnapshotFormData {
   quality: number
   file_type: string
   ex_score: number
-  files: Array<{
-    fileinfo_id: number
-    file_name: string
-    file_path: string
-    file_size: number
-    file_type: string
-  }>
-  links: Array<{
-    link_id: number
-    link_name: string
-    link_path: string
-  }>
+  evidence?: string
+  files?:
+    | string
+    | Array<{
+        fileinfo_id?: number
+        file_name: string
+        file_path?: string
+        file_size?: number
+        file_type?: string
+      }>
+  links?:
+    | string
+    | Array<{
+        link_id?: number
+        link_name: string
+        link_path: string
+      }>
 }
 
 export interface SubmitFormRequest {

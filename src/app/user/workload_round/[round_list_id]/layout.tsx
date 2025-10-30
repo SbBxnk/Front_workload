@@ -486,7 +486,7 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
                         key={group.workload_group_id}
                         htmlFor={`confirm-modal`}
                         onClick={() => setSelectedWorkloadGroup(group)}
-                        className="cursor-pointer rounded bg-business1 px-4 py-2 text-white hover:bg-blue-600"
+                        className="cursor-pointer rounded bg-business1 px-4 py-2 text-white hover:bg-business1/90"
                       >
                         {group.workload_group_name}
                       </label>

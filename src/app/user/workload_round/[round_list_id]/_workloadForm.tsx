@@ -133,6 +133,24 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
               }
               
               const subtask = task.subtasks.get(subtaskId);
+              // แปลงข้อมูล files และ links รองรับทั้งแบบ array และแบบ string (GROUP_CONCAT)
+              const files = Array.isArray(item.files)
+                ? item.files.map((f: any) => ({ file_name: (f.file_name || '').trim() }))
+                : (typeof item.files === 'string' && item.files.length > 0
+                    ? (item.files as string).split(', ').map((f: string) => ({ file_name: f.trim() }))
+                    : [])
+              const links = Array.isArray(item.links)
+                ? item.links.map((l: any) => ({ link_name: l.link_name || '', link_path: l.link_path || '' }))
+                : (typeof item.links === 'string' && item.links.length > 0
+                    ? (item.links as string).split(', ').map((l: string) => {
+                        const parts = l.split('|')
+                        return {
+                          link_name: parts[0] || '',
+                          link_path: parts[1] || parts[0] || ''
+                        }
+                      })
+                    : [])
+
               subtask.form_infos.push({
                 form_id: item.form_id,
                 form_title: item.form_title,
@@ -141,8 +159,8 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
                 quality: item.quality,
                 file_type: item.file_type,
                 ex_score: item.ex_score,
-                files: item.files || [],
-                links: item.links || []
+                files: files,
+                links: links
               });
             });
             
@@ -256,6 +274,24 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
             }
             
             const subtask = task.subtasks.get(subtaskId);
+            // แปลงข้อมูล files และ links รองรับทั้งแบบ array และแบบ string (GROUP_CONCAT)
+            const files = Array.isArray(item.files)
+              ? item.files.map((f: any) => ({ file_name: (f.file_name || '').trim() }))
+              : (typeof item.files === 'string' && item.files.length > 0
+                  ? (item.files as string).split(', ').map((f: string) => ({ file_name: f.trim() }))
+                  : [])
+            const links = Array.isArray(item.links)
+              ? item.links.map((l: any) => ({ link_name: l.link_name || '', link_path: l.link_path || '' }))
+              : (typeof item.links === 'string' && item.links.length > 0
+                  ? (item.links as string).split(', ').map((l: string) => {
+                      const parts = l.split('|')
+                      return {
+                        link_name: parts[0] || '',
+                        link_path: parts[1] || parts[0] || ''
+                      }
+                    })
+                  : [])
+
             subtask.form_infos.push({
               form_id: item.form_id,
               form_title: item.form_title,
@@ -264,8 +300,8 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
               quality: item.quality,
               file_type: item.file_type,
               ex_score: item.ex_score,
-              files: item.files || [],
-              links: item.links || []
+              files: files,
+              links: links
             });
           });
           
@@ -1406,18 +1442,23 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
               <tr>
                 <th className="border border-gray-300 px-4 py-3 text-center text-gray-700 dark:text-gray-300 font-medium">
                   ภาระงาน/กิจกรรม/โครงการ/งาน
+                  <p>(1)</p>
                 </th>
-                <th className="border border-gray-300 px-4 py-3 text-left text-gray-700 dark:text-gray-300 font-medium">
+                <th className="border border-gray-300 px-4 py-3 text-center text-gray-700 dark:text-gray-300 font-medium">
                   หลักฐาน
+                  <p>(2)</p>
                 </th>
                 <th className="border border-gray-300 px-4 py-3 text-center text-gray-700 dark:text-gray-300 font-medium">
                   จำนวน
+                  <p>(3)</p>
                 </th>
                 <th className="border border-gray-300 px-4 py-3 text-center text-gray-700 dark:text-gray-300 font-medium">
                   ภาระงาน
+                  <p>(4)</p>
                 </th>
                 <th className="border border-gray-300 px-4 py-3 text-center text-gray-700 dark:text-gray-300 font-medium">
                   รวมภาระงาน
+                  <p>(3 x 4)</p>
                 </th>
                 <th className="border border-gray-300 px-4 py-3 text-center text-gray-700 dark:text-gray-300 font-medium max-w-10">
                   หมายเหตุ
@@ -1521,34 +1562,47 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
                                       </span>
                                     </button>
                                   ))
-                                ) : formInfo.evidence ? (
-                                  <button
-                                    onClick={() => {
-                                      if (formInfo.file_type === 'link') {
-                                        let url = formInfo.link_path || formInfo.evidence || ''
-                                        if (!url.startsWith('http://') && !url.startsWith('https://')) {
-                                          url = `https://${url}`
-                                        }
-                                        window.open(url, '_blank')
-                                      } else {
-                                        const baseUrl = process.env.NEXT_PUBLIC_API?.replace('/api', '') || 'http://localhost:3333'
-                                        window.open(`${baseUrl}/files/${formInfo.evidence}`, '_blank')
-                                      }
-                                    }}
-                                    className="inline-flex items-center text-sm text-blue-600 transition-colors duration-150 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300 w-full"
-                                    title={formInfo.link_path || formInfo.evidence}
-                                  >
-                                    {formInfo.file_type === 'link' ? (
-                                      <LinkIcon className="mr-2 h-4 w-4 text-blue-500 dark:text-blue-400" />
-                                    ) : isImageFile(formInfo.evidence) ? (
-                                      <ImageIcon className="mr-2 h-4 w-4 text-blue-500 dark:text-blue-400" />
-                                    ) : (
-                                      <FileText className="mr-2 h-4 w-4 text-blue-500 dark:text-blue-400" />
-                                    )}
-                                    <span className="max-w-32 truncate">
-                                      {formInfo.file_type === 'link' ? (formInfo.link_name || formInfo.evidence) : formInfo.evidence}
-                                    </span>
-                                  </button>
+                                ) : (formInfo.files && formInfo.files.length > 0) || (formInfo.links && formInfo.links.length > 0) ? (
+                                  <div className="space-y-1">
+                                    {/* แสดงไฟล์ */}
+                                    {formInfo.files && formInfo.files.map((file: any, fileIndex: number) => (
+                                      <button
+                                        key={fileIndex}
+                                        onClick={() => {
+                                          const baseUrl = process.env.NEXT_PUBLIC_API?.replace('/api', '') || 'http://localhost:3333'
+                                          window.open(`${baseUrl}/files/${file.file_name}`, '_blank')
+                                        }}
+                                        className="inline-flex items-center text-sm text-blue-600 transition-colors duration-150 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300 w-full"
+                                        title={file.file_name}
+                                      >
+                                        {isImageFile(file.file_name) ? (
+                                          <ImageIcon className="mr-2 h-4 w-4 text-blue-500 dark:text-blue-400" />
+                                        ) : (
+                                          <FileText className="mr-2 h-4 w-4 text-blue-500 dark:text-blue-400" />
+                                        )}
+                                        <span className="max-w-32 truncate">{file.file_name}</span>
+                                      </button>
+                                    ))}
+                                    
+                                    {/* แสดงลิงก์ */}
+                                    {formInfo.links && formInfo.links.map((link: any, linkIndex: number) => (
+                                      <button
+                                        key={linkIndex}
+                                        onClick={() => {
+                                          let url = link.link_path || ''
+                                          if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                                            url = `https://${url}`
+                                          }
+                                          window.open(url, '_blank')
+                                        }}
+                                        className="inline-flex items-center text-sm text-blue-600 transition-colors duration-150 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300 w-full"
+                                        title={link.link_path}
+                                      >
+                                        <LinkIcon className="mr-2 h-4 w-4 text-blue-500 dark:text-blue-400" />
+                                        <span className="max-w-32 truncate">{link.link_name}</span>
+                                      </button>
+                                    ))}
+                                  </div>
                                 ) : (
                                   <span className="text-gray-500 dark:text-gray-400">-</span>
                                 )}
