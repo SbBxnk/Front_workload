@@ -126,7 +126,7 @@ function PersonalListTable() {
       render: (value, row) => (
         <div className="flex justify-center">
           <img
-            src={`/images/${row?.u_img || 'default.png'}`}
+            src={`/profile/${row?.u_img || 'default.png'}`}
             alt="User Image"
             className="h-10 w-10 rounded-md border-2 object-cover"
           />

@@ -266,8 +266,8 @@ export default function EditProfile() {
                             previewImage
                               ? previewImage
                               : user.u_img
-                                ? `/images/${user.u_img}`
-                                : '/images/default.png'
+                                ? `/profile/${user.u_img}`
+                                : '/profile/default.png'
                           }
                           alt="Profile Preview"
                           fill

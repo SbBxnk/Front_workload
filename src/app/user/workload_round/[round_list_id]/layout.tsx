@@ -224,7 +224,6 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   if (loading || isCheckingAccess || hasFormInRound === null) {
     return (
       <div className="space-y-4">
-        {/* Skeleton for round info */}
         <div className="rounded-md bg-white p-4 shadow dark:bg-zinc-900 dark:text-gray-400">
           <h2 className="mb-4 text-lg font-medium text-gray-700 dark:text-gray-300">
             รอบการประเมินปัจจุบัน
@@ -340,7 +339,7 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
       ) : hasFormInRound === true ? (
         <div className="space-y-4">
           {currentRound && (
-            <div className="rounded-md bg-white p-4 shadow dark:bg-zinc-900 dark:text-gray-400">
+            <div className="md:sticky md:top-14 md:z-10 rounded-md bg-white p-4 shadow dark:bg-zinc-900 dark:text-gray-400">
               <h2 className="mb-4 text-lg font-medium text-gray-700 dark:text-gray-300">
                 รอบการประเมินปัจจุบัน
               </h2>
@@ -385,14 +384,14 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
                       <div
                         ref={infoIconRef}
                         className="cursor-pointer text-gray-400 hover:text-gray-500"
-                        onMouseEnter={() => setIsModalOpen(true)}
-                        onMouseLeave={() => setIsModalOpen(false)}
+                        onClick={(e) => { e.stopPropagation(); setIsModalOpen(true) }}
                       >
                         <AlertCircle className="h-4 w-4" />
                         {isModalOpen && (
                           <InfoHoverModal
                             workloadGroupInfo={workloadGroupInfo}
                             isOpen={isModalOpen}
+                            onClose={() => setIsModalOpen(false)}
                           />
                         )}
                       </div>
@@ -410,12 +409,18 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
                 <h2 className="text-lg font-medium text-gray-700 dark:text-gray-300">เกณฑ์การประเมินภาระงานของแต่ละด้านภาระงาน</h2>
                 <div className="my-4 overflow-x-auto" style={{ minHeight: 'calc(5 * 3rem + 3.5rem)' }}>
                   {Array.isArray(terms) && terms.length > 0 ? (() => {
-                    // ลำดับคอลัมน์กลุ่มภาระงานให้ตรงกับปุ่มเลือกด้านล่าง
-                    const groups = (Array.isArray(workloadGroups) && workloadGroups.length > 0)
-                      ? workloadGroups.map((g: any) => g.workload_group_name)
-                      : Array.from(new Set(terms.map((t: any) => t.workload_group_name)))
+                    // กรอง terms ให้เหลือเฉพาะคู่ task-group ที่มีค่า minimum จริง (quantity > 0 หรือไม่เป็น null/ว่าง)
+                    const effectiveTerms = terms.filter((t: any) => t && t.workload_group_name && t.task_name && t.quantity_workload_hours != null && String(t.quantity_workload_hours).trim() !== '' && Number(t.quantity_workload_hours) > 0)
 
-                    // ลำดับแถวภาระงานตามลำดับมาตรฐาน 1..5
+                    // ลำดับคอลัมน์กลุ่มภาระงานให้ตรงกับปุ่มเลือกด้านล่าง แต่ซ่อนกลุ่มที่ไม่มี minimum ในทุก task
+                    const presentGroupSet = new Set(effectiveTerms.map((t: any) => t.workload_group_name))
+                    const groups = (Array.isArray(workloadGroups) && workloadGroups.length > 0)
+                      ? workloadGroups
+                          .map((g: any) => g.workload_group_name)
+                          .filter((name: string) => presentGroupSet.has(name))
+                      : Array.from(presentGroupSet)
+
+                    // ลำดับแถวภาระงาน: แสดงเฉพาะ task ที่มีอย่างน้อยหนึ่ง group มี minimum
                     const preferredTaskOrder = [
                       'ภาระงานสอน',
                       'ภาระงานวิจัยและงานวิชาการอื่นที่ปรากฏเป็นผลงานวิชาการตามหลักเกณฑ์ที่ ก.พ.อ.กำหนด',
@@ -423,7 +428,7 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
                       'ภาระงานทำนุบำรุงศิลปวัฒนธรรม',
                       'ภาระงานอื่น ๆ ที่สอดคล้องกับพันธกิจของคณะ มหาวิทยาลัย',
                     ]
-                    const taskSet = Array.from(new Set(terms.map((t: any) => t.task_name)))
+                    const taskSet = Array.from(new Set(effectiveTerms.map((t: any) => t.task_name)))
                     const tasks = taskSet.sort((a: any, b: any) => {
                       const ai = preferredTaskOrder.indexOf(a)
                       const bi = preferredTaskOrder.indexOf(b)
@@ -433,13 +438,13 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
                       return ai - bi
                     })
                     const getQty = (taskName: string, groupName: string) => {
-                      const found = terms.find((t: any) => t.task_name === taskName && t.workload_group_name === groupName)
+                      const found = effectiveTerms.find((t: any) => t.task_name === taskName && t.workload_group_name === groupName)
                       return found?.quantity_workload_hours ?? ''
                     }
                     // คำนวณผลรวมต่อกลุ่ม
                     const groupTotals: Record<string, number> = {}
                     groups.forEach((g) => {
-                      groupTotals[g as string] = terms
+                      groupTotals[g as string] = effectiveTerms
                         .filter((t: any) => t.workload_group_name === g)
                         .reduce((sum: number, t: any) => sum + (Number(t.quantity_workload_hours) || 0), 0)
                     })

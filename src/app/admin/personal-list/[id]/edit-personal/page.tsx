@@ -96,7 +96,7 @@ export default function CreatePersonal() {
         setFormData(data)
         // Set preview URL for existing image
         if (data.u_img) {
-          setPreviewUrl(`/images/${data.u_img}`)
+          setPreviewUrl(`/profile/${data.u_img}`)
         }
       } else {
         console.log('No data in payload')

@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Lock, Eye, EyeOff, Mail , KeyRound} from 'lucide-react'
 import Swal from 'sweetalert2'
 import Image from 'next/image'
-import RMUTL_logo1 from '../../../public/images/rmutl_1_logo.png'
+import RMUTL_logo1 from '../../../public/web/rmutl_1_logo.png'
 
 export default function ResetPassword() {
   const [password, setPassword] = useState('')
@@ -185,7 +185,7 @@ export default function ResetPassword() {
       <div
         className="absolute h-full w-full bg-fixed bg-left bg-no-repeat"
         style={{
-          backgroundImage: "url('/images/business_dept.png')",
+          backgroundImage: "url('/web/business_dept.png')",
           backgroundSize: 'cover',
           backgroundPosition: 'left',
           backgroundRepeat: 'no-repeat',
@@ -197,7 +197,7 @@ export default function ResetPassword() {
       <div
         className="absolute h-full w-full bg-cover bg-fixed bg-center bg-no-repeat"
         style={{
-          backgroundImage: "url('/images/layered-waves-haikei.svg')",
+          backgroundImage: "url('/web/layered-waves-haikei.svg')",
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',

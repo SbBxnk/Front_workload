@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import type { Terms } from '@/Types'
 import useAuthHeaders from '@/hooks/Header'
-import { LinkIcon, FileText, ImageIcon, FileDown  } from 'lucide-react'
+import { LinkIcon, FileText, ImageIcon, FileDown, AlertCircle } from 'lucide-react'
 import axios from 'axios'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -10,6 +10,8 @@ import { jwtDecode } from 'jwt-decode'
 import { useSession } from 'next-auth/react'
 import SetAssessorServices from '@/services/setAssessorServices'
 import SnapshotService from '@/services/snapshotService'
+import MainTaskServices from '@/services/mainTaskServices'
+import SubTaskServices from '@/services/subTaskServices'
 
 interface WorkloadFormProps {
   selectedGroupName?: string
@@ -67,6 +69,7 @@ interface Task {
 
 export default function WorkloadForm({ selectedGroupName, terms = [], userId, roundId, isPreview = false, forceSnapshot = false }: WorkloadFormProps) {
   const [workloadData, setWorkloadData] = useState<Task[]>([])
+  const [masterTasks, setMasterTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
   const [roundName, setRoundName] = useState<string>('')
@@ -76,13 +79,121 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
 
   const memoizedHeaders = useMemo(() => headers, [headers.Authorization])
 
+  // รวมผลสัมฤทธิ์ของงาน (นับเฉพาะ 5 งานแรก) และแปลงเป็นคะแนนเต็ม 70 (ค capped 70)
+  const totalPerformanceWorkload = useMemo(() => {
+    if (!Array.isArray(workloadData)) return 0
+    return workloadData.slice(0, 5).reduce((sum, task) =>
+      sum + Object.values(task.subtasks).reduce((subSum, subtask) =>
+        subSum + subtask.form_infos.reduce((formSum, formInfo) =>
+          formSum + (formInfo.quality * formInfo.workload), 0
+        ), 0
+      ), 0
+    )
+  }, [workloadData])
+
+  const performanceScoreOutOf70 = useMemo(() => {
+    const percent = Math.max(0, totalPerformanceWorkload)
+    const score = (percent * 70) / 100
+    return Math.min(70, score)
+  }, [totalPerformanceWorkload])
+
+  // โหลดโครงสร้างภาระงานหลัก/ย่อย เพื่อให้แสดงครบข้อแม้ไม่มีข้อมูล
+  useEffect(() => {
+    const loadMasterStructure = async () => {
+      try {
+        if (!session?.accessToken) return
+        // ดึงภาระงานหลักทั้งหมด (หน้าแรกและ limit สูง ๆ เพื่อครอบคลุมทั้งหมด)
+        const mainTasksRes: any = await MainTaskServices.getAllMainTasks(session.accessToken, {
+          search: '',
+          page: 1,
+          limit: 100,
+          sort: 'task_id',
+          order: 'asc',
+        } as any)
+
+        const mainTasks = Array.isArray(mainTasksRes?.payload)
+          ? mainTasksRes.payload
+          : Array.isArray(mainTasksRes?.data)
+            ? mainTasksRes.data
+            : []
+
+        const tasksWithSubtasks: Task[] = []
+
+        for (const mt of mainTasks) {
+          try {
+            const subRes: any = await SubTaskServices.getSubTasksByTask(mt.task_id, session.accessToken)
+            const subtasksArr = Array.isArray(subRes?.payload) ? subRes.payload : Array.isArray(subRes) ? subRes : []
+            const subtasksMap: { [key: number]: Subtask } = {}
+            for (const st of subtasksArr) {
+              subtasksMap[st.subtask_id] = {
+                subtask_id: st.subtask_id,
+                subtask_name: st.subtask_name,
+                form_infos: [],
+              }
+            }
+            tasksWithSubtasks.push({
+              task_id: mt.task_id,
+              task_name: mt.task_name,
+              quantity_workload_hours: (mt as any).quantity_workload_hours,
+              subtasks: subtasksMap,
+            })
+          } catch (e) {
+            // ถ้าดึง subtasks ไม่ได้ ให้ใส่ task เปล่า
+            tasksWithSubtasks.push({
+              task_id: mt.task_id,
+              task_name: mt.task_name,
+              subtasks: {},
+            } as Task)
+          }
+        }
+
+        setMasterTasks(tasksWithSubtasks)
+      } catch (e) {
+        // เงียบไว้หากไม่จำเป็น
+      }
+    }
+
+    loadMasterStructure()
+  }, [session?.accessToken])
+
+  // รวมข้อมูลผู้ใช้กับโครงสร้างมาสเตอร์เพื่อให้แสดงครบข้อ
+  const mergedTasks: Task[] = useMemo(() => {
+    if (Array.isArray(workloadData) && workloadData.length > 0) {
+      // ผสานกับ master เพื่อเติม task/subtask ที่ขาด
+      if (!Array.isArray(masterTasks) || masterTasks.length === 0) return workloadData
+      const result: Task[] = []
+      const userTaskMap = new Map<number, Task>()
+      for (const t of workloadData) userTaskMap.set(t.task_id, t)
+
+      for (const mt of masterTasks) {
+        const userTask = userTaskMap.get(mt.task_id)
+        if (!userTask) {
+          result.push(mt)
+          continue
+        }
+        // ผสาน subtasks
+        const mergedSubtasks: { [key: number]: Subtask } = { ...userTask.subtasks }
+        for (const [sid, s] of Object.entries(mt.subtasks)) {
+          const sidNum = Number(sid)
+          if (!mergedSubtasks[sidNum]) {
+            mergedSubtasks[sidNum] = { ...s, form_infos: [] }
+          }
+        }
+        result.push({ ...userTask, subtasks: mergedSubtasks })
+      }
+      return result
+    }
+    // ถ้าไม่มีข้อมูลผู้ใช้ ให้ใช้ master ทั้งหมด
+    return masterTasks
+  }, [workloadData, masterTasks])
+
   // ฟังก์ชันดึงข้อมูลภาระงาน
   const fetchWorkloadData = async () => {
     if (!userId || !roundId) return
 
     try {
       setLoading(true)
-      
+
       // ถ้า forceSnapshot = true ให้ใช้ snapshot เสมอ
       if (forceSnapshot) {
         console.log('Force snapshot mode - fetching from snapshot')
@@ -94,92 +205,92 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
         if (forceFormlistResponse.success && forceFormlistResponse.payload && forceFormlistResponse.payload.length > 0) {
           const formlist_id = forceFormlistResponse.payload[0].formlist_id
           try {
-          const snapshotResponse = await SnapshotService.getFormInfoWithSnapshot(
-            formlist_id,
-            1, // subtask_id
-            userId,
-            roundId
-          )
+            const snapshotResponse = await SnapshotService.getFormInfoWithSnapshot(
+              formlist_id,
+              1, // subtask_id
+              userId,
+              roundId
+            )
 
-          if (snapshotResponse.success && snapshotResponse.payload && Array.isArray(snapshotResponse.payload) && snapshotResponse.payload.length > 0) {
-            console.log('Snapshot Response (Force):', snapshotResponse.payload)
-            
-            // จัดกลุ่มข้อมูลตาม task_id และ subtask_id
-            const taskMap = new Map();
-            
-            snapshotResponse.payload.forEach((item) => {
-              const taskId = item.task_id || 1;
-              const subtaskId = item.subtask_id || 1;
-              
-              if (!taskMap.has(taskId)) {
-                taskMap.set(taskId, {
-                  task_id: taskId,
-                  task_name: item.task_name || "ภาระงานสอน",
-                  workload_group_id: item.workload_group_id,
-                  workload_group_name: item.workload_group_name,
-                  quantity_workload_hours: item.quantity_workload_hours || 20,
-                  subtasks: new Map()
-                });
-              }
-              
-              const task = taskMap.get(taskId);
-              
-              if (!task.subtasks.has(subtaskId)) {
-                task.subtasks.set(subtaskId, {
-                  subtask_id: subtaskId,
-                  subtask_name: item.subtask_name || "ภาระงานเกณฑ์การคิดภาระงานสอนชั่วโมงทฤษฎี",
-                  form_infos: []
-                });
-              }
-              
-              const subtask = task.subtasks.get(subtaskId);
-              // แปลงข้อมูล files และ links รองรับทั้งแบบ array และแบบ string (GROUP_CONCAT)
-              const files = Array.isArray(item.files)
-                ? item.files.map((f: any) => ({ file_name: (f.file_name || '').trim() }))
-                : (typeof item.files === 'string' && item.files.length > 0
+            if (snapshotResponse.success && snapshotResponse.payload && Array.isArray(snapshotResponse.payload) && snapshotResponse.payload.length > 0) {
+              console.log('Snapshot Response (Force):', snapshotResponse.payload)
+
+              // จัดกลุ่มข้อมูลตาม task_id และ subtask_id
+              const taskMap = new Map();
+
+              snapshotResponse.payload.forEach((item) => {
+                const taskId = item.task_id || 1;
+                const subtaskId = item.subtask_id || 1;
+
+                if (!taskMap.has(taskId)) {
+                  taskMap.set(taskId, {
+                    task_id: taskId,
+                    task_name: item.task_name || "ภาระงานสอน",
+                    workload_group_id: item.workload_group_id,
+                    workload_group_name: item.workload_group_name,
+                    quantity_workload_hours: item.quantity_workload_hours || 20,
+                    subtasks: new Map()
+                  });
+                }
+
+                const task = taskMap.get(taskId);
+
+                if (!task.subtasks.has(subtaskId)) {
+                  task.subtasks.set(subtaskId, {
+                    subtask_id: subtaskId,
+                    subtask_name: item.subtask_name || "ภาระงานเกณฑ์การคิดภาระงานสอนชั่วโมงทฤษฎี",
+                    form_infos: []
+                  });
+                }
+
+                const subtask = task.subtasks.get(subtaskId);
+                // แปลงข้อมูล files และ links รองรับทั้งแบบ array และแบบ string (GROUP_CONCAT)
+                const files = Array.isArray(item.files)
+                  ? item.files.map((f: any) => ({ file_name: (f.file_name || '').trim() }))
+                  : (typeof item.files === 'string' && item.files.length > 0
                     ? (item.files as string).split(', ').map((f: string) => ({ file_name: f.trim() }))
                     : [])
-              const links = Array.isArray(item.links)
-                ? item.links.map((l: any) => ({ link_name: l.link_name || '', link_path: l.link_path || '' }))
-                : (typeof item.links === 'string' && item.links.length > 0
+                const links = Array.isArray(item.links)
+                  ? item.links.map((l: any) => ({ link_name: l.link_name || '', link_path: l.link_path || '' }))
+                  : (typeof item.links === 'string' && item.links.length > 0
                     ? (item.links as string).split(', ').map((l: string) => {
-                        const parts = l.split('|')
-                        return {
-                          link_name: parts[0] || '',
-                          link_path: parts[1] || parts[0] || ''
-                        }
-                      })
+                      const parts = l.split('|')
+                      return {
+                        link_name: parts[0] || '',
+                        link_path: parts[1] || parts[0] || ''
+                      }
+                    })
                     : [])
 
-              subtask.form_infos.push({
-                form_id: item.form_id,
-                form_title: item.form_title,
-                description: item.description,
-                workload: item.workload,
-                quality: item.quality,
-                file_type: item.file_type,
-                ex_score: item.ex_score,
-                files: files,
-                links: links
+                subtask.form_infos.push({
+                  form_id: item.form_id,
+                  form_title: item.form_title,
+                  description: item.description,
+                  workload: item.workload,
+                  quality: item.quality,
+                  file_type: item.file_type,
+                  ex_score: item.ex_score,
+                  files: files,
+                  links: links
+                });
               });
-            });
-            
-            // แปลง Map เป็น Array
-            const convertedData: Task[] = Array.from(taskMap.values()).map(task => ({
-              ...task,
-              subtasks: Object.fromEntries(task.subtasks)
-            }));
-            
-            setWorkloadData(convertedData)
-            return
-          } else {
-            // ถ้าไม่มีข้อมูลใน snapshot ให้ fallback ไปใช้ API ปกติ
-            console.warn('Snapshot response is empty, falling back to regular API')
-            throw new Error('Snapshot data is empty')
-          }
+
+              // แปลง Map เป็น Array
+              const convertedData: Task[] = Array.from(taskMap.values()).map(task => ({
+                ...task,
+                subtasks: Object.fromEntries(task.subtasks)
+              }));
+
+              setWorkloadData(convertedData)
+              return
+            } else {
+              // ถ้าไม่มีข้อมูลใน snapshot ให้ fallback ไปใช้ API ปกติ
+              console.warn('Snapshot response is empty, falling back to regular API')
+              throw new Error('Snapshot data is empty')
+            }
           } catch (snapshotError: any) {
             console.error('Error fetching snapshot data (Force):', snapshotError)
-            
+
             // ถ้า snapshot error ให้ใช้ API ปกติ
             try {
               const response = await axios.get(
@@ -205,7 +316,7 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
           // ให้ fall through ไปใช้ logic ถัดไป
         }
       }
-      
+
       // ดึง formlist_id ก่อน
       const formlistResponse = await SnapshotService.getFormlistId(
         userId,
@@ -243,76 +354,76 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
           )
 
           if (snapshotResponse.success && snapshotResponse.payload) {
-          console.log('Snapshot Response:', snapshotResponse.payload)
-          
-          // จัดกลุ่มข้อมูลตาม task_id และ subtask_id
-          const taskMap = new Map();
-          
-          snapshotResponse.payload.forEach((item) => {
-            const taskId = item.task_id || 1;
-            const subtaskId = item.subtask_id || 1;
-            
-            if (!taskMap.has(taskId)) {
-              taskMap.set(taskId, {
-                task_id: taskId,
-                task_name: item.task_name || "ภาระงานสอน",
-                workload_group_id: item.workload_group_id,
-                workload_group_name: item.workload_group_name,
-                quantity_workload_hours: item.quantity_workload_hours || 20,
-                subtasks: new Map()
-              });
-            }
-            
-            const task = taskMap.get(taskId);
-            
-            if (!task.subtasks.has(subtaskId)) {
-              task.subtasks.set(subtaskId, {
-                subtask_id: subtaskId,
-                subtask_name: item.subtask_name || "ภาระงานเกณฑ์การคิดภาระงานสอนชั่วโมงทฤษฎี",
-                form_infos: []
-              });
-            }
-            
-            const subtask = task.subtasks.get(subtaskId);
-            // แปลงข้อมูล files และ links รองรับทั้งแบบ array และแบบ string (GROUP_CONCAT)
-            const files = Array.isArray(item.files)
-              ? item.files.map((f: any) => ({ file_name: (f.file_name || '').trim() }))
-              : (typeof item.files === 'string' && item.files.length > 0
+            console.log('Snapshot Response:', snapshotResponse.payload)
+
+            // จัดกลุ่มข้อมูลตาม task_id และ subtask_id
+            const taskMap = new Map();
+
+            snapshotResponse.payload.forEach((item) => {
+              const taskId = item.task_id || 1;
+              const subtaskId = item.subtask_id || 1;
+
+              if (!taskMap.has(taskId)) {
+                taskMap.set(taskId, {
+                  task_id: taskId,
+                  task_name: item.task_name || "ภาระงานสอน",
+                  workload_group_id: item.workload_group_id,
+                  workload_group_name: item.workload_group_name,
+                  quantity_workload_hours: item.quantity_workload_hours || 20,
+                  subtasks: new Map()
+                });
+              }
+
+              const task = taskMap.get(taskId);
+
+              if (!task.subtasks.has(subtaskId)) {
+                task.subtasks.set(subtaskId, {
+                  subtask_id: subtaskId,
+                  subtask_name: item.subtask_name || "ภาระงานเกณฑ์การคิดภาระงานสอนชั่วโมงทฤษฎี",
+                  form_infos: []
+                });
+              }
+
+              const subtask = task.subtasks.get(subtaskId);
+              // แปลงข้อมูล files และ links รองรับทั้งแบบ array และแบบ string (GROUP_CONCAT)
+              const files = Array.isArray(item.files)
+                ? item.files.map((f: any) => ({ file_name: (f.file_name || '').trim() }))
+                : (typeof item.files === 'string' && item.files.length > 0
                   ? (item.files as string).split(', ').map((f: string) => ({ file_name: f.trim() }))
                   : [])
-            const links = Array.isArray(item.links)
-              ? item.links.map((l: any) => ({ link_name: l.link_name || '', link_path: l.link_path || '' }))
-              : (typeof item.links === 'string' && item.links.length > 0
+              const links = Array.isArray(item.links)
+                ? item.links.map((l: any) => ({ link_name: l.link_name || '', link_path: l.link_path || '' }))
+                : (typeof item.links === 'string' && item.links.length > 0
                   ? (item.links as string).split(', ').map((l: string) => {
-                      const parts = l.split('|')
-                      return {
-                        link_name: parts[0] || '',
-                        link_path: parts[1] || parts[0] || ''
-                      }
-                    })
+                    const parts = l.split('|')
+                    return {
+                      link_name: parts[0] || '',
+                      link_path: parts[1] || parts[0] || ''
+                    }
+                  })
                   : [])
 
-            subtask.form_infos.push({
-              form_id: item.form_id,
-              form_title: item.form_title,
-              description: item.description,
-              workload: item.workload,
-              quality: item.quality,
-              file_type: item.file_type,
-              ex_score: item.ex_score,
-              files: files,
-              links: links
+              subtask.form_infos.push({
+                form_id: item.form_id,
+                form_title: item.form_title,
+                description: item.description,
+                workload: item.workload,
+                quality: item.quality,
+                file_type: item.file_type,
+                ex_score: item.ex_score,
+                files: files,
+                links: links
+              });
             });
-          });
-          
-          // แปลง Map เป็น Array
-          const convertedData: Task[] = Array.from(taskMap.values()).map(task => ({
-            ...task,
-            subtasks: Object.fromEntries(task.subtasks)
-          }));
-          
-          setWorkloadData(convertedData)
-        }
+
+            // แปลง Map เป็น Array
+            const convertedData: Task[] = Array.from(taskMap.values()).map(task => ({
+              ...task,
+              subtasks: Object.fromEntries(task.subtasks)
+            }));
+
+            setWorkloadData(convertedData)
+          }
         } catch (snapshotError) {
           console.error('Error fetching snapshot data:', snapshotError)
           // ถ้า snapshot error ให้ใช้ API ปกติ
@@ -428,7 +539,7 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
       setLoading(false)
     }
   }
-  
+
 
 
   useEffect(() => {
@@ -1466,17 +1577,8 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-zinc-900">
-              {!Array.isArray(workloadData) || workloadData.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="border border-gray-300 px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-                    <div className="flex flex-col items-center">
-                      <div className="text-lg font-medium mb-2">ไม่มีข้อมูลภาระงาน</div>
-                      <div className="text-sm">กรุณาเพิ่มข้อมูลภาระงานในระบบ</div>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                Array.isArray(workloadData) && workloadData.map((task) => (
+              {Array.isArray(mergedTasks) && mergedTasks.length > 0 ? (
+                mergedTasks.map((task) => (
                   <React.Fragment key={task.task_id}>
                     {/* Task Row */}
                     <tr className="bg-business1 text-white dark:bg-zinc-900">
@@ -1508,7 +1610,19 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
                           </td>
                         </tr>
 
-                        {subtask.form_infos.map((formInfo, index) => (
+                        {(subtask.form_infos.length === 0 ? [null] : subtask.form_infos).map((formInfo, index) => (
+                          formInfo === null ? (
+                            <tr key={`placeholder-${task.task_id}-${subtask.subtask_id}`}>
+                              <td className="border border-gray-300 px-4 py-2 text-gray-500 dark:text-gray-400">
+                                <div className="ml-12 text-sm">-</div>
+                              </td>
+                              <td className="border border-gray-300 px-4 py-2 text-left text-gray-500 dark:text-gray-400 text-sm">-</td>
+                              <td className="border border-gray-300 px-4 py-2 text-center text-gray-500 dark:text-gray-400 text-sm">-</td>
+                              <td className="border border-gray-300 px-4 py-2 text-center text-gray-500 dark:text-gray-400 text-sm">-</td>
+                              <td className="border border-gray-300 px-4 py-2 text-center text-gray-500 dark:text-gray-400 text-sm">-</td>
+                              <td className="border border-gray-300 px-4 py-2 text-left text-gray-500 dark:text-gray-400 text-sm">-</td>
+                            </tr>
+                          ) : (
                           <tr key={`${task.task_id}-${subtask.subtask_id}-${formInfo.form_id}-${index}`}>
                             <td className="border border-gray-300 px-4 py-2 text-gray-800 dark:text-gray-200">
                               <div className="ml-12 flex items-center gap-2">
@@ -1583,7 +1697,7 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
                                         <span className="max-w-32 truncate">{file.file_name}</span>
                                       </button>
                                     ))}
-                                    
+
                                     {/* แสดงลิงก์ */}
                                     {formInfo.links && formInfo.links.map((link: any, linkIndex: number) => (
                                       <button
@@ -1621,6 +1735,7 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
                               {formInfo.description && formInfo.description !== '-' ? formInfo.description : '-'}
                             </td>
                           </tr>
+                          )
                         ))}
                       </React.Fragment>
                     ))}
@@ -1638,17 +1753,25 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
                         ? 'text-red-500'
                         : ''
                         }`}>
-                        {Object.values(task.subtasks).reduce((subSum, subtask) =>
-                          subSum + subtask.form_infos.reduce((formSum, formInfo) =>
-                            formSum + (formInfo.quality * formInfo.workload), 0
-                          ), 0
-                        )}
+                        {(() => {
+                          const hasAny = Object.values(task.subtasks).some(st => st.form_infos.length > 0)
+                          const total = Object.values(task.subtasks).reduce((subSum, subtask) =>
+                            subSum + subtask.form_infos.reduce((formSum, formInfo) =>
+                              formSum + (formInfo.quality * formInfo.workload), 0
+                            ), 0
+                          )
+                          return hasAny ? total : '-'
+                        })()}
                       </td>
                       <td className="border border-gray-300 px-4 py-2 text-left dark:text-blue-200">
                       </td>
                     </tr>
                   </React.Fragment>
                 ))
+              ) : (
+                <tr>
+                  <td colSpan={6} className="border border-gray-300 px-4 py-8 text-center text-gray-500 dark:text-gray-400">กำลังโหลดรายการ...</td>
+                </tr>
               )}
             </tbody>
           </table>
@@ -1670,63 +1793,64 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-white">
-              {Array.isArray(workloadData) && workloadData.slice(0, 5).map((task, index) => {
+              {Array.isArray(mergedTasks) && mergedTasks.map((task, index) => {
+                const hasAny = Object.values(task.subtasks).some(st => st.form_infos.length > 0)
                 const taskTotal = Object.values(task.subtasks).reduce((subSum, subtask) =>
                   subSum + subtask.form_infos.reduce((formSum, formInfo) =>
                     formSum + (formInfo.quality * formInfo.workload), 0
                   ), 0
                 )
 
-                const taskNames = [
-                  '1. ภาระงานสอน',
-                  '2. ภาระงานวิจัยและงานวิชาการอื่นที่ปรากฏเป็นผลงานวิชาการตามหลักเกณฑ์ที่ ก.พ.อ.กำหนด',
-                  '3. ภาระงานบริการทางวิชาการ',
-                  '4. ภาระงานทำนุบำรุงศิลปวัฒนธรรม',
-                  '5. ภาระงานอื่น ๆ ที่สอดคล้องกับพันธกิจของคณะ มหาวิทยาลัย'
-                ]
+                const displayTaskName = task?.task_name
+                  ? (task?.task_id ? `${task.task_id}. ${task.task_name}` : task.task_name)
+                  : ''
 
-                // ข้อมูลภาระงานแต่ละกลุ่ม
+                // ข้อมูลภาระงานแต่ละกลุ่ม (ขั้นต่ำตัวอย่าง)
                 const workloadGroups = [
                   { name: 'กลุ่มทั่วไป', hours: [15, 6, 5, 3, 6] },
                   { name: 'กลุ่มเน้นสอน', hours: [20, 6, 3, 3, 3] },
                   { name: 'กลุ่มเน้นวิจัย', hours: [9, 21, 2, 2, 1] },
                   { name: 'กลุ่มเน้นบริการวิชาการ', hours: [9, 6, 17, 2, 1] }
                 ]
+                const hoursAt = (arr: number[], idx: number) => (idx >= 0 && idx < arr.length ? arr[idx] : 0)
+                const hourIndex = typeof task?.task_id === 'number' ? task.task_id - 1 : index
+                const hasGroupMinimum = typeof task?.task_id === 'number' && task.task_id >= 1 && task.task_id <= 5 && workloadGroups.some(g => hoursAt(g.hours, hourIndex) > 0)
 
                 return (
                   <React.Fragment key={task.task_id}>
                     {/* แสดงหัวข้อภาระงานหลัก */}
                     <tr className="bg-white">
-                      <td className={`px-4 py-2 text-gray-800 font-normal text-sm underline ${
-                        index > 0 ? 'border-t border-l border-r border-gray-300' : 'border-l border-r border-gray-300'
-                      }`}>
-                        {taskNames[index]}
+                      <td className={`px-4 py-2 text-gray-800 font-normal text-sm underline ${index > 0 ? 'border-t border-l border-r border-gray-300' : 'border-l border-r border-gray-300'
+                        }`}>
+                        {displayTaskName}
                       </td>
-                      <td rowSpan={5} className="border border-gray-300 px-4 py-3 text-center font-semibold text-sm text-blue-600 bg-white">
-                        {taskTotal}
+                      <td rowSpan={hasGroupMinimum ? 5 : 1} className="border border-gray-300 px-4 py-3 text-center font-light text-sm bg-white">
+                        {hasAny ? taskTotal : '-'}
                       </td>
-                      <td rowSpan={5} className="border border-gray-300 px-4 py-3 text-center text-gray-500 bg-white">
-                        
+                      <td rowSpan={hasGroupMinimum ? 5 : 1} className="border border-gray-300 px-4 py-3 text-center text-gray-500 bg-white">
+
                       </td>
                     </tr>
-                    
-                    {/* แสดงตัวเลือกแต่ละกลุ่ม */}
-                    {workloadGroups.map((group, groupIndex) => {
-                      const isSelected = selectedGroupName === group.name || 
+
+                    {/* แสดงตัวเลือกแต่ละกลุ่ม เฉพาะเมื่อมีขั้นต่ำในอย่างน้อยหนึ่งกลุ่ม */}
+                    {hasGroupMinimum && workloadGroups.map((group, groupIndex) => {
+                      const isSelected = selectedGroupName === group.name ||
                         (selectedGroupName?.includes('สอน') && group.name === 'กลุ่มเน้นสอน') ||
                         (selectedGroupName?.includes('วิจัย') && group.name === 'กลุ่มเน้นวิจัย') ||
                         (selectedGroupName?.includes('บริการ') && group.name === 'กลุ่มเน้นบริการวิชาการ') ||
                         (selectedGroupName?.includes('ทั่วไป') && group.name === 'กลุ่มทั่วไป')
-                      
+
+                      // ถ้ากลุ่มนี้ไม่มีขั้นต่ำสำหรับภาระงานนี้ ไม่ต้องแสดงแถว
+                      if (!(hoursAt(group.hours, hourIndex) > 0)) return null
+
                       return (
                         <tr key={`${task.task_id}-${groupIndex}`} className="bg-white">
                           <td className="border-l border-r border-gray-300 px-4 pb-2 text-gray-800 font-light text-sm">
                             <div className="flex items-center gap-3">
-                              <div className={`w-4 h-4 border rounded flex items-center justify-center ${
-                                isSelected 
-                                  ? 'border-red-500 bg-red-500' 
-                                  : 'border-gray-400'
-                              }`}>
+                              <div className={`w-4 h-4 border rounded flex items-center justify-center ${isSelected
+                                ? 'border-red-500 bg-red-500'
+                                : 'border-gray-400'
+                                }`}>
                                 {isSelected && (
                                   <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -1734,7 +1858,7 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
                                 )}
                               </div>
                               <span className={isSelected ? 'text-red-500 font-light' : 'text-gray-700'}>
-                                {group.name} {group.hours[index]} ภาระงาน/สัปดาห์
+                                {group.name} {hoursAt(group.hours, hourIndex)} ภาระงาน/สัปดาห์
                               </span>
                             </div>
                           </td>
@@ -1744,7 +1868,7 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
                   </React.Fragment>
                 )
               })}
-              
+
               {/* แถวสรุป */}
               <tr className="bg-white font-bold">
                 <td className="border border-gray-300 px-4 py-3 text-end text-sm font-semibold text-gray-800">
@@ -1752,13 +1876,11 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
                 </td>
                 <td className="border border-gray-300 px-4 py-3 text-center font-semibold text-sm">
                   <span className="text-blue-600 font-bold">
-                    {Array.isArray(workloadData) ? workloadData.slice(0, 5).reduce((sum, task) =>
-                      sum + Object.values(task.subtasks).reduce((subSum, subtask) =>
-                        subSum + subtask.form_infos.reduce((formSum, formInfo) =>
-                          formSum + (formInfo.quality * formInfo.workload), 0
-                        ), 0
-                      ), 0
-                    ) : 0}
+                    {(() => {
+                      const firstFive = Array.isArray(mergedTasks) ? mergedTasks.slice(0, 5) : []
+                      const hasAny = firstFive.some(task => Object.values(task.subtasks).some(st => st.form_infos.length > 0))
+                      return hasAny ? totalPerformanceWorkload : '-'
+                    })()}
                   </span>
                 </td>
                 <td className="border border-gray-300 px-4 py-3 text-center text-gray-500">
@@ -1767,41 +1889,14 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
             </tbody>
           </table>
         </div>
-      </div>
-
-      {/* <div className="rounded-md bg-green-50 dark:bg-green-900/20 p-6 border border-green-200 dark:border-green-700">
-        <h4 className="text-lg font-semibold text-green-800 dark:text-green-200 mb-2">
-          สรุปภาระงาน
-        </h4>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-          <div>
-            <span className="font-medium text-green-700 dark:text-green-300">กลุ่มภาระงานที่เลือก:</span>
-            <span className="ml-2 text-green-600 dark:text-green-400">{selectedGroupName || 'ยังไม่ได้เลือก'}</span>
-          </div>
-          <div>
-            <span className="font-medium text-green-700 dark:text-green-300">จำนวนรายการ:</span>
-            <span className="ml-2 text-green-600 dark:text-green-400">
-              {Array.isArray(workloadData) ? workloadData.reduce((sum, task) =>
-                sum + Object.values(task.subtasks).reduce((subSum, subtask) =>
-                  subSum + subtask.form_infos.length, 0
-                ), 0
-              ) : 0} รายการ
-            </span>
-          </div>
-          <div>
-            <span className="font-medium text-green-700 dark:text-green-300">รวมภาระงานทั้งหมด:</span>
-            <span className="ml-2 text-green-600 dark:text-green-400">
-              {Array.isArray(workloadData) ? workloadData.reduce((sum, task) =>
-                sum + Object.values(task.subtasks).reduce((subSum, subtask) =>
-                  subSum + subtask.form_infos.reduce((formSum, formInfo) =>
-                    formSum + (formInfo.quality * formInfo.workload), 0
-                  ), 0
-                ), 0
-              ) : 0} ชั่วโมง
-            </span>
-          </div>
+        <div className="flex justify-between items-center">
+          <p className="text-md font-light text-gray-500 m-0 flex items-center gap-2">สรุปคะแนนส่วนผลสัมฤทธิ์ของงาน
+            <span className="text-md font-light text-red-500 m-0">คะแนนเต็ม 70 คะแนน </span>
+            <AlertCircle className="h-4 w-4" />
+          </p>
+          <p className="text-md font-semibold text-blue-600 m-0">{performanceScoreOutOf70.toFixed(2)} <span className="text-sm font-light text-gray-500 m-0">&nbsp;คะแนน</span></p>
         </div>
-      </div> */}
+      </div>
     </div>
   )
 }

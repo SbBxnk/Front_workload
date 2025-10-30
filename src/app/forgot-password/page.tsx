@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { Mail } from 'lucide-react'
 import Swal from 'sweetalert2'
 import Image from 'next/image'
-import RMUTL_logo1 from '../../../public/images/rmutl_1_logo.png'
+import RMUTL_logo1 from '../../../public/web/rmutl_1_logo.png'
 import Link from 'next/link'
 
 export default function ForgotPassword() {
@@ -64,7 +64,7 @@ export default function ForgotPassword() {
       <div
         className="absolute h-full w-full bg-fixed bg-left bg-no-repeat"
         style={{
-          backgroundImage: "url('/images/business_dept.png')",
+          backgroundImage: "url('/web/business_dept.png')",
           backgroundSize: 'cover',
           backgroundPosition: 'left',
           backgroundRepeat: 'no-repeat',
@@ -76,7 +76,7 @@ export default function ForgotPassword() {
       <div
         className="absolute h-full w-full bg-cover bg-fixed bg-center bg-no-repeat"
         style={{
-          backgroundImage: "url('/images/layered-waves-haikei.svg')",
+          backgroundImage: "url('/web/layered-waves-haikei.svg')",
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',

@@ -467,7 +467,7 @@ export default function AsDetailsPage() {
       render: (_, record) => (
         <div className="flex justify-center">
           <Image
-            src={`/images/${record?.u_img || 'default.png'}`}
+            src={`/profile/${record?.u_img || 'default.png'}`}
             alt="User Image"
             width={40}
             height={40}

@@ -1,7 +1,7 @@
 'use client'
 
 import type React from 'react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { X, Link, Upload, CalendarClock, Plus } from 'lucide-react'
 
@@ -16,6 +16,7 @@ interface CreateModalProps {
 }
 
 export default function CreateModal({ onSubmit }: CreateModalProps) {
+  const formRef = useRef<HTMLFormElement | null>(null)
   const [evidenceType, setEvidenceType] = useState<
     'link' | 'external file' | 'file in system'
   >('link')
@@ -24,8 +25,6 @@ export default function CreateModal({ onSubmit }: CreateModalProps) {
   const [links, setLinks] = useState<
     { link_path: string; link_name: string }[]
   >([
-    { link_path: '', link_name: '' },
-    { link_path: '', link_name: '' },
     { link_path: '', link_name: '' },
   ])
   const [fileInSystem, setFileInSystem] = useState<string>('')
@@ -44,12 +43,14 @@ export default function CreateModal({ onSubmit }: CreateModalProps) {
           setUploadedFiles([])
           setLinks([
             { link_path: '', link_name: '' },
-            { link_path: '', link_name: '' },
-            { link_path: '', link_name: '' },
           ])
           setFileInSystem('')
           setFileName('')
           setEvidenceType('link')
+          // รีเซ็ตค่า input ภายในฟอร์ม
+          if (formRef.current) {
+            formRef.current.reset()
+          }
         }, 300) // รอให้ animation ของ modal จบก่อน
       }
     }
@@ -104,6 +105,18 @@ export default function CreateModal({ onSubmit }: CreateModalProps) {
       evidenceType === 'file in system' ? fileInSystem : undefined,
       evidenceType === 'file in system' ? fileName : undefined
     )
+
+    // รีเซ็ตฟอร์มและสถานะหลังจากส่งข้อมูล
+    if (formRef.current) {
+      formRef.current.reset()
+    }
+    setUploadedFiles([])
+    setLinks([
+      { link_path: '', link_name: '' },
+    ])
+    setFileInSystem('')
+    setFileName('')
+    setEvidenceType('link')
   }
 
   const handleAddLink = () => {
@@ -131,11 +144,9 @@ export default function CreateModal({ onSubmit }: CreateModalProps) {
     setEvidenceType(type)
     setUploadedFiles([])
 
-    // ถ้าเปลี่ยนกลับมาเป็นประเภทลิงก์ ให้รีเซ็ตลิงก์เป็น 3 ลิงก์เปล่า
+    // ถ้าเปลี่ยนกลับมาเป็นประเภทลิงก์ ให้รีเซ็ตลิงก์เป็น 1 ลิงก์เปล่า
     if (type === 'link') {
       setLinks([
-        { link_path: '', link_name: '' },
-        { link_path: '', link_name: '' },
         { link_path: '', link_name: '' },
       ])
     }
@@ -155,7 +166,7 @@ export default function CreateModal({ onSubmit }: CreateModalProps) {
                 เพิ่มรายละเอียดภาระงาน
               </h3>
             </div>
-            <form onSubmit={handleFormSubmit}>
+            <form ref={formRef} onSubmit={handleFormSubmit}>
               <div className="no-scrollbar max-h-[calc(70vh-150px)] overflow-y-auto pb-2">
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="col-span-1 md:col-span-2">
@@ -166,43 +177,6 @@ export default function CreateModal({ onSubmit }: CreateModalProps) {
                       name="form_title"
                       type="text"
                       placeholder="ภาระงาน/กิจกรรม/โครงการ/งาน"
-                      className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
-                      required
-                    />
-                  </div>
-
-                  <div className="col-span-1 md:col-span-2">
-                    <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
-                      คำอธิบาย
-                    </label>
-                    <textarea
-                      name="description"
-                      placeholder="คำอธิบาย"
-                      className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
-                    />
-                  </div>
-
-                  <div className="col-span-1">
-                    <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
-                      จำนวน
-                    </label>
-                    <input
-                      name="quality"
-                      type="number"
-                      placeholder="จำนวน"
-                      className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
-                      required
-                    />
-                  </div>
-
-                  <div className="col-span-1">
-                    <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
-                      ภาระงาน
-                    </label>
-                    <input
-                      name="workload"
-                      type="number"
-                      placeholder="ภาระงาน"
                       className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                       required
                     />
@@ -393,6 +367,46 @@ export default function CreateModal({ onSubmit }: CreateModalProps) {
                       </>
                     )}
                   </div>
+
+                  <div className="col-span-1">
+                    <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
+                      จำนวน
+                    </label>
+                    <input
+                      name="quality"
+                      type="number"
+                      step="any"
+                      placeholder="จำนวน"
+                      className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
+                      required
+                    />
+                  </div>
+
+                  <div className="col-span-1">
+                    <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
+                      ภาระงาน
+                    </label>
+                    <input
+                      name="workload"
+                      type="number"
+                      step="any"
+                      placeholder="ภาระงาน"
+                      className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
+                      required
+                    />
+                  </div>
+
+                  <div className="col-span-1 md:col-span-2">
+                    <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
+                      คำอธิบาย
+                    </label>
+                    <textarea
+                      name="description"
+                      placeholder="คำอธิบาย"
+                      className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
+                    />
+                  </div>
+
                 </div>
               </div>
 

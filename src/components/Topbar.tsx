@@ -174,8 +174,8 @@ export default function Topbar({
                       <Image
                         src={
                           user?.u_img
-                            ? `/images/${user.u_img}`
-                            : '/images/default.png'
+                            ? `/profile/${user.u_img}`
+                            : '/profile/default.png'
                         }
                         fill
                         alt="User"
@@ -192,7 +192,7 @@ export default function Topbar({
                         name: user ? `${user.u_fname} ${user.u_lname}` : '',
                         email: session?.user?.email || '',
                         position: user?.level_name || '',
-                        image: user?.u_img ? `/images/${user.u_img}` : '/images/default.png'
+                        image: user?.u_img ? `/profile/${user.u_img}` : '/profile/default.png'
                       }}
                     />
                   </div>

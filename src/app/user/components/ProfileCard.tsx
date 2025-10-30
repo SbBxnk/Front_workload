@@ -47,7 +47,7 @@ function ProfileCard() {
         </h2>
         <div className="relative mx-auto h-24 w-24 overflow-hidden rounded-full border-2 border-gray-100">
           <Image
-            src={user?.u_img ? `/images/${user.u_img}` : '/images/default.png'}
+            src={user?.u_img ? `/profile/${user.u_img}` : '/profile/default.png'}
             fill
             alt="avatar"
             className="bg-white object-cover"

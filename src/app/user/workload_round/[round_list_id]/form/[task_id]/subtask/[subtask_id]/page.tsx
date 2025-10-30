@@ -1117,7 +1117,7 @@ const {setBreadcrumbs} = useUtility()
                 >
                   <button
                     onClick={() => toggleForm(index)}
-                    className="flex max-w-[90%] items-center text-[16px] font-normal text-business1/80 hover:text-business1 dark:text-gray-200 dark:hover:text-gray-100 md:max-w-full md:text-lg"
+                    className="flex max-w-[90%] items-center text-left break-words whitespace-normal text-[16px] font-normal text-business1/80 hover:text-business1 dark:text-gray-200 dark:hover:text-gray-100 md:max-w-full md:text-lg"
                   >
                     <ChevronDown
                       className={`mr-2 h-10 w-10 transform transition-transform duration-300 md:h-5 md:w-5${
@@ -1178,7 +1178,7 @@ const {setBreadcrumbs} = useUtility()
                         <p className="text-sm font-light text-gray-500 dark:text-gray-400">
                           คำอธิบาย:
                         </p>
-                        <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">
+                        <p className="mt-1 text-left break-words whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300">
                           {form.description}
                         </p>
                       </div>
@@ -1187,7 +1187,7 @@ const {setBreadcrumbs} = useUtility()
                           <p className="text-sm font-light text-gray-500 dark:text-gray-400">
                             ภาระงาน:
                           </p>
-                          <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">
+                          <p className="mt-1 text-left break-words text-sm text-gray-700 dark:text-gray-300">
                             {form.workload}
                           </p>
                         </div>
@@ -1195,7 +1195,7 @@ const {setBreadcrumbs} = useUtility()
                           <p className="text-sm font-light text-gray-500 dark:text-gray-400">
                             จำนวน:
                           </p>
-                          <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">
+                          <p className="mt-1 text-left break-words text-sm text-gray-700 dark:text-gray-300">
                             {form.quality}
                           </p>
                         </div>
@@ -1204,7 +1204,7 @@ const {setBreadcrumbs} = useUtility()
                         <p className="text-sm font-light text-gray-500 dark:text-gray-400">
                           รวมภาระงาน:
                         </p>
-                        <p className="mt-1 text-base font-semibold text-gray-800 dark:text-gray-200">
+                        <p className="mt-1 text-left break-words text-base font-semibold text-gray-800 dark:text-gray-200">
                           {form.total_score}
                         </p>
                       </div>
@@ -1231,10 +1231,10 @@ const {setBreadcrumbs} = useUtility()
                                       onClick={() =>
                                         window.open(link.link_path, '_blank')
                                       }
-                                      className="inline-flex items-center text-sm text-blue-600 transition-colors duration-150 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+                                      className="flex items-start w-full text-left text-sm text-blue-600 transition-colors duration-150 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
                                     >
-                                      <LinkIcon className="mr-2 h-5 w-5 text-blue-500 dark:text-blue-400" />
-                                      <span className="max-w-[150px] truncate md:max-w-[400px]">
+                                      <LinkIcon className="mr-2 h-5 w-5 flex-shrink-0 text-blue-500 dark:text-blue-400" />
+                                      <span className="flex-1 break-words whitespace-normal">
                                         {link.link_name}
                                       </span>
                                     </button>
@@ -1253,14 +1253,14 @@ const {setBreadcrumbs} = useUtility()
                                         const url = `${baseUrl}/files/${file.file_name}`
                                         window.open(url, '_blank')
                                       }}
-                                      className="inline-flex items-center text-sm text-blue-600 transition-colors duration-150 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+                                      className="flex items-start w-full text-left text-sm text-blue-600 transition-colors duration-150 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
                                     >
                                       {isImageFile(file.file_name) ? (
-                                        <ImageIcon className="mr-2 h-5 w-5 text-blue-500 dark:text-blue-400" />
+                                        <ImageIcon className="mr-2 h-5 w-5 flex-shrink-0 text-blue-500 dark:text-blue-400" />
                                       ) : (
-                                        <FileText className="mr-2 h-5 w-5 text-blue-500 dark:text-blue-400" />
+                                        <FileText className="mr-2 h-5 w-5 flex-shrink-0 text-blue-500 dark:text-blue-400" />
                                       )}
-                                      <span className="max-w-[150px] truncate md:max-w-[400px]">
+                                      <span className="flex-1 break-words whitespace-normal">
                                         {file.file_name}
                                       </span>
                                     </button>
@@ -1278,16 +1278,16 @@ const {setBreadcrumbs} = useUtility()
                                       '_blank'
                                     )
                                   }}
-                                  className="inline-flex items-center text-sm text-blue-600 transition-colors duration-150 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+                                  className="flex items-start w-full text-left text-sm text-blue-600 transition-colors duration-150 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
                                 >
                                   {isImageFile(
                                     formSystemFiles[form.form_id].file_name
                                   ) ? (
-                                    <ImageIcon className="mr-2 h-5 w-5 text-blue-500 dark:text-blue-400" />
+                                    <ImageIcon className="mr-2 h-5 w-5 flex-shrink-0 text-blue-500 dark:text-blue-400" />
                                   ) : (
-                                    <FileText className="mr-2 h-5 w-5 text-blue-500 dark:text-blue-400" />
+                                    <FileText className="mr-2 h-5 w-5 flex-shrink-0 text-blue-500 dark:text-blue-400" />
                                   )}
-                                  <span className="max-w-[150px] truncate">
+                                  <span className="flex-1 break-words whitespace-normal">
                                     {formSystemFiles[form.form_id].file_name}
                                   </span>
                                 </button>
@@ -1297,14 +1297,14 @@ const {setBreadcrumbs} = useUtility()
                                 <li key={fileInfo.fileinfo_id ? `fileinfo-${fileInfo.fileinfo_id}` : `fileinfo-${form.form_id || 'temp'}-${index}`}>
                                   <button
                                     onClick={() => handleViewEvidence(fileInfo)}
-                                    className="inline-flex items-center text-sm text-blue-600 transition-colors duration-150 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+                                    className="flex items-start w-full text-left text-sm text-blue-600 transition-colors duration-150 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
                                   >
                                     {isImageFile(fileInfo.file_name) ? (
-                                      <ImageIcon className="mr-2 h-5 w-5 text-blue-500 dark:text-blue-400" />
+                                      <ImageIcon className="mr-2 h-5 w-5 flex-shrink-0 text-blue-500 dark:text-blue-400" />
                                     ) : (
-                                      <FileText className="mr-2 h-5 w-5 text-blue-500 dark:text-blue-400" />
+                                      <FileText className="mr-2 h-5 w-5 flex-shrink-0 text-blue-500 dark:text-blue-400" />
                                     )}
-                                    <span className="max-w-[150px] truncate">
+                                    <span className="flex-1 break-words whitespace-normal">
                                       {fileInfo.file_name}
                                     </span>
                                   </button>
