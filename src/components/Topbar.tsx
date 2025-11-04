@@ -14,6 +14,7 @@ import UserProfileDialog from './UserProfileDialog'
 interface UserLoginData {
   u_fname: string
   u_lname: string
+  u_email: string
   level_name: string
   u_img: string
 }
@@ -126,7 +127,7 @@ export default function Topbar({
   const formattedDate = formatDate(String(currentDateTime))
 
   return (
-    <div className="sticky top-0 z-20 w-full border-b bg-white bg-white/75 backdrop-blur-md transition-all duration-300 ease-in-out dark:border-zinc-800/25 dark:bg-zinc-900/75 dark:text-gray-200">
+    <div className="sticky top-0 z-20 w-full border-b bg-white backdrop-blur-md transition-all duration-300 ease-in-out dark:border-zinc-800/25 dark:bg-zinc-900/75 dark:text-gray-200">
       <div className="border-b px-4 py-2 dark:border-zinc-800/80">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -190,7 +191,7 @@ export default function Topbar({
                       onClose={() => setIsProfileDialogOpen(false)}
                       user={{
                         name: user ? `${user.u_fname} ${user.u_lname}` : '',
-                        email: session?.user?.email || '',
+                        email: user?.u_email || '',
                         position: user?.level_name || '',
                         image: user?.u_img ? `/profile/${user.u_img}` : '/profile/default.png'
                       }}

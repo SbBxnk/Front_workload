@@ -12,6 +12,7 @@ import SetAssessorServices from '@/services/setAssessorServices'
 import SnapshotService from '@/services/snapshotService'
 import MainTaskServices from '@/services/mainTaskServices'
 import SubTaskServices from '@/services/subTaskServices'
+import WorkloadGroupServices from '@/services/workloadGroupServices'
 
 interface WorkloadFormProps {
   selectedGroupName?: string
@@ -196,7 +197,6 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
 
       // ถ้า forceSnapshot = true ให้ใช้ snapshot เสมอ
       if (forceSnapshot) {
-        console.log('Force snapshot mode - fetching from snapshot')
         const forceFormlistResponse = await SnapshotService.getFormlistId(
           userId,
           roundId
@@ -213,8 +213,6 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
             )
 
             if (snapshotResponse.success && snapshotResponse.payload && Array.isArray(snapshotResponse.payload) && snapshotResponse.payload.length > 0) {
-              console.log('Snapshot Response (Force):', snapshotResponse.payload)
-
               // จัดกลุ่มข้อมูลตาม task_id และ subtask_id
               const taskMap = new Map();
 
@@ -228,7 +226,7 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
                     task_name: item.task_name || "ภาระงานสอน",
                     workload_group_id: item.workload_group_id,
                     workload_group_name: item.workload_group_name,
-                    quantity_workload_hours: item.quantity_workload_hours || 20,
+                    quantity_workload_hours: item.quantity_workload_hours,
                     subtasks: new Map()
                   });
                 }
@@ -284,8 +282,6 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
               setWorkloadData(convertedData)
               return
             } else {
-              // ถ้าไม่มีข้อมูลใน snapshot ให้ fallback ไปใช้ API ปกติ
-              console.warn('Snapshot response is empty, falling back to regular API')
               throw new Error('Snapshot data is empty')
             }
           } catch (snapshotError: any) {
@@ -299,7 +295,6 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
               )
 
               if (response.data.success && response.data.payload) {
-                console.log('Fallback to regular API successful:', response.data.payload)
                 setWorkloadData(response.data.payload)
                 return
               } else {
@@ -369,7 +364,7 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
                   task_name: item.task_name || "ภาระงานสอน",
                   workload_group_id: item.workload_group_id,
                   workload_group_name: item.workload_group_name,
-                  quantity_workload_hours: item.quantity_workload_hours || 20,
+                  quantity_workload_hours: item.quantity_workload_hours,
                   subtasks: new Map()
                 });
               }
@@ -658,8 +653,8 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
       doc.setFontSize(14)
       const currentYear = year
       doc.setFont('THSarabunNew', 'bold')
-      doc.text('ข้อตกลงและแบบประเมินผลการปฏิบัติงานของบุคลากรสายวิชาการ', doc.internal.pageSize.getWidth() / 2, 15, { align: 'center' })
-      doc.text('มหาวิทยาลัยเทคโนโลยีราชมงคลล้านนา' + ' ' + `ประจำปีงบประมาณ ${currentYear}`, doc.internal.pageSize.getWidth() / 2, 22, { align: 'center' })
+
+      // วาด Header จะทำหลังจากสร้างเอกสารทั้งหมด (ใส่ทุกหน้า)
 
       // หัวข้อแบบฟอร์ม
       doc.setFontSize(12)
@@ -686,13 +681,92 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
       // กลุ่มภาระงาน
       doc.text('กลุ่มภาระงาน:', 14, 35)
 
-      // กลุ่มต่างๆ
-      const groups = [
-        { name: 'กลุ่มทั่วไป', selected: false },
-        { name: 'กลุ่มเน้นวิจัย', selected: false },
-        { name: 'กลุ่มเน้นสอน', selected: selectedGroupName === 'เน้นสอน' || selectedGroupName?.includes('สอน') },
-        { name: 'กลุ่มเน้นบริการวิชาการ', selected: false }
-      ]
+      // ดึงข้อมูล workload_group_name จาก API
+      let actualWorkloadGroupName: string | null = null
+      try {
+        // ลองดึงจาก mergedTasks ก่อน (ถ้ามีข้อมูลแล้ว)
+        if (Array.isArray(mergedTasks) && mergedTasks.length > 0) {
+          const firstTaskWithGroup = mergedTasks.find(task => task.workload_group_name)
+          if (firstTaskWithGroup?.workload_group_name) {
+            actualWorkloadGroupName = firstTaskWithGroup.workload_group_name
+          }
+        }
+
+        // ถ้ายังไม่มี ลองดึงจาก workloadData
+        if (!actualWorkloadGroupName && Array.isArray(workloadData) && workloadData.length > 0) {
+          const firstTaskWithGroup = workloadData.find(task => task.workload_group_name)
+          if (firstTaskWithGroup?.workload_group_name) {
+            actualWorkloadGroupName = firstTaskWithGroup.workload_group_name
+          }
+        }
+
+        // ถ้ายังไม่มี ให้ดึงจาก API
+        if (!actualWorkloadGroupName && userId && roundId && session?.accessToken) {
+          try {
+            const assessorListResponse = await SetAssessorServices.getSetAssessorListByRound(
+              roundId,
+              session.accessToken,
+              {}
+            )
+            
+            if (assessorListResponse.success && assessorListResponse.payload) {
+              const assessorList = Array.isArray(assessorListResponse.payload) 
+                ? assessorListResponse.payload 
+                : [assessorListResponse.payload]
+              
+              const userAssessor = assessorList.find((item: any) => item.as_u_id === userId)
+              if (userAssessor?.workload_group_name) {
+                actualWorkloadGroupName = userAssessor.workload_group_name
+              }
+            }
+          } catch (apiError) {
+            console.error('Error fetching workload group from API:', apiError)
+          }
+        }
+
+        // ถ้ายังไม่มี ให้ใช้ selectedGroupName prop
+        if (!actualWorkloadGroupName && selectedGroupName) {
+          actualWorkloadGroupName = selectedGroupName
+        }
+      } catch (error) {
+        console.error('Error getting workload group name:', error)
+      }
+
+      // ดึงข้อมูลกลุ่มภาระงานทั้งหมดจาก API
+      let allGroups: string[] = []
+      try {
+        if (session?.accessToken) {
+          const groupsResponse = await WorkloadGroupServices.getAllWorkloadGroups(session.accessToken, {
+            search: '',
+            page: 1,
+            limit: 100,
+            sort: 'workload_group_id',
+            order: 'asc'
+          } as any)
+          
+          if (groupsResponse.success && groupsResponse.payload) {
+            const groupsArray = Array.isArray(groupsResponse.payload) 
+              ? groupsResponse.payload 
+              : [groupsResponse.payload]
+            allGroups = groupsArray.map((g: any) => g.workload_group_name)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching workload groups:', error)
+      }
+
+      // กลุ่มต่างๆ - เช็กจากข้อมูลจริงที่ได้จาก API
+      const groups = allGroups.length > 0 
+        ? allGroups.map(groupName => ({ 
+            name: groupName, 
+            selected: actualWorkloadGroupName === groupName || actualWorkloadGroupName?.includes(groupName) 
+          }))
+        : [
+            { name: 'กลุ่มทั่วไป', selected: actualWorkloadGroupName === 'กลุ่มทั่วไป' || actualWorkloadGroupName?.includes('ทั่วไป') },
+            { name: 'กลุ่มเน้นวิจัย', selected: actualWorkloadGroupName === 'กลุ่มเน้นวิจัย' || actualWorkloadGroupName?.includes('วิจัย') },
+            { name: 'กลุ่มเน้นสอน', selected: actualWorkloadGroupName === 'กลุ่มเน้นสอน' || actualWorkloadGroupName?.includes('สอน') },
+            { name: 'กลุ่มเน้นบริการวิชาการ', selected: actualWorkloadGroupName === 'กลุ่มเน้นบริการวิชาการ' || actualWorkloadGroupName?.includes('บริการ') }
+          ]
 
       const checkboxY = 42
       groups.forEach((group, index) => {
@@ -759,7 +833,6 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
         if (session?.accessToken) {
           const decoded = jwtDecode<any>(session.accessToken)
           userInfo = decoded
-          console.log('User info from token:', userInfo)
         }
       } catch (error) {
         console.warn('Could not decode token:', error)
@@ -1067,22 +1140,20 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
       const docMargin = 20
       const availableHeight = docPageHeight - docMargin
 
-      console.log('🔍 Page info:', {
-        currentY,
-        docPageHeight,
-        availableHeight,
-        willFitOnPage: currentY < availableHeight
-      })
+     
 
       // ถ้าหัวข้อจะเกินหน้า ให้ขึ้นหน้าใหม่
       if (currentY > availableHeight) {
         doc.addPage()
         currentY = docMargin
-        console.log('🔍 Added new page, currentY reset to:', currentY)
       }
 
       doc.setFontSize(14)
       doc.setFont('THSarabunNew', 'bold')
+      // บังคับให้หัวข้ออยู่ต่ำกว่าหัวกระดาษอย่างน้อย 34mm
+      if (currentY < 34) {
+        currentY = 34
+      }
       doc.text('ส่วนที่ 1 องค์ประกอบที่ 1 ผลสัมฤทธิ์ของงาน', 14, currentY)
 
       // อัปเดต currentY หลังจากลงชื่อ
@@ -1092,8 +1163,9 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
       const workloadTableData: any[] = []
       const workloadRowLinks: Array<string | null> = []
 
-      if (Array.isArray(workloadData)) {
-        workloadData.forEach((task) => {
+      // ใช้ mergedTasks ให้ตรงกับ UI และรวมรายการว่างด้วย
+      if (Array.isArray(mergedTasks)) {
+        mergedTasks.forEach((task) => {
           const taskTitle = task.quantity_workload_hours
             ? `${task.task_id}. ${task?.task_name || 'Unknown Task'} (ภาระงานขั้นต่ำ) : ${task.quantity_workload_hours} ภาระงาน/สัปดาห์`
             : `${task.task_id}. ${task?.task_name || 'Unknown Task'}`
@@ -1114,7 +1186,8 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
           ])
           workloadRowLinks.push(null)
 
-          Object.values(task.subtasks).forEach((subtask, subtaskIndex) => {
+          const allSubtasks = Object.values(task.subtasks)
+          allSubtasks.forEach((subtask, subtaskIndex) => {
             workloadTableData.push([
               {
                 content: `    ${task.task_id}.${subtaskIndex + 1} ${subtask?.subtask_name || 'Unknown Subtask'}`,
@@ -1130,6 +1203,20 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
             ])
             workloadRowLinks.push(null)
 
+            if (!subtask.form_infos || subtask.form_infos.length === 0) {
+              // แถว placeholder เมื่อไม่มีข้อมูล: แสดงเฉพาะเลขข้อย่อย และปล่อยช่องว่าง พร้อมเพิ่มความสูงแถว
+              workloadTableData.push([
+                { content: `        ${task.task_id}.${subtaskIndex + 1}.1`, styles: { minCellHeight: 12 } },
+                { content: '', styles: { minCellHeight: 12 } },
+                { content: '', styles: { minCellHeight: 12, halign: 'center' } },
+                { content: '', styles: { minCellHeight: 12, halign: 'center' } },
+                { content: '', styles: { minCellHeight: 12, halign: 'center' } },
+                { content: '', styles: { minCellHeight: 12 } }
+              ])
+              workloadRowLinks.push(null)
+              return
+            }
+
             subtask.form_infos.forEach((formInfo, index) => {
               const rowKey = `${task.task_id}-${subtask.subtask_id}-${index}`
 
@@ -1137,10 +1224,12 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
               let evidenceLinks: string[] = []
 
               if (formInfo.files && formInfo.files.length > 0) {
-                evidenceText = formInfo.files.map(f => f.file_name).join(', ')
+                // แสดงหลักฐานเป็นรายการ 1. 2. 3. แต่ละบรรทัด
+                evidenceText = formInfo.files.map((f, i) => `${i + 1}. ${f.file_name}`).join('\n')
                 evidenceLinks = formInfo.files.map(f => `${baseUrl}/files/${f.file_name}`)
               } else if (formInfo.links && formInfo.links.length > 0) {
-                evidenceText = formInfo.links.map(l => l.link_name || l.link_path).join(', ')
+                // แสดงหลักฐานเป็นรายการ 1. 2. 3. แต่ละบรรทัด
+                evidenceText = formInfo.links.map((l, i) => `${i + 1}. ${l.link_name || l.link_path}`).join('\n')
                 evidenceLinks = formInfo.links.map(l => {
                   let url = l.link_path || ''
                   if (!url.startsWith('http://') && !url.startsWith('https://')) {
@@ -1174,28 +1263,27 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
             })
           })
 
-          const taskTotal = Object.values(task.subtasks).reduce((subSum, subtask) =>
-            subSum + subtask.form_infos.reduce((formSum, formInfo) =>
+          const hasAny = allSubtasks.some(st => st.form_infos && st.form_infos.length > 0)
+          const taskTotal = allSubtasks.reduce((subSum, subtask) =>
+            subSum + (subtask.form_infos || []).reduce((formSum, formInfo) =>
               formSum + (formInfo.quality * formInfo.workload), 0
             ), 0
           )
 
           const isBelowRequired = task.quantity_workload_hours && taskTotal < task.quantity_workload_hours
 
-          console.log(`Task ${task.task_id} total:`, taskTotal)
-
           workloadTableData.push([
             '',
             '',
             '',
-            { content: 'รวมภาระงาน', styles: { halign: 'right', font: 'THSarabunNew', fontSize: 14, textColor: [0, 0, 0], fillColor: [255, 255, 255] } },
+            { content: 'รวม', styles: { halign: 'right', fontStyle: 'bold', font: 'THSarabunNew', fontSize: 14, textColor: [0, 0, 255], fillColor: [255, 255, 255] } },
             {
-              content: taskTotal.toString(),
+              content: hasAny ? taskTotal.toString() : '-',
               styles: {
                 halign: 'center',
                 font: 'THSarabunNew',
                 fontSize: 14,
-                textColor: isBelowRequired ? [255, 0, 0] : [0, 0, 0],
+                textColor: isBelowRequired ? [255, 0, 0] : [0, 0, 255],
                 fillColor: [255, 255, 255]
               }
             },
@@ -1208,7 +1296,7 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
       // สร้างตารางภาระงาน
       autoTable(doc, {
         startY: currentY + 10,
-        margin: { left: 10, right: 10 },
+        margin: { left: 10, right: 10, top: 30 },
         head: [[
           '(1)\nภาระงาน/กิจกรรม/โครงการ/งาน',
           '(2)\nหลักฐาน',
@@ -1249,28 +1337,31 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
             halign: 'left'
           },
           1: {
-            cellWidth: 35,
-            textColor: [37, 99, 235],
+            cellWidth: 43,
+            textColor: [13, 131, 186],
             font: 'THSarabunNew',
             overflow: 'linebreak'
           },
           2: {
-            cellWidth: 23,
+            cellWidth: 20,
             halign: 'center',
             font: 'THSarabunNew',
-            textColor: [0, 0, 0]
+            textColor: [0, 0, 255],
+            fontStyle: 'normal'
           },
           3: {
-            cellWidth: 25,
+            cellWidth: 20,
             halign: 'center',
             font: 'THSarabunNew',
-            textColor: [0, 0, 0]
+            textColor: [0, 0, 255],
+            fontStyle: 'normal'
           },
           4: {
             cellWidth: 27,
             halign: 'center',
-            textColor: [0, 0, 0],
-            font: 'THSarabunNew'
+            textColor: [0, 0, 255],
+            font: 'THSarabunNew',
+            fontStyle: 'bold'
           },
           5: {
             cellWidth: 30,
@@ -1312,8 +1403,6 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
           ? [selectedGroupName]
           : [...new Set(terms.map((term) => term?.workload_group_name || 'Unknown Group'))]
 
-        console.log('🔍 Unique tasks:', uniqueTasks)
-        console.log('🔍 Unique groups:', uniqueGroups)
 
         const criteriaTableData: any[] = []
 
@@ -1344,13 +1433,13 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
 
         autoTable(doc, {
           startY: currentY,
-          margin: { left: margin, right: margin },
+          margin: { left: margin, right: margin, top: 30 },
           head: [criteriaTableData[0]],
           body: criteriaTableData.slice(1),
           theme: 'grid',
           styles: {
             font: 'THSarabunNew',
-            fontSize: 12,
+            fontSize: 14,
             cellPadding: 2,
             lineColor: [0, 0, 0],
             lineWidth: 0.1,
@@ -1374,8 +1463,9 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
       const tableData: any[] = []
       const rowLinks: Array<string | null> = []
 
-      if (Array.isArray(workloadData)) {
-        workloadData.forEach((task) => {
+      // ส่วนซ้ำด้านล่าง: ใช้ mergedTasks และรวมรายการว่างด้วย
+      if (Array.isArray(mergedTasks)) {
+        mergedTasks.forEach((task) => {
           const taskTitle = task.quantity_workload_hours
             ? `${task.task_id}. ${task?.task_name || 'Unknown Task'} (ภาระงานขั้นต่ำ) : ${task.quantity_workload_hours} ภาระงาน/สัปดาห์`
             : `${task.task_id}. ${task?.task_name || 'Unknown Task'}`
@@ -1396,7 +1486,8 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
           ])
           rowLinks.push(null)
 
-          Object.values(task.subtasks).forEach((subtask, subtaskIndex) => {
+          const allSubtasks = Object.values(task.subtasks)
+          allSubtasks.forEach((subtask, subtaskIndex) => {
             tableData.push([
               {
                 content: `    ${task.task_id}.${subtaskIndex + 1} ${subtask?.subtask_name || 'Unknown Subtask'}`,
@@ -1412,6 +1503,20 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
             ])
             rowLinks.push(null)
 
+            if (!subtask.form_infos || subtask.form_infos.length === 0) {
+              // แถว placeholder เมื่อไม่มีข้อมูล: แสดงเฉพาะเลขข้อย่อย และปล่อยช่องว่าง พร้อมเพิ่มความสูงแถว
+              tableData.push([
+                { content: `        ${task.task_id}.${subtaskIndex + 1}.1`, styles: { minCellHeight: 12 } },
+                { content: '', styles: { minCellHeight: 12 } },
+                { content: '', styles: { minCellHeight: 12, halign: 'center' } },
+                { content: '', styles: { minCellHeight: 12, halign: 'center' } },
+                { content: '', styles: { minCellHeight: 12, halign: 'center' } },
+                { content: '', styles: { minCellHeight: 12 } }
+              ])
+              rowLinks.push(null)
+              return
+            }
+
             subtask.form_infos.forEach((formInfo, index) => {
               const rowKey = `${task.task_id}-${subtask.subtask_id}-${index}`
 
@@ -1419,10 +1524,12 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
               let evidenceLinks: string[] = []
 
               if (formInfo.files && formInfo.files.length > 0) {
-                evidenceText = formInfo.files.map(f => f.file_name).join(', ')
+                // แสดงเป็นรายการ 1. 2. 3. แต่ละบรรทัด
+                evidenceText = formInfo.files.map((f, i) => `${i + 1}. ${f.file_name}`).join('\n')
                 evidenceLinks = formInfo.files.map(f => `${baseUrl}/files/${f.file_name}`)
               } else if (formInfo.links && formInfo.links.length > 0) {
-                evidenceText = formInfo.links.map(l => l.link_name || l.link_path).join(', ')
+                // แสดงเป็นรายการ 1. 2. 3. แต่ละบรรทัด
+                evidenceText = formInfo.links.map((l, i) => `${i + 1}. ${l.link_name || l.link_path}`).join('\n')
                 evidenceLinks = formInfo.links.map(l => {
                   let url = l.link_path || ''
                   if (!url.startsWith('http://') && !url.startsWith('https://')) {
@@ -1456,28 +1563,29 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
             })
           })
 
-          const taskTotal = Object.values(task.subtasks).reduce((subSum, subtask) =>
-            subSum + subtask.form_infos.reduce((formSum, formInfo) =>
+          const hasAny = allSubtasks.some(st => st.form_infos && st.form_infos.length > 0)
+          const taskTotal = allSubtasks.reduce((subSum, subtask) =>
+            subSum + (subtask.form_infos || []).reduce((formSum, formInfo) =>
               formSum + (formInfo.quality * formInfo.workload), 0
             ), 0
           )
 
           const isBelowRequired = task.quantity_workload_hours && taskTotal < task.quantity_workload_hours
 
-          console.log(`Task ${task.task_id} total:`, taskTotal)
 
           tableData.push([
             '',
             '',
             '',
-            { content: 'รวมภาระงาน', styles: { halign: 'right', font: 'THSarabunNew', fontSize: 14, textColor: [0, 0, 0], fillColor: [255, 255, 255] } },
+            { content: 'รวม', styles: { halign: 'bold', font: 'THSarabunNew', fontSize: 14, textColor: [0, 0, 255], fillColor: [255, 255, 255] } },
             {
               content: taskTotal.toString(),
               styles: {
                 halign: 'center',
                 font: 'THSarabunNew',
+                fontStyle: 'bold',
                 fontSize: 14,
-                textColor: isBelowRequired ? [255, 0, 0] : [0, 0, 0],
+                textColor: isBelowRequired ? [255, 0, 0] : [0, 0, 255],
                 fillColor: [255, 255, 255]
               }
             },
@@ -1502,9 +1610,167 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
         ), 0
       ) : 0
 
-      // ตารางถูกลบออกตามที่ร้องขอ
+      // สรุปผลสัมฤทธิ์ของงาน (ขึ้นหน้าใหม่เสมอ)
+      doc.addPage()
+      let summaryStartY = 32
+      doc.setFont('THSarabunNew', 'bold')
+      doc.setFontSize(14)
+      doc.text('ส่วนที่ 1 องค์ประกอบที่ 1 ผลสัมฤทธิ์ของงาน', 14, summaryStartY)
+      summaryStartY += 5
 
-      // ตารางสรุปถูกลบออกตามที่ร้องขอ
+      // สร้างข้อมูลตารางสรุปให้ตรงกับ UI: ภาระงาน/จำนวนภาระงานต่อสัปดาห์/รวมภาระงาน/หมายเหตุ
+      const summaryHead = [[
+        'ภาระงาน/กิจกรรม/โครงการ/งาน',
+        'จำนวนภาระงานต่อสัปดาห์',
+        'รวมภาระงาน',
+        'หมายเหตุ'
+      ]]
+
+      const summaryBody: any[] = []
+      if (Array.isArray(mergedTasks)) {
+        mergedTasks.forEach((task, index) => {
+          const hasAny = Object.values(task.subtasks).some(st => st.form_infos.length > 0)
+          const taskTotal = Object.values(task.subtasks).reduce((subSum, subtask) =>
+            subSum + subtask.form_infos.reduce((formSum, formInfo) =>
+              formSum + (formInfo.quality * formInfo.workload), 0
+            ), 0
+          )
+          const displayTaskName = task?.task_name
+            ? (task?.task_id ? `${task.task_id}. ${task.task_name}` : task.task_name)
+            : ''
+          
+          // ใช้ค่า quantity_workload_hours จาก task โดยตรง (เหมือนตารางแรก)
+          const minimumWorkload = task.quantity_workload_hours 
+            ? task.quantity_workload_hours.toString()
+            : ''
+          
+          // ตรวจสอบว่าคะแนนถึงเกณฑ์หรือไม่
+          const isBelowRequired = minimumWorkload && taskTotal < parseFloat(minimumWorkload)
+          
+          summaryBody.push([
+            displayTaskName,
+            minimumWorkload || '-',
+            { 
+              content: hasAny ? taskTotal.toString() : '-', 
+              styles: { 
+                halign: 'center',
+                textColor: isBelowRequired ? [255, 0, 0] : [0, 0, 255] // สีแดงถ้าไม่ถึงเกณฑ์
+              }
+            },
+            ''
+          ])
+        })
+      }
+
+      // เพิ่มแถวสรุป "รวม"
+      const firstFive = Array.isArray(mergedTasks) ? mergedTasks.slice(0, 5) : []
+      const hasAnySummary = firstFive.some(task => Object.values(task.subtasks).some(st => st.form_infos.length > 0))
+      const totalSummary = firstFive.reduce((sum, task) =>
+        sum + Object.values(task.subtasks).reduce((subSum, subtask) =>
+          subSum + subtask.form_infos.reduce((formSum, formInfo) =>
+            formSum + (formInfo.quality * formInfo.workload), 0
+          ), 0
+        ), 0
+      )
+
+      summaryBody.push([
+        { content: '(6) รวม', colSpan: 2, styles: { fontStyle: 'bold', halign: 'right' } },
+        { 
+          content: hasAnySummary ? totalSummary.toString() : '-', 
+          styles: { fontStyle: 'bold', halign: 'center', textColor: [0, 0, 255] } 
+        },
+        ''
+      ])
+
+      autoTable(doc, {
+        startY: summaryStartY,
+        margin: { left: 10, right: 10, top: 30 },
+        head: summaryHead,
+        body: summaryBody,
+        theme: 'grid',
+        styles: {
+          font: 'THSarbunNew',
+          fontSize: 14,
+          cellPadding: 2,
+          lineColor: [0, 0, 0],
+          lineWidth: 0.1,
+          textColor: [0, 0, 0],
+          fillColor: [255, 255, 255]
+        },
+        headStyles: {
+          fillColor: [255, 255, 255],
+          textColor: [0, 0, 0],
+          fontStyle: 'bold',
+          halign: 'center',
+          fontSize: 14,
+          font: 'THSarabunNew',
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0]
+        },
+        columnStyles: {
+          0: { cellWidth: 80, font: 'THSarabunNew' },
+          1: { cellWidth: 40, halign: 'center', font: 'THSarabunNew' },
+          2: { cellWidth: 30, halign: 'center', font: 'THSarabunNew' },
+          3: { cellWidth: 40, font: 'THSarabunNew' }
+        },
+      })
+
+      // อัปเดต currentY หลังจากตารางสรุป
+      const summaryTableFinalY = (doc as any).lastAutoTable.finalY + 10
+
+      // แสดงข้อความ "สรุปคะแนนส่วนผลสัมฤทธิ์ของงาน" พร้อมคะแนน
+      doc.setFontSize(14)
+      doc.setFont('THSarabunNew', 'normal')
+      
+      const scoreText = `สรุปคะแนนส่วนผลสัมฤทธิ์ของงาน คะแนนเต็ม 70 คะแนน`
+      
+      // วางข้อความทางซ้าย
+      doc.text(scoreText, 14, summaryTableFinalY)
+      
+      // วางค่า calculated ทางขวา
+      const textBeforeScore = '(7) คะแนนที่ได้ '
+      const scoreNumber = performanceScoreOutOf70.toFixed(2)
+      const textAfterScore = ''
+      
+      // คำนวณตำแหน่งเริ่มต้นของข้อความทางขวา
+      const totalScoreWidth = doc.getTextWidth(textBeforeScore + scoreNumber + textAfterScore)
+      const scoreStartX = pageWidth - 14 - totalScoreWidth
+      
+      doc.setFont('THSarabunNew', 'normal')
+      doc.setTextColor(0, 0, 0) // สีดำ
+      doc.text(textBeforeScore, scoreStartX, summaryTableFinalY)
+      
+      // วาดตัวเลขสีน้ำเงิน
+      const beforeWidth = doc.getTextWidth(textBeforeScore)
+      doc.setFont('THSarabunNew', 'bold')
+      doc.setTextColor(0, 0, 255) // สีน้ำเงิน
+      doc.text(scoreNumber, scoreStartX + beforeWidth, summaryTableFinalY)
+      
+      // วาดข้อความหลังสีดำ
+      const numberWidth = doc.getTextWidth(scoreNumber)
+      doc.setFont('THSarabunNew', 'normal')
+      doc.setTextColor(0, 0, 0) // สีดำ
+      doc.text(textAfterScore, scoreStartX + beforeWidth + numberWidth, summaryTableFinalY)
+
+      // วาด Header บนทุกหน้า (หน้าแรกมีปีงบประมาณ หน้าถัดไปไม่มี)
+      const titleLine1 = 'ข้อตกลงและแบบประเมินผลการปฏิบัติงานของบุคลากรสายวิชาการ'
+      const titleLine2 = `มหาวิทยาลัยเทคโนโลยีราชมงคลล้านนา${currentYear ? ' ประจำปีงบประมาณ ' + currentYear : ''}`
+      const titleLine2NoYear = 'มหาวิทยาลัยเทคโนโลยีราชมงคลล้านนา'
+
+      const totalPages = (doc as any).internal.getNumberOfPages()
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i)
+        doc.setFont('THSarabunNew', 'bold')
+        doc.setFontSize(14)
+        const midX = doc.internal.pageSize.getWidth() / 2
+        if (i === 1) {
+          doc.text(titleLine1, midX, 15, { align: 'center' })
+          doc.text(titleLine2, midX, 22, { align: 'center' })
+        } else {
+          doc.text(titleLine1, midX, 15, { align: 'center' })
+          doc.text(titleLine2NoYear, midX, 22, { align: 'center' })
+        }
+      }
 
       // Save PDF
       doc.save(`workload-report-${roundId || 'export'}.pdf`)
@@ -1805,16 +2071,29 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
                   ? (task?.task_id ? `${task.task_id}. ${task.task_name}` : task.task_name)
                   : ''
 
-                // ข้อมูลภาระงานแต่ละกลุ่ม (ขั้นต่ำตัวอย่าง)
-                const workloadGroups = [
-                  { name: 'กลุ่มทั่วไป', hours: [15, 6, 5, 3, 6] },
-                  { name: 'กลุ่มเน้นสอน', hours: [20, 6, 3, 3, 3] },
-                  { name: 'กลุ่มเน้นวิจัย', hours: [9, 21, 2, 2, 1] },
-                  { name: 'กลุ่มเน้นบริการวิชาการ', hours: [9, 6, 17, 2, 1] }
-                ]
-                const hoursAt = (arr: number[], idx: number) => (idx >= 0 && idx < arr.length ? arr[idx] : 0)
-                const hourIndex = typeof task?.task_id === 'number' ? task.task_id - 1 : index
-                const hasGroupMinimum = typeof task?.task_id === 'number' && task.task_id >= 1 && task.task_id <= 5 && workloadGroups.some(g => hoursAt(g.hours, hourIndex) > 0)
+                // สร้างข้อมูล workloadGroups จาก terms แทน hardcode
+                const workloadGroups: Array<{ name: string; hours: { [key: string]: number } }> = []
+                if (terms && terms.length > 0) {
+                  // สร้าง unique groups จาก terms
+                  const uniqueGroups = [...new Set(terms.map(term => term.workload_group_name))]
+                  uniqueGroups.forEach(groupName => {
+                    // สร้าง map ของ task_name -> hours
+                    const hours: { [key: string]: number } = {}
+                    terms.forEach(term => {
+                      if (term.workload_group_name === groupName) {
+                        hours[term.task_name] = term.quantity_workload_hours
+                      }
+                    })
+                    if (Object.values(hours).some(h => h > 0)) {
+                      workloadGroups.push({ name: groupName, hours })
+                    }
+                  })
+                }
+                
+                const hasGroupMinimum = workloadGroups.some(g => g.hours[task.task_name] > 0)
+                // คำนวณจำนวนกลุ่มที่มีขั้นต่ำสำหรับ task นี้
+                const groupCountWithMinimum = workloadGroups.filter(g => g.hours[task.task_name] > 0).length
+                const rowSpanValue = hasGroupMinimum ? groupCountWithMinimum + 1 : 1
 
                 return (
                   <React.Fragment key={task.task_id}>
@@ -1824,33 +2103,36 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
                         }`}>
                         {displayTaskName}
                       </td>
-                      <td rowSpan={hasGroupMinimum ? 5 : 1} className="border border-gray-300 px-4 py-3 text-center font-light text-sm bg-white">
+                      <td rowSpan={rowSpanValue} className="border border-gray-300 px-4 py-3 text-center font-light text-sm bg-white">
                         {hasAny ? taskTotal : '-'}
                       </td>
-                      <td rowSpan={hasGroupMinimum ? 5 : 1} className="border border-gray-300 px-4 py-3 text-center text-gray-500 bg-white">
+                      <td rowSpan={rowSpanValue} className="border border-gray-300 px-4 py-3 text-center text-gray-500 bg-white">
 
                       </td>
                     </tr>
 
-                    {/* แสดงตัวเลือกแต่ละกลุ่ม เฉพาะเมื่อมีขั้นต่ำในอย่างน้อยหนึ่งกลุ่ม */}
+                    {/* แสดงตัวเลือกแต่ละกลุ่ม/term เฉพาะเมื่อมีขั้นต่ำในอย่างน้อยหนึ่งกลุ่ม */}
                     {hasGroupMinimum && workloadGroups.map((group, groupIndex) => {
-                      const isSelected = selectedGroupName === group.name ||
-                        (selectedGroupName?.includes('สอน') && group.name === 'กลุ่มเน้นสอน') ||
-                        (selectedGroupName?.includes('วิจัย') && group.name === 'กลุ่มเน้นวิจัย') ||
-                        (selectedGroupName?.includes('บริการ') && group.name === 'กลุ่มเน้นบริการวิชาการ') ||
-                        (selectedGroupName?.includes('ทั่วไป') && group.name === 'กลุ่มทั่วไป')
+                      // เช็กจาก selectedGroupName prop โดยตรง
+                      const isSelected = selectedGroupName === group.name
 
                       // ถ้ากลุ่มนี้ไม่มีขั้นต่ำสำหรับภาระงานนี้ ไม่ต้องแสดงแถว
-                      if (!(hoursAt(group.hours, hourIndex) > 0)) return null
+                      const hourValue = group.hours[task.task_name] || 0
+                      if (!(hourValue > 0)) return null
 
                       return (
                         <tr key={`${task.task_id}-${groupIndex}`} className="bg-white">
                           <td className="border-l border-r border-gray-300 px-4 pb-2 text-gray-800 font-light text-sm">
                             <div className="flex items-center gap-3">
-                              <div className={`w-4 h-4 border rounded flex items-center justify-center ${isSelected
-                                ? 'border-red-500 bg-red-500'
-                                : 'border-gray-400'
-                                }`}>
+                              <div 
+                                className={`w-4 h-4 border-2 rounded flex items-center justify-center flex-shrink-0 ${
+                                  isSelected
+                                    ? 'border-red-500 bg-red-500'
+                                    : 'border-gray-400 bg-white'
+                                }`}
+                                role="checkbox"
+                                aria-checked={isSelected}
+                              >
                                 {isSelected && (
                                   <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -1858,7 +2140,7 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
                                 )}
                               </div>
                               <span className={isSelected ? 'text-red-500 font-light' : 'text-gray-700'}>
-                                {group.name} {hoursAt(group.hours, hourIndex)} ภาระงาน/สัปดาห์
+                                {group.name} {hourValue} ภาระงาน/สัปดาห์
                               </span>
                             </div>
                           </td>

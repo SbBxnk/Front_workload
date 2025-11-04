@@ -404,7 +404,7 @@ export default function EditProfile() {
                   <div className="flex flex-col gap-4 md:flex-row">
                     <div className="flex-1">
                       <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
-                        เลขประจำตัวประชาชน
+                        เลขประจำตำแหน่ง
                       </label>
                       <input
                         name="u_id_card"

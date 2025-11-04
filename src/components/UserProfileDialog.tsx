@@ -49,7 +49,7 @@ const UserProfileDialog: React.FC<UserProfileDialogProps> = ({
     >
       {/* Header */}
       <div className="bg-white dark:bg-zinc-800 p-4 border-b border-gray-200 dark:border-zinc-700">
-        <h3 className="text-lg font-normal text-gray-600 dark:text-gray-400">ข้อมูลส่วนตัว</h3>
+        <h3 className="text-lg font-normal text-gray-600 dark:text-gray-400 text-center">ข้อมูลส่วนตัว</h3>
       </div>
       
       {/* Content */}

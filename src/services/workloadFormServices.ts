@@ -48,7 +48,9 @@ export interface WorkloadFormDetail {
 }
 
 export interface WorkloadFormTerms {
+  task_id?: number
   task_name: string
+  workload_group_id?: number
   workload_group_name: string
   quantity_workload_hours: number
 }

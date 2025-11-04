@@ -123,7 +123,7 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
             search: '',
             page: 1,
             limit: 1000,
-            sort: 'workload_group_name',
+            sort: 'workload_group_id',
             order: 'asc'
           }),
           // ดึงข้อมูล set assessor round
@@ -412,31 +412,51 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
                     // กรอง terms ให้เหลือเฉพาะคู่ task-group ที่มีค่า minimum จริง (quantity > 0 หรือไม่เป็น null/ว่าง)
                     const effectiveTerms = terms.filter((t: any) => t && t.workload_group_name && t.task_name && t.quantity_workload_hours != null && String(t.quantity_workload_hours).trim() !== '' && Number(t.quantity_workload_hours) > 0)
 
-                    // ลำดับคอลัมน์กลุ่มภาระงานให้ตรงกับปุ่มเลือกด้านล่าง แต่ซ่อนกลุ่มที่ไม่มี minimum ในทุก task
+                    // ลำดับคอลัมน์กลุ่มภาระงานตามลำดับจาก database (workload_group_id)
+                    // ใช้ลำดับจาก workloadGroups ที่เรียงแล้วตาม workload_group_id
                     const presentGroupSet = new Set(effectiveTerms.map((t: any) => t.workload_group_name))
-                    const groups = (Array.isArray(workloadGroups) && workloadGroups.length > 0)
-                      ? workloadGroups
-                          .map((g: any) => g.workload_group_name)
-                          .filter((name: string) => presentGroupSet.has(name))
-                      : Array.from(presentGroupSet)
+                    
+                    // สร้าง Map สำหรับเก็บลำดับ workload_group_id จาก workloadGroups
+                    const groupOrderMap = new Map<number, string>()
+                    if (Array.isArray(workloadGroups) && workloadGroups.length > 0) {
+                      workloadGroups.forEach((g: any) => {
+                        if (presentGroupSet.has(g.workload_group_name)) {
+                          groupOrderMap.set(g.workload_group_id, g.workload_group_name)
+                        }
+                      })
+                    }
+                    
+                    // เรียง groups ตาม workload_group_id จาก database
+                    let groups: string[] = []
+                    if (groupOrderMap.size > 0) {
+                      groups = Array.from(groupOrderMap.entries())
+                        .sort((a, b) => a[0] - b[0]) // เรียงตาม workload_group_id
+                        .map(([, name]) => name)
+                    } else {
+                      // ถ้าไม่มี groups จาก workloadGroups ให้ใช้จาก terms โดยเรียงตาม workload_group_id
+                      const groupMap = new Map<number, string>()
+                      effectiveTerms.forEach((t: any) => {
+                        if (t.workload_group_id && !groupMap.has(t.workload_group_id)) {
+                          groupMap.set(t.workload_group_id, t.workload_group_name)
+                        }
+                      })
+                      groups = Array.from(groupMap.entries())
+                        .sort((a, b) => a[0] - b[0])
+                        .map(([, name]) => name)
+                    }
 
-                    // ลำดับแถวภาระงาน: แสดงเฉพาะ task ที่มีอย่างน้อยหนึ่ง group มี minimum
-                    const preferredTaskOrder = [
-                      'ภาระงานสอน',
-                      'ภาระงานวิจัยและงานวิชาการอื่นที่ปรากฏเป็นผลงานวิชาการตามหลักเกณฑ์ที่ ก.พ.อ.กำหนด',
-                      'ภาระงานบริการทางวิชาการ',
-                      'ภาระงานทำนุบำรุงศิลปวัฒนธรรม',
-                      'ภาระงานอื่น ๆ ที่สอดคล้องกับพันธกิจของคณะ มหาวิทยาลัย',
-                    ]
-                    const taskSet = Array.from(new Set(effectiveTerms.map((t: any) => t.task_name)))
-                    const tasks = taskSet.sort((a: any, b: any) => {
-                      const ai = preferredTaskOrder.indexOf(a)
-                      const bi = preferredTaskOrder.indexOf(b)
-                      if (ai === -1 && bi === -1) return String(a).localeCompare(String(b))
-                      if (ai === -1) return 1
-                      if (bi === -1) return -1
-                      return ai - bi
+                    // ลำดับแถวภาระงาน: เรียงตาม task_id จาก database
+                    const taskMap = new Map<number, string>()
+                    effectiveTerms.forEach((t: any) => {
+                      if (t.task_id && !taskMap.has(t.task_id)) {
+                        taskMap.set(t.task_id, t.task_name)
+                      }
                     })
+                    
+                    // เรียง tasks ตาม task_id จาก database
+                    const tasks = Array.from(taskMap.entries())
+                      .sort((a, b) => a[0] - b[0]) // เรียงตาม task_id
+                      .map(([, name]) => name)
                     const getQty = (taskName: string, groupName: string) => {
                       const found = effectiveTerms.find((t: any) => t.task_name === taskName && t.workload_group_name === groupName)
                       return found?.quantity_workload_hours ?? ''
@@ -486,7 +506,10 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
                 <h2 className="text-lg font-medium text-gray-700 dark:text-gray-300">กรุณาเลือกภาระงานก่อน</h2>
                 <div className="mt-4 flex flex-wrap gap-2 min-h-[2.5rem]">
                   {Array.isArray(workloadGroups) && workloadGroups.length > 0 ? (
-                    workloadGroups.map((group: WorkloadGroup) => (
+                    // เรียงลำดับตาม workload_group_id ก่อนแสดง
+                    [...workloadGroups]
+                      .sort((a, b) => a.workload_group_id - b.workload_group_id)
+                      .map((group: WorkloadGroup) => (
                       <label
                         key={group.workload_group_id}
                         htmlFor={`confirm-modal`}
