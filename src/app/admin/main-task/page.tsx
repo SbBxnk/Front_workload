@@ -11,7 +11,7 @@ import EditModal from './editModal'
 import MainTaskServices from '@/services/mainTaskServices'
 import { useSession } from 'next-auth/react'
 import Table, { TableColumn, SortState, SortOrder } from '@/components/Table'
-
+import useUtility from '@/hooks/useUtility'
 const ITEMS_PER_PAGE = 10
 
 interface FormDataMainTask {
@@ -26,6 +26,7 @@ type Order = 'asc' | 'desc'
 
 function MainTaskTable() {
   const { data: session } = useSession()
+  const { setBreadcrumbs } = useUtility()
   const [FormData, setFormData] = useState<FormDataMainTask>(FormDataMainTask)
   const [loading, setLoading] = useState<boolean>(false)
   const [order, setOrder] = useState<Order>('asc')
@@ -49,6 +50,12 @@ function MainTaskTable() {
     column: null,
     order: null,
   })
+
+  useEffect(() => {
+    setBreadcrumbs(
+      [{ text: 'ภาระงานหลัก', path: '/admin/main-task' },
+    ])
+  }, [setBreadcrumbs])
 
   // Define table columns
   const columns: TableColumn<MainTask>[] = [

@@ -12,7 +12,7 @@ import WorkloadGroupServices from '@/services/workloadGroupServices'
 import { useSession } from 'next-auth/react'
 import Table, { TableColumn, SortState, SortOrder } from '@/components/Table'
 import Tooltip from '@/components/Tooltip'
-
+import useUtility from '@/hooks/useUtility'
 const ITEMS_PER_PAGE = 10
 
 interface FormDataWorkloadGroup {
@@ -27,6 +27,7 @@ type Order = 'asc' | 'desc'
 
 function WorkloadGroupTable() {
   const { data: session } = useSession()
+  const { setBreadcrumbs } = useUtility()
   const [FormData, setFormData] = useState<FormDataWorkloadGroup>(FormDataWorkloadGroup)
   const [loading, setLoading] = useState<boolean>(false)
   const [order, setOrder] = useState<Order>('asc')
@@ -50,6 +51,12 @@ function WorkloadGroupTable() {
     column: null,
     order: null,
   })
+
+  useEffect(() => {
+    setBreadcrumbs(
+      [{ text: 'กลุ่มภาระงาน', path: '/admin/workload-group' },
+    ])
+  }, [setBreadcrumbs])
 
   // Define table columns
   const columns: TableColumn<WorkloadGroup>[] = [

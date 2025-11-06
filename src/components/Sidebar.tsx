@@ -29,6 +29,8 @@ import {
   LayoutList,
   Logs,
   CheckSquare,
+  BicepsFlexed,
+  Sheet,
 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useAssessor } from '@/hooks/useAssessor'
@@ -63,17 +65,17 @@ const adminMenuItems = [
       { id: 2, label: 'ข้อมูลส่วนตัว', icon: User, href: '/admin/profile' },
     ],
   },
-  {
-    title: 'หลักฐานภาระงาน',
-    items: [
-      {
-        id: 1,
-        label: 'ไฟล์หลักฐานภาระงาน',
-        icon: Package,
-        href: '/admin/topicpost',
-      },
-    ],
-  },
+  // {
+  //   title: 'หลักฐานภาระงาน',
+  //   items: [
+  //     {
+  //       id: 1,
+  //       label: 'ไฟล์หลักฐานภาระงาน',
+  //       icon: Package,
+  //       href: '/admin/topicpost',
+  //     },
+  //   ],
+  // },
   {
     title: 'บุคลากร',
     items: [
@@ -116,7 +118,9 @@ const adminMenuItems = [
       { id: 1, label: 'กลุ่มภาระงาน', icon: CheckSquare, href: '/admin/workload-group' },
       { id: 2, label: 'ภาระงานหลัก', icon: LayoutList, href: '/admin/main-task' },
       { id: 3, label: 'ภาระงานย่อย', icon: Logs, href: '/admin/sub-task' },
-      { id: 4, label: 'ปริมาณงาน', icon: NotepadText, href: '/admin/workload-quantity' },
+      { id: 4, label: 'รายการสมรรถนะ', icon: BicepsFlexed, href: '/admin/competency' },
+      { id: 5, label: 'เกณฑ์จำนวนภาระงาน', icon: NotepadText, href: '/admin/workload-quantity' },
+      { id: 6, label: 'เกณฑ์สมรรถนะ', icon: Sheet, href: '/admin/performance-term' },
     ],
   },
   {

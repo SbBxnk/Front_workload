@@ -12,6 +12,7 @@ import CourseServices from '@/services/courseServices'
 import BranchServices from '@/services/branchServices'
 import { useSession } from 'next-auth/react'
 import Table, { TableColumn, SortState, SortOrder } from '@/components/Table'
+import useUtility from '@/hooks/useUtility'
 
 const ITEMS_PER_PAGE = 10
 
@@ -29,6 +30,7 @@ type Order = 'asc' | 'desc'
 
 function CourseTable() {
   const { data: session } = useSession()
+  const { setBreadcrumbs } = useUtility()
   const [FormData, setFormData] = useState<FormDataCourse>(FormDataCourse)
   const [loading, setLoading] = useState<boolean>(false)
   const [order, setOrder] = useState<Order>('asc')
@@ -54,6 +56,11 @@ function CourseTable() {
     order: null,
   })
   const [branches, setBranches] = useState<Branch[]>([])
+  useEffect(() => {
+    setBreadcrumbs(
+      [{ text: 'หลักสูตร', path: '/admin/course' },
+    ])
+  }, [setBreadcrumbs])
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)

@@ -1,18 +1,18 @@
 import type React from 'react'
 
-interface FormDataPosition {
-  position_name: string
-  position_short_name: string
+interface FormDataCompetency {
+  competency_name: string
+  competency_order: number
 }
 
 interface CreateModalProps {
   isLoading: boolean
   handleSubmit: (
     e: React.FormEvent<HTMLFormElement> | React.MouseEvent,
-    position_name: string,
-    position_short_name: string
+    competency_name: string,
+    competency_order: number
   ) => void
-  formData: FormDataPosition
+  formData: FormDataCompetency
   handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void
 }
 
@@ -29,38 +29,40 @@ export default function CreateModal({
           <input type="checkbox" id={`modal-create`} className="modal-toggle" />
           <div className="modal" role={`modal-create`}>
             <div className="modal-box rounded-md dark:bg-zinc-800 p-0">
-              <form onSubmit={(e) => handleSubmit(e, formData.position_name, formData.position_short_name)}>
+              <form onSubmit={(e) => handleSubmit(e, formData.competency_name, formData.competency_order)}>
                 <div className="flex items-center border-b border-gray-200 p-4">
                   <h3 className="font-regular flex truncate text-start text-2xl text-gray-600 dark:text-gray-400">
-                    เพิ่มตำแหน่งวิชาการ&nbsp;
+                    เพิ่มสมรรถนะ&nbsp;
                   </h3>
                 </div>
                 <div className="p-4 space-y-4">
                   <div>
                     <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
-                      ตำแหน่งวิชาการ
+                      ชื่อสมรรถนะ
                     </label>
                     <input
-                      name="position_name"
-                      value={formData.position_name}
+                      name="competency_name"
+                      value={formData.competency_name}
                       onChange={handleInputChange}
                       type="text"
                       className="w-full rounded-md border border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
-                      placeholder="กรุณากรอกตำแหน่งวิชาการ"
+                      placeholder="กรุณากรอกชื่อสมรรถนะ"
                       required
                     />
                   </div>
                   <div>
                     <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
-                      ชื่อย่อตำแหน่ง
+                      ลำดับ
                     </label>
                     <input
-                      name="position_short_name"
-                      value={formData.position_short_name}
+                      name="competency_order"
+                      value={formData.competency_order || ''}
                       onChange={handleInputChange}
-                      type="text"
+                      type="number"
+                      min="1"
                       className="w-full rounded-md border border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
-                      placeholder="กรุณากรอกชื่อย่อตำแหน่ง (ไม่บังคับ)"
+                      placeholder="กรุณากรอกลำดับ"
+                      required
                     />
                   </div>
                 </div>
@@ -89,3 +91,4 @@ export default function CreateModal({
     </>
   )
 }
+

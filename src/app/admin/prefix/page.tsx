@@ -11,6 +11,7 @@ import EditModal from './editModal'
 import PrefixServices from '@/services/prefixServices'
 import { useSession } from 'next-auth/react'
 import Table, { TableColumn, SortState, SortOrder } from '@/components/Table'
+import useUtility from '@/hooks/useUtility'
 
 const ITEMS_PER_PAGE = 10
 
@@ -26,6 +27,7 @@ type Order = 'asc' | 'desc'
 
 function PrefixTable() {
   const { data: session } = useSession()
+  const { setBreadcrumbs } = useUtility()
   const [FormData, setFormData] = useState<FormDataPrefix>(FormDataPrefix)
   const [loading, setLoading] = useState<boolean>(false)
   const [order, setOrder] = useState<Order>('asc')
@@ -50,6 +52,12 @@ function PrefixTable() {
     order: null,
   })
 
+  useEffect(() => {
+    setBreadcrumbs(
+      [{ text: 'คำนำหน้า', path: '/admin/prefix' },
+    ])
+  }, [setBreadcrumbs])
+  
   // Define table columns
   const columns: TableColumn<Prefix>[] = [
     {

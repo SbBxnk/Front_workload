@@ -11,10 +11,12 @@ export interface PositionSearchParams {
 
 export interface CreatePositionRequest {
   position_name: string
+  position_short_name?: string
 }
 
 export interface UpdatePositionRequest {
   position_name: string
+  position_short_name?: string
 }
 
 const PositionServices = {

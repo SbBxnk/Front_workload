@@ -10,17 +10,17 @@ export interface UpdateWorkloadGroupRequest {
 }
 
 const WorkloadGroupServices = {
-  getAllWorkloadGroups: ( accessToken: string, param: WorkloadGroupSearchParams ): Promise<ResponsePayload<WorkloadGroup>> => {
+  getAllWorkloadGroups: ( accessToken: string, param?: WorkloadGroupSearchParams ): Promise<ResponsePayload<WorkloadGroup>> => {
     return http.get('/workload_group', {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
       params: {
-        search: param.search,
-        page: param.page,
-        limit: param.limit,
-        sort: param.sort,
-        order: param.order,
+        search: param?.search,
+        page: param?.page,
+        limit: param?.limit,
+        sort: param?.sort,
+        order: param?.order,
       },
     })
   },

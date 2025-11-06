@@ -14,17 +14,17 @@ export interface UpdateQuantityWorkloadRequest {
 }
 
 const QuantityWorkloadServices = {
-  getAllQuantityWorkloads: ( accessToken: string, param: QuantityWorkloadSearchParams ): Promise<ResponsePayload<QuantityWorkload>> => {
+  getAllQuantityWorkloads: ( accessToken: string, param?: QuantityWorkloadSearchParams ): Promise<ResponsePayload<QuantityWorkload>> => {
     return http.get('/quantity-workload', {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
       params: {
-        search: param.search,
-        page: param.page,
-        limit: param.limit,
-        sort: param.sort,
-        order: param.order,
+        search: param?.search,
+        page: param?.page,
+        limit: param?.limit,
+        sort: param?.sort,
+        order: param?.order,
       },
     })
   },

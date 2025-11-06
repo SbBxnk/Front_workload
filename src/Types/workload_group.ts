@@ -4,9 +4,9 @@ export interface WorkloadGroup {
 }
 
 export interface WorkloadGroupSearchParams {
-  search: string
-  limit: number
-  page: number
-  sort: string
-  order: string
+  search?: string
+  limit?: number
+  page?: number
+  sort?: string
+  order?: string
 }

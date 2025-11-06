@@ -3,31 +3,31 @@ import type React from 'react'
 
 interface EditModalProps {
   isLoading: boolean
-  position_id: number
-  position_name: string
-  position_short_name: string
+  competency_id: number
+  competency_name: string
+  competency_order: number
   handleEdit: (
     e: React.FormEvent<HTMLFormElement> | React.MouseEvent,
-    position_id: number,
-    position_name: string,
-    position_short_name: string
+    competency_id: number,
+    competency_name: string,
+    competency_order: number
   ) => void
 }
 
 export default function EditModal({
   isLoading,
-  position_id,
-  position_name,
-  position_short_name,
+  competency_id,
+  competency_name,
+  competency_order,
   handleEdit,
 }: EditModalProps) {
-  const [editedPositionName, setEditedPositionName] = useState(position_name)
-  const [editedPositionShortName, setEditedPositionShortName] = useState(position_short_name)
+  const [editedCompetencyName, setEditedCompetencyName] = useState(competency_name)
+  const [editedCompetencyOrder, setEditedCompetencyOrder] = useState(competency_order)
   
   useEffect(() => {
-    setEditedPositionName(position_name)
-    setEditedPositionShortName(position_short_name)
-  }, [position_name, position_short_name])
+    setEditedCompetencyName(competency_name)
+    setEditedCompetencyOrder(competency_order)
+  }, [competency_name, competency_order])
 
   if (isLoading) return null
 
@@ -43,43 +43,45 @@ export default function EditModal({
           <form
             onSubmit={(e) => {
               e.preventDefault()
-              handleEdit(e, position_id, editedPositionName, editedPositionShortName)
+              handleEdit(e, competency_id, editedCompetencyName, editedCompetencyOrder)
             }}
           >
             <div className="flex items-center border-b border-gray-200 p-4">
               <h3 className="font-regular flex truncate text-start text-2xl text-gray-600 dark:text-gray-400">
-                แก้ไขตำแหน่งวิชาการ&nbsp;
+                แก้ไขสมรรถนะ&nbsp;
                 <span className="truncate font-semibold text-business1 dark:text-blue-500/80">
-                  {position_name}
+                  {competency_name}
                 </span>
               </h3>
             </div>
             <div className="p-4 space-y-4">
               <div>
                 <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
-                  ตำแหน่งวิชาการ
+                  ชื่อสมรรถนะ
                 </label>
                 <input
-                  name="position_name"
-                  value={editedPositionName}
-                  onChange={(e) => setEditedPositionName(e.target.value)}
+                  name="competency_name"
+                  value={editedCompetencyName}
+                  onChange={(e) => setEditedCompetencyName(e.target.value)}
                   type="text"
                   className="w-full rounded-md border border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
-                  placeholder="กรุณากรอกตำแหน่งวิชาการ"
+                  placeholder="กรุณากรอกชื่อสมรรถนะ"
                   required
                 />
               </div>
               <div>
                 <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
-                  ชื่อย่อตำแหน่ง
+                  ลำดับ
                 </label>
                 <input
-                  name="position_short_name"
-                  value={editedPositionShortName}
-                  onChange={(e) => setEditedPositionShortName(e.target.value)}
-                  type="text"
+                  name="competency_order"
+                  value={editedCompetencyOrder || ''}
+                  onChange={(e) => setEditedCompetencyOrder(parseInt(e.target.value) || 0)}
+                  type="number"
+                  min="1"
                   className="w-full rounded-md border border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
-                  placeholder="กรุณากรอกชื่อย่อตำแหน่ง (ไม่บังคับ)"
+                  placeholder="กรุณากรอกลำดับ"
+                  required
                 />
               </div>
             </div>
@@ -106,3 +108,4 @@ export default function EditModal({
     </div>
   )
 }
+

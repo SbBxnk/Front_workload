@@ -4,9 +4,9 @@ export interface MainTask {
 }
 
 export interface MainTaskSearchParams {
-  search: string
-  limit: number
-  page: number
-  sort: string
-  order: string
+  search?: string
+  limit?: number
+  page?: number
+  sort?: string
+  order?: string
 }

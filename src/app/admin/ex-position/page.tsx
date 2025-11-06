@@ -11,6 +11,7 @@ import EditModal from './editModal'
 import ExpositionServices from '@/services/exPositionServices'
 import { useSession } from 'next-auth/react'
 import Table, { TableColumn, SortState, SortOrder } from '@/components/Table'
+import useUtility from '@/hooks/useUtility'
 
 const ITEMS_PER_PAGE = 10
 
@@ -26,6 +27,7 @@ type Order = 'asc' | 'desc'
 
 function PositionTable() {
   const { data: session } = useSession()
+  const { setBreadcrumbs } = useUtility()
   const [FormData, setFormData] = useState<FormDataExPosition>(FormDataExPosition)
   const [loading, setLoading] = useState<boolean>(false)
   const [order, setOrder] = useState<Order>('asc')
@@ -48,7 +50,11 @@ function PositionTable() {
     column: null,
     order: null,
   })
-
+  useEffect(() => {
+    setBreadcrumbs(
+      [{ text: 'ตำแหน่งบริหาร', path: '/admin/ex-position' },
+    ])
+  }, [setBreadcrumbs])
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
     const searchFromUrl = urlParams.get('search') || ''

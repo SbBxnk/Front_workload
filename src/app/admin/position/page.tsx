@@ -11,21 +11,25 @@ import EditModal from './editModal'
 import PositionServices from '@/services/positionServices'
 import { useSession } from 'next-auth/react'
 import Table, { TableColumn, SortState, SortOrder } from '@/components/Table'
+import useUtility from '@/hooks/useUtility'
 
 const ITEMS_PER_PAGE = 10
 
 interface FormDataPosition {
   position_name: string
+  position_short_name: string
 }
 
 const FormDataPosition: FormDataPosition = {
   position_name: '',
+  position_short_name: '',
 }
 
 type Order = 'asc' | 'desc'
 
 function PositionTable() {
   const { data: session } = useSession()
+  const { setBreadcrumbs } = useUtility()
   const [FormData, setFormData] = useState<FormDataPosition>(FormDataPosition)
   const [loading, setLoading] = useState<boolean>(false)
   const [order, setOrder] = useState<Order>('asc')
@@ -41,15 +45,22 @@ function PositionTable() {
     sort: '',
     order: '',
   })
+  const [refreshKey, setRefreshKey] = useState(0)
   const [searchInput, setSearchInput] = useState<string>('')
   const [selectedPosition, setSelectedPosition] = useState<string>('')
   const [selectedPositionId, setSelectedPositionId] = useState<number>(0)
   const [selectedPositionName, setSelectedPositionName] = useState<string>('')
+  const [selectedPositionShortName, setSelectedPositionShortName] = useState<string>('')
   const [sortState, setSortState] = useState<SortState>({
     column: null,
     order: null,
   })
-
+  useEffect(() => {
+    setBreadcrumbs(
+      [{ text: 'ตำแหน่งวิชาการ', path: '/admin/position' },
+    ])
+  }, [setBreadcrumbs])
+  
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
     const searchFromUrl = urlParams.get('search') || ''
@@ -158,6 +169,7 @@ function PositionTable() {
     params.limit,
     params.sort,
     params.order,
+    refreshKey,
     session?.accessToken,
   ])
 
@@ -202,22 +214,31 @@ function PositionTable() {
 
   const handleSubmit = async (
     e: React.FormEvent<HTMLFormElement> | React.MouseEvent,
-    position_name: string
+    position_name: string,
+    position_short_name: string
   ) => {
     setLoading(true)
     try {
       if (!session?.accessToken) throw new Error('No access token')
       const response = await PositionServices.createPosition(
-        { position_name },
+        { 
+          position_name,
+          position_short_name: position_short_name || undefined
+        },
         session.accessToken
       )
 
       if (response && (response as any).status === true) {
         setFormData(FormDataPosition)
+        // Close modal
+        const modal = document.getElementById('modal-create') as HTMLInputElement
+        if (modal) modal.checked = false
         setParams((prev) => ({
           ...prev,
           page: 1,
         }))
+        // Force refetch
+        setRefreshKey((prev) => prev + 1)
         Swal.fire({
           position: 'center',
           icon: 'success',
@@ -261,7 +282,12 @@ function PositionTable() {
         page: 1,
       }))
       
-      // Data will be refetched automatically by useEffect
+      // Close modal
+      const modal = document.getElementById('modal-delete') as HTMLInputElement
+      if (modal) modal.checked = false
+
+      // Force refetch
+      setRefreshKey((prev) => prev + 1)
 
       Swal.fire({
         icon: 'success',
@@ -287,7 +313,8 @@ function PositionTable() {
   const handleEdit = async (
     e: React.FormEvent<HTMLFormElement> | React.MouseEvent,
     position_id: number,
-    position_name: string
+    position_name: string,
+    position_short_name: string
   ) => {
     e.preventDefault()
     setLoading(true)
@@ -295,7 +322,10 @@ function PositionTable() {
       if (!session?.accessToken) throw new Error('No access token')
       const response = await PositionServices.updatePosition(
         position_id,
-        { position_name },
+        { 
+          position_name,
+          position_short_name: position_short_name || undefined
+        },
         session.accessToken
       )
 
@@ -304,7 +334,8 @@ function PositionTable() {
         const modal = document.getElementById('modal-edit') as HTMLInputElement
         if (modal) modal.checked = false
 
-        // Data will be refetched automatically by useEffect
+        // Force refetch
+        setRefreshKey((prev) => prev + 1)
 
         Swal.fire({
           icon: 'success',
@@ -355,6 +386,17 @@ function PositionTable() {
       ),
     },
     {
+      key: 'position_short_name',
+      label: 'ชื่อย่อ',
+      align: 'left',
+      sortable: false,
+      render: (value) => (
+        <span className="text-sm font-light text-gray-500 dark:text-gray-400">
+          {value || '-'}
+        </span>
+      ),
+    },
+    {
       key: 'actions',
       label: 'จัดการ',
       width: '120px',
@@ -367,6 +409,7 @@ function PositionTable() {
             onClick={() => {
               setSelectedPositionId(row.position_id)
               setSelectedPositionName(row.position_name)
+              setSelectedPositionShortName(row.position_short_name || '')
               // Trigger modal
               const modal = document.getElementById(
                 `modal-edit`
@@ -474,6 +517,7 @@ function PositionTable() {
         isLoading={loading}
         position_id={selectedPositionId}
         position_name={selectedPositionName}
+        position_short_name={selectedPositionShortName}
         handleEdit={handleEdit}
       />
     </div>

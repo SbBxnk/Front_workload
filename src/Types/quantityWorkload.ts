@@ -8,9 +8,9 @@ export interface QuantityWorkload {
 }
 
 export interface QuantityWorkloadSearchParams {
-  search: string
-  limit: number
-  page: number
-  sort: string
-  order: string
+  search?: string
+  limit?: number
+  page?: number
+  sort?: string
+  order?: string
 }

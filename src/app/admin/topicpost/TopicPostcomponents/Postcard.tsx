@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
-import Avatar from '../../../../../public/images/peeps-avatar.png'
+import Avatar from '../../../../../public/profile/peeps-avatar.png'
 import { BsThreeDotsVertical } from 'react-icons/bs'
 import { RiDeleteBin6Line } from 'react-icons/ri'
 import { FaEdit } from 'react-icons/fa'

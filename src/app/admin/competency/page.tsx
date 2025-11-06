@@ -2,163 +2,64 @@
 import type React from 'react'
 import { useEffect, useState } from 'react'
 import { Edit2, Plus, Trash2 } from 'lucide-react'
-import type { SubTask, SubTaskSearchParams, MainTask } from '@/Types'
+import type { Competency } from '@/Types'
 import CreateModal from './createModal'
 import DeleteModal from './deleteModal'
 import { FiX } from 'react-icons/fi'
 import Swal from 'sweetalert2'
 import EditModal from './editModal'
-import SubTaskServices from '@/services/subTaskServices'
-import MainTaskServices from '@/services/mainTaskServices'
+import CompetencyServices from '@/services/competencyService'
 import { useSession } from 'next-auth/react'
 import Table, { TableColumn, SortState, SortOrder } from '@/components/Table'
-import Tooltip from '@/components/Tooltip'
 import useUtility from '@/hooks/useUtility'
+
 const ITEMS_PER_PAGE = 10
 
-interface FormDataSubTask {
-  subtask_name: string
-  task_id: number
+interface FormDataCompetency {
+  competency_name: string
+  competency_order: number
 }
 
-const FormDataSubTask: FormDataSubTask = {
-  subtask_name: '',
-  task_id: 0,
+const FormDataCompetency: FormDataCompetency = {
+  competency_name: '',
+  competency_order: 0,
 }
 
 type Order = 'asc' | 'desc'
 
-function SubTaskTable() {
+function CompetencyTable() {
   const { data: session } = useSession()
   const { setBreadcrumbs } = useUtility()
-  const [FormData, setFormData] = useState<FormDataSubTask>(FormDataSubTask)
+  const [FormData, setFormData] = useState<FormDataCompetency>(FormDataCompetency)
   const [loading, setLoading] = useState<boolean>(false)
   const [order, setOrder] = useState<Order>('asc')
   const [orderBy, setOrderBy] = useState<string>('')
   const [page, setPage] = useState<number>(0)
   const [rowsPerPage, setRowsPerPage] = useState<number>(10)
   const [total, setTotal] = useState<number>(0)
-  const [data, setData] = useState<SubTask[]>([])
-  const [params, setParams] = useState<SubTaskSearchParams>({
+  const [data, setData] = useState<Competency[]>([])
+  const [params, setParams] = useState({
     search: '',
     page: 1,
     limit: 10,
     sort: '',
     order: '',
   })
+  const [refreshKey, setRefreshKey] = useState(0)
   const [searchInput, setSearchInput] = useState<string>('')
-  const [selectedSubTaskId, setSelectedSubTaskId] = useState<number>(0)
-  const [selectedSubTaskName, setSelectedSubTaskName] = useState<string>('')
-  const [selectedTaskId, setSelectedTaskId] = useState<number>(0)
-  const [selectedTaskName, setSelectedTaskName] = useState<string>('')
+  const [selectedCompetencyId, setSelectedCompetencyId] = useState<number>(0)
+  const [selectedCompetencyName, setSelectedCompetencyName] = useState<string>('')
+  const [selectedCompetencyOrder, setSelectedCompetencyOrder] = useState<number>(0)
   const [sortState, setSortState] = useState<SortState>({
     column: null,
     order: null,
   })
-  const [mainTasks, setMainTasks] = useState<MainTask[]>([])
 
   useEffect(() => {
     setBreadcrumbs(
-      [{ text: 'ภาระงานย่อย', path: '/admin/sub-task' },
+      [{ text: 'รายการสมรรถนะ', path: '/admin/competency' },
     ])
   }, [setBreadcrumbs])
-
-  // Define table columns
-  const columns: TableColumn<SubTask>[] = [
-    {
-      key: 'index',
-      label: '#',
-      width: '80px',
-      align: 'center',
-      render: (_, __, index) => (
-        <span className="font-regular text-sm text-gray-600 dark:text-gray-300">
-          {page * rowsPerPage + index + 1}
-        </span>
-      ),
-    },
-    {
-      key: 'subtask_name',
-      label: 'ภาระงานย่อย',
-      align: 'left',
-      sortable: true,
-      width: '40%',
-      render: (value) => {
-        const displayValue = value || '-'
-        
-        return (
-          <Tooltip content={displayValue}>
-            <div className="text-sm font-light text-gray-500 dark:text-gray-400 w-full cursor-default">
-              <div className="line-clamp-2 whitespace-normal">
-                {displayValue}
-              </div>
-            </div>
-          </Tooltip>
-        )
-      },
-    },
-    {
-      key: 'task_name',
-      label: 'ภาระงานหลัก',
-      align: 'left',
-      sortable: true,
-      width: '30%',
-      render: (value) => {
-        const displayValue = value || '-'
-        
-        return (
-          <Tooltip content={displayValue}>
-            <div className="text-sm font-light text-gray-500 dark:text-gray-400 w-full cursor-default">
-              <div className="line-clamp-2 whitespace-normal">
-                {displayValue}
-              </div>
-            </div>
-          </Tooltip>
-        )
-      },
-    },
-    {
-      key: 'actions',
-      label: 'จัดการ',
-      width: '120px',
-      align: 'center',
-      render: (_, row , index) => (
-        <div className="w-full flex justify-center gap-2 p-0">
-          <button
-            type="button"
-            className="cursor-pointer rounded-md p-1 text-yellow-500 transition duration-300 ease-in-out hover:bg-yellow-500 hover:text-white"
-            onClick={() => {
-              setSelectedSubTaskId(row.subtask_id)
-              setSelectedSubTaskName(row.subtask_name)
-              setSelectedTaskId(row.task_id)
-              setSelectedTaskName(String(row.task_name))
-              // Trigger modal
-              const modal = document.getElementById(
-                `modal-edit`
-              ) as HTMLInputElement
-              if (modal) modal.checked = true
-            }}
-          >
-            <Edit2 className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            className="cursor-pointer rounded-md p-1 text-red-500 transition duration-300 ease-in-out hover:bg-red-500 hover:text-white"
-            onClick={() => {
-              setSelectedSubTaskId(row.subtask_id)
-              setSelectedSubTaskName(row.subtask_name)
-              // Trigger modal
-              const modal = document.getElementById(
-                `modal-delete`
-              ) as HTMLInputElement
-              if (modal) modal.checked = true
-            }}
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        </div>
-      ),
-    },
-  ]
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
@@ -214,82 +115,63 @@ function SubTaskTable() {
     return () => clearTimeout(delayDebounce)
   }, [searchInput])
 
-  const getSubTasks = async () => {
-    setLoading(true)
-    setData([])
-    try {
-      if (!session?.accessToken) {
-        throw new Error('No access token')
-      }
+  // Fetch data when params change
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!session?.accessToken) return
+      
+      setLoading(true)
+      setData([])
+      try {
+        const response = await CompetencyServices.getAllCompetencies(
+          session.accessToken,
+          {
+            search: params.search || '',
+            page: params.page ?? 1,
+            limit: params.limit ?? 10,
+            sort: params.sort || '',
+            order: params.order || '',
+          }
+        )
 
-      const response = await SubTaskServices.getAllSubTasks(
-        session.accessToken,
-        {
-          search: params.search || '',
-          page: params.page ?? 1,
-          limit: params.limit ?? 10,
-          sort: params.sort || '',
-          order: params.order || '',
+        if (response.success) {
+          const responseMeta = response.meta
+          if (responseMeta) {
+            setTotal(responseMeta.total_rows)
+            setPage(responseMeta.page - 1)
+            setRowsPerPage(responseMeta.limit)
+          }
+          setData(response.payload || [])
+        } else {
+          setData([])
+          setTotal(0)
+          setPage(0)
         }
-      )
-
-      if (response.success) {
-        const responseMeta = response.meta
-        if (responseMeta) {
-          setTotal(responseMeta.total_rows)
-          setPage(responseMeta.page - 1)
-          setRowsPerPage(responseMeta.limit)
-        }
-        setData(response.payload || [])
-      } else {
+      } catch (error) {
+        console.error('Error fetching data:', error)
         setData([])
         setTotal(0)
         setPage(0)
+      } finally {
+        setLoading(false)
+        updateUrlParams({
+          search: params.search,
+          page: params.page,
+          limit: params.limit,
+          sort: params.sort,
+          order: params.order,
+        })
       }
-    } catch (error) {
-      console.error('Error fetching data:', error)
-    } finally {
-      setLoading(false)
-      updateUrlParams({
-        search: params.search,
-        page: params.page,
-        limit: params.limit,
-        sort: params.sort,
-        order: params.order,
-      })
     }
-  }
 
-  const getMainTasks = async () => {
-    try {
-      if (!session?.accessToken) return
-      const response = await MainTaskServices.getAllMainTasks(session.accessToken, {
-        search: '',
-        page: 1,
-        limit: 100,
-        sort: 'task_name',
-        order: 'asc',
-      })
-      if (response.success) {
-        setMainTasks(response.payload || [])
-      }
-    } catch (error) {
-      console.error('Error fetching main tasks:', error)
-    }
-  }
-
-  // Fetch data when params change
-  useEffect(() => {
-    if (session?.accessToken) {
-      getSubTasks()
-      getMainTasks()
-    }
+    fetchData()
   }, [
     params.search,
     params.page,
     params.limit,
     params.sort,
     params.order,
+    refreshKey,
     session?.accessToken,
   ])
 
@@ -328,53 +210,61 @@ function SubTaskTable() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
+    setFormData((prev) => ({ 
+      ...prev, 
+      [name]: name === 'competency_order' ? parseInt(value) || 0 : value 
+    }))
   }
 
   const handleSubmit = async (
     e: React.FormEvent<HTMLFormElement> | React.MouseEvent,
-    subtask_name: string,
-    task_id: number
+    competency_name: string,
+    competency_order: number
   ) => {
     setLoading(true)
     try {
       if (!session?.accessToken) throw new Error('No access token')
-      const response = await SubTaskServices.createSubTask(
-        { subtask_name, task_id },
+      const response = await CompetencyServices.createCompetency(
+        { competency_name, competency_order },
         session.accessToken
       )
 
       if (response && (response as any).status === true) {
-        // ปิด modal ก่อน
+        setFormData(FormDataCompetency)
+        // Close modal
         const modal = document.getElementById('modal-create') as HTMLInputElement
         if (modal) modal.checked = false
-
-        setFormData(FormDataSubTask)
+        
+        // Update params to trigger refetch
         setParams((prev) => ({
           ...prev,
           page: 1,
         }))
-        // อัปเดตข้อมูลทันที
-        await getSubTasks()
+        
+        // Force refetch by incrementing refreshKey
+        setRefreshKey((prev) => prev + 1)
+        
         Swal.fire({
           position: 'center',
           icon: 'success',
           title: 'สำเร็จ!',
-          text: `เพิ่มภาระงานย่อย ${subtask_name} สำเร็จ!`,
+          text: `เพิ่มสมรรถนะ ${competency_name} สำเร็จ!`,
           showConfirmButton: false,
           timer: 1500,
         })
+        
+        // Loading will be set to false by useEffect after refetch
       } else {
-        throw new Error('ไม่สามารถสร้างภาระงานย่อยได้')
+        throw new Error('ไม่สามารถสร้างสมรรถนะได้')
       }
     } catch (error) {
-      console.error('Error adding sub task:', error)
+      console.error('Error adding competency:', error)
       setLoading(false)
       Swal.fire({
         position: 'center',
         icon: 'error',
         title: 'เกิดข้อผิดพลาด!',
-        text: 'เกิดข้อผิดพลาดในการเพิ่มภาระงานย่อย',
+        text: 'เกิดข้อผิดพลาดในการเพิ่มสมรรถนะ',
         showConfirmButton: false,
         timer: 1500,
       })
@@ -383,39 +273,53 @@ function SubTaskTable() {
 
   const handleDelete = async (
     e: React.FormEvent<HTMLFormElement> | React.MouseEvent,
-    subtask_id: number,
-    subtask_name: string
+    competency_id: number,
+    competency_name: string
   ) => {
     e.preventDefault()
     setLoading(true)
     try {
       if (!session?.accessToken) throw new Error('No access token')
-      await SubTaskServices.deleteSubTask(subtask_id, session.accessToken)
+      await CompetencyServices.deleteCompetency(competency_id, session.accessToken)
 
-      // Reset to page 1 and fetch new data
-      setPage(0)
+      // Close modal first
+      const modal = document.getElementById('modal-delete') as HTMLInputElement
+      if (modal) modal.checked = false
+
+      // Update params to trigger refetch - check if current page would be empty
+      const currentPageItemCount = data.length
+      const shouldGoToPrevPage = currentPageItemCount === 1 && params.page > 1
+      
       setParams((prev) => ({
         ...prev,
-        page: 1,
+        page: shouldGoToPrevPage ? prev.page - 1 : prev.page,
       }))
-      // อัปเดตข้อมูลทันที
-      await getSubTasks()
+      
+      // Also update page state
+      if (shouldGoToPrevPage) {
+        setPage((prev) => Math.max(0, prev - 1))
+      }
+
+      // Force refetch by incrementing refreshKey
+      setRefreshKey((prev) => prev + 1)
 
       Swal.fire({
         icon: 'success',
         title: 'ลบสำเร็จ!',
-        text: `ลบภาระงานย่อย ${subtask_name} สำเร็จ!`,
+        text: `ลบสมรรถนะ ${competency_name} สำเร็จ!`,
         showConfirmButton: false,
         timer: 1500,
       })
+      
+      // Loading will be set to false by useEffect after refetch
     } catch (error) {
-      console.error('Error deleting sub task:', error)
+      console.error('Error deleting competency:', error)
       setLoading(false)
 
       Swal.fire({
         icon: 'error',
         title: 'เกิดข้อผิดพลาด!',
-        text: 'เกิดข้อผิดพลาดในการลบภาระงานย่อย',
+        text: 'เกิดข้อผิดพลาดในการลบสมรรถนะ',
         showConfirmButton: false,
         timer: 1500,
       })
@@ -424,17 +328,17 @@ function SubTaskTable() {
 
   const handleEdit = async (
     e: React.FormEvent<HTMLFormElement> | React.MouseEvent,
-    subtask_id: number,
-    subtask_name: string,
-    task_id: number
+    competency_id: number,
+    competency_name: string,
+    competency_order: number
   ) => {
     e.preventDefault()
     setLoading(true)
     try {
       if (!session?.accessToken) throw new Error('No access token')
-      const response = await SubTaskServices.updateSubTask(
-        subtask_id,
-        { subtask_name, task_id },
+      const response = await CompetencyServices.updateCompetency(
+        competency_id,
+        { competency_name, competency_order },
         session.accessToken
       )
 
@@ -443,32 +347,113 @@ function SubTaskTable() {
         const modal = document.getElementById('modal-edit') as HTMLInputElement
         if (modal) modal.checked = false
 
-        // อัปเดตข้อมูลทันที
-        await getSubTasks()
+        // Force refetch by incrementing refreshKey
+        setRefreshKey((prev) => prev + 1)
 
         Swal.fire({
           icon: 'success',
           title: 'แก้ไขสำเร็จ!',
-          text: `แก้ไขภาระงานย่อย ${subtask_name} สำเร็จ!`,
+          text: `แก้ไขสมรรถนะ ${competency_name} สำเร็จ!`,
           showConfirmButton: false,
           timer: 1500,
         })
+        
+        // Loading will be set to false by useEffect after refetch
       } else {
-        throw new Error('ไม่สามารถแก้ไขภาระงานย่อยได้')
+        throw new Error('ไม่สามารถแก้ไขสมรรถนะได้')
       }
     } catch (error) {
-      console.error('Error updating sub task:', error)
+      console.error('Error updating competency:', error)
       setLoading(false)
 
       Swal.fire({
         icon: 'error',
         title: 'เกิดข้อผิดพลาด!',
-        text: 'เกิดข้อผิดพลาดในการแก้ไขภาระงานย่อย',
+        text: 'เกิดข้อผิดพลาดในการแก้ไขสมรรถนะ',
         showConfirmButton: false,
         timer: 1500,
       })
     }
   }
+
+  // Define table columns
+  const columns: TableColumn<Competency>[] = [
+    {
+      key: 'index',
+      label: '#',
+      width: '80px',
+      align: 'center',
+      render: (_, __, index) => (
+        <span className="font-regular text-sm text-gray-600 dark:text-gray-300">
+          {page * rowsPerPage + index + 1}
+        </span>
+      ),
+    },
+    {
+      key: 'competency_order',
+      label: 'ลำดับ',
+      width: '100px',
+      align: 'center',
+      sortable: true,
+      render: (value) => (
+        <span className="text-sm font-light text-gray-500 dark:text-gray-400">
+          {value || '-'}
+        </span>
+      ),
+    },
+    {
+      key: 'competency_name',
+      label: 'ชื่อสมรรถนะ',
+      align: 'left',
+      sortable: true,
+      render: (value) => (
+        <span className="text-sm font-light text-gray-500 dark:text-gray-400">
+          {value || '-'}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      label: 'จัดการ',
+      width: '120px',
+      align: 'center',
+      render: (_, row, index) => (
+        <div className="w-full flex justify-center gap-2 p-0">
+          <button
+            type="button"
+            className="cursor-pointer rounded-md p-1 text-yellow-500 transition duration-300 ease-in-out hover:bg-yellow-500 hover:text-white"
+            onClick={() => {
+              setSelectedCompetencyId(row.competency_id)
+              setSelectedCompetencyName(row.competency_name)
+              setSelectedCompetencyOrder(row.competency_order)
+              // Trigger modal
+              const modal = document.getElementById(
+                `modal-edit`
+              ) as HTMLInputElement
+              if (modal) modal.checked = true
+            }}
+          >
+            <Edit2 className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            className="cursor-pointer rounded-md p-1 text-red-500 transition duration-300 ease-in-out hover:bg-red-500 hover:text-white"
+            onClick={() => {
+              setSelectedCompetencyId(row.competency_id)
+              setSelectedCompetencyName(row.competency_name)
+              // Trigger modal
+              const modal = document.getElementById(
+                `modal-delete`
+              ) as HTMLInputElement
+              if (modal) modal.checked = true
+            }}
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      ),
+    },
+  ]
 
   const totalPages = Math.ceil(total / rowsPerPage)
 
@@ -488,7 +473,7 @@ function SubTaskTable() {
           <div className="relative flex w-full items-center md:w-52">
             <input
               className="w-full rounded-md border border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
-              placeholder="ค้นหาด้วยชื่อภาระงานย่อยหรือภาระงานหลัก"
+              placeholder="ค้นหาด้วยชื่อสมรรถนะ"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
             />
@@ -506,7 +491,7 @@ function SubTaskTable() {
               htmlFor={`modal-create`}
               className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-md bg-success px-4 py-2.5 text-sm font-light text-white transition duration-300 ease-in-out hover:bg-success/80 md:w-52"
             >
-              เพิ่มภาระงานย่อย
+              เพิ่มสมรรถนะ
               <Plus className="h-4 w-4" />
             </label>
           </div>
@@ -531,31 +516,29 @@ function SubTaskTable() {
         onSort={handleSort}
         rowsPerPageOptions={[10, 20, 50, 100, 200]}
       />
+
       <CreateModal
         isLoading={loading}
         handleSubmit={handleSubmit}
         formData={FormData}
         handleInputChange={handleInputChange}
-        setFormData={setFormData}
-        mainTasks={mainTasks}
       />
       <DeleteModal
         isLoading={loading}
-        subtask_id={selectedSubTaskId}
-        subtask_name={selectedSubTaskName}
+        competency_id={selectedCompetencyId}
+        competency_name={selectedCompetencyName}
         handleDelete={handleDelete}
       />
       <EditModal
         isLoading={loading}
-        subtask_id={selectedSubTaskId}
-        subtask_name={selectedSubTaskName}
-        task_id={selectedTaskId}
+        competency_id={selectedCompetencyId}
+        competency_name={selectedCompetencyName}
+        competency_order={selectedCompetencyOrder}
         handleEdit={handleEdit}
-        task_name={selectedTaskName}
-        mainTasks={mainTasks}
       />
     </div>
   )
 }
 
-export default SubTaskTable
+export default CompetencyTable
+
