@@ -420,7 +420,7 @@ export default function EditProfile() {
                     </div>
                     <div className="flex-1">
                       <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
-                        ตำแหน่ง
+                        ตำแหน่งวิชาการ
                       </label>
                       <input
                         name="position_name"
@@ -428,12 +428,12 @@ export default function EditProfile() {
                         type="text"
                         disabled={true}
                         className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-100 disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400 dark:disabled:bg-zinc-700"
-                        placeholder="ตำแหน่ง"
+                        placeholder="ตำแหน่งวิชาการ"
                       />
                     </div>
                     <div className="flex-1">
                       <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
-                        ตำแหน่งพิเศษ
+                        ตำแหน่งบริหาร
                       </label>
                       <input
                         name="ex_position_name"
@@ -441,7 +441,7 @@ export default function EditProfile() {
                         type="text"
                         disabled={true}
                         className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-100 disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400 dark:disabled:bg-zinc-700"
-                        placeholder="ตำแหน่งพิเศษ"
+                        placeholder="ตำแหน่งบริหาร"
                       />
                     </div>
                   </div>

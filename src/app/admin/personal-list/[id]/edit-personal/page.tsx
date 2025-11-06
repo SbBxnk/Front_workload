@@ -599,7 +599,7 @@ export default function CreatePersonal() {
                   </div>
                   <div className="flex-1">
                     <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
-                      ตำแหน่ง
+                      ตำแหน่งวิชาการ
                     </label>
                     <SelectDropdown
                       selectedLabel={selectPosition || ''}
@@ -618,12 +618,12 @@ export default function CreatePersonal() {
                       objects={positions}
                       valueKey="position_id"
                       labelKey="position_name"
-                      placeholder="เลือกตำแหน่ง"
+                      placeholder="เลือกตำแหน่งวิชาการ"
                     />
                   </div>
                   <div className="flex-1">
                     <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
-                      ตำแหน่งพิเศษ
+                      ตำแหน่งบริหาร
                     </label>
                     <SelectDropdown
                       selectedLabel={selectExPosition || ''}
@@ -642,7 +642,7 @@ export default function CreatePersonal() {
                       objects={exPositions}
                       valueKey="ex_position_id"
                       labelKey="ex_position_name"
-                      placeholder="เลือกตำแหน่งพิเศษ"
+                      placeholder="เลือกตำแหน่งบริหาร"
                     />
                   </div>
                   <div className="flex-1">

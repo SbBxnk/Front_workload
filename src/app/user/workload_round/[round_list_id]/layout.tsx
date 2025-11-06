@@ -13,7 +13,8 @@ import {
   TriangleAlertIcon,
   AlertCircle,
   CircleX,
-  FileText
+  FileText,
+  Armchair
 } from 'lucide-react'
 import InfoHoverModal from './form/infoTermModal'
 import type { WorkloadGroup } from '@/Types'
@@ -339,12 +340,21 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
       ) : hasFormInRound === true ? (
         <div className="space-y-4">
           {currentRound && (
-            <div className="md:sticky md:top-14 md:z-10 rounded-md bg-white p-4 shadow dark:bg-zinc-900 dark:text-gray-400">
+            <div className="z-10 rounded-md bg-white p-4 shadow dark:bg-zinc-900 dark:text-gray-400">
               <h2 className="mb-4 text-lg font-medium text-gray-700 dark:text-gray-300">
                 รอบการประเมินปัจจุบัน
               </h2>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
                 <div className="">
+                  <p className="flex items-center gap-2 text-sm font-light text-gray-500">
+                    <Armchair className="h-4 w-4" />
+                    ตำแหน่งผู้ถูกประเมิน
+                  </p>
+                  <p className="text-md text-md p-2 font-normal">
+                    {user?.position_name || '-'}
+                  </p>
+                </div>
+                {/* <div className="">
                   <p className="flex items-center gap-2 text-sm font-light text-gray-500">
                     <Tag className="h-4 w-4" />
                     ชื่อรอบการประเมิน
@@ -352,7 +362,7 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
                   <p className="text-md text-md p-2 font-normal">
                     {currentRound.round_list_name}
                   </p>
-                </div>
+                </div> */}
                 <div className="">
                   <p className="flex items-center gap-2 text-sm font-light text-gray-500">
                     <Calendar className="h-4 w-4" />

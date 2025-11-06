@@ -9,6 +9,7 @@ export interface DropdownPrefix {
 export interface DropdownPosition {
   position_id: number
   position_name: string
+  position_short_name?: string
 }
 
 export interface DropdownExPosition {
@@ -51,6 +52,19 @@ const DropdownService = {
     return http.get('/position', {
       headers: {
         Authorization: `Bearer ${accessToken}`,
+      },
+      params: {
+        limit: 100, // ดึงข้อมูลทั้งหมด
+        page: 1,
+      }
+    }).then((response: any) => {
+      // Handle response format: { success, payload } or { status, data }
+      if (response.success && response.payload) {
+        return { status: true, data: response.payload }
+      } else if (response.status && response.data) {
+        return response
+      } else {
+        return { status: false, data: [] }
       }
     })
   },

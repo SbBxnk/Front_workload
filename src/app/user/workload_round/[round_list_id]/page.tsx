@@ -169,7 +169,7 @@ export default function ExpositionSelection() {
             router.push(`/user/workload_round/${round_list_id}/form`)
         } else if (expositionNumber === 2) {
             // ตัวเลือกที่ 2 ไปหน้าว่างเปล่า
-            router.push(`/user/workload_round/${round_list_id}/coming-soon`)
+            router.push(`/user/workload_round/${round_list_id}/performance`)
         }
     }
 
