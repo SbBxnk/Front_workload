@@ -34,7 +34,7 @@ export default function DeleteModal({
               <h3 className="font-regular flex truncate text-start text-2xl text-gray-600 dark:text-gray-400">
                 ลบ&nbsp;
                 <span className="truncate font-semibold text-business1 dark:text-blue-500/80">
-                  ผู้ตรวจประเมิน
+                  ผู้ประเมิน
                 </span>
               </h3>
             </div>

@@ -87,18 +87,7 @@ const adminMenuItems = [
       },
     ],
   },
-  {
-    title: 'ข้อมูลรอบการประเมินภาระงาน',
-    items: [
-      {
-        id: 1,
-        label: 'รอบประเมินภาระงาน',
-        icon: CalendarClock,
-        href: '/admin/set-assessor',
-      },
-    ],
-    // ผู้ตรวจประเมินภาระงาน
-  },
+ 
   {
     title: 'ข้อมูลมาสเตอร์',
     items: [
@@ -111,6 +100,18 @@ const adminMenuItems = [
       // { id: 7, label: 'ระดับผู้ใช้งาน', icon: CircleUser, href: '/admin/user-level' },
       // { id: 8, label: 'รอบการประเมิน', icon: Calendar, href: '/admin/round' },
     ],
+  },
+  {
+    title: 'ข้อมูลรอบการประเมินภาระงาน',
+    items: [
+      {
+        id: 1,
+        label: 'รอบประเมินภาระงาน',
+        icon: CalendarClock,
+        href: '/admin/set-assessor',
+      },
+    ],
+    // ผู้ประเมินภาระงาน
   },
   {
     title: 'จัดการแบบประเมินภาระงาน',

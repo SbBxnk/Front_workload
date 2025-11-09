@@ -9,24 +9,29 @@ import { useSession } from 'next-auth/react'
 import Swal from 'sweetalert2'
 import StickyFooter from '@/components/StickyFooter'
 import useUtility from '@/hooks/useUtility'
+
+type PerformanceMatrixDataState = {
+  [competency_id: number]: {
+    [position_id: number]: {
+      expected_level_id?: number
+      expected_level: number | null
+      isNew?: boolean
+    }
+  }
+}
+
 function PerformanceTermMatrixTable() {
   const { data: session } = useSession()
   const { setBreadcrumbs } = useUtility()
-  const [loading, setLoading] = useState<boolean>(false)
+  const [loading, setLoading] = useState<boolean>(true)
   const [competencies, setCompetencies] = useState<Competency[]>([])
   const [positions, setPositions] = useState<Position[]>([])
   const [performanceTerms, setPerformanceTerms] = useState<PerformanceTerm[]>([])
   const [refreshKey, setRefreshKey] = useState(0)
-  
-  const [matrixData, setMatrixData] = useState<{
-    [competency_id: number]: {
-      [position_id: number]: {
-        expected_level_id?: number
-        expected_level: number | null
-        isNew?: boolean
-      }
-    }
-  }>({})
+  const [isEditing, setIsEditing] = useState<boolean>(false)
+
+  const [matrixData, setMatrixData] = useState<PerformanceMatrixDataState>({})
+  const [initialMatrixData, setInitialMatrixData] = useState<PerformanceMatrixDataState>({})
 
   useEffect(() => {
     setBreadcrumbs(
@@ -84,7 +89,7 @@ function PerformanceTermMatrixTable() {
         })
         if (response.success) {
           setPerformanceTerms(response.payload || [])
-          const matrix: typeof matrixData = {}
+          const matrix: PerformanceMatrixDataState = {}
           response.payload?.forEach((term: PerformanceTerm) => {
             if (!matrix[term.competency_id]) {
               matrix[term.competency_id] = {}
@@ -96,6 +101,7 @@ function PerformanceTermMatrixTable() {
             }
           })
           setMatrixData(matrix)
+          setInitialMatrixData(JSON.parse(JSON.stringify(matrix)) as PerformanceMatrixDataState)
         }
       } catch (error) {
         console.error('Error fetching performance terms:', error)
@@ -107,11 +113,16 @@ function PerformanceTermMatrixTable() {
   }, [session?.accessToken, refreshKey])
 
   const handleCellChange = (competencyId: number, positionId: number, value: string) => {
-    const numValue = value === '' ? null : parseInt(value)
-    if (numValue !== null && (numValue < 1 || numValue > 5)) {
-      return // Invalid value
+    if (!isEditing) {
+      return
     }
-    
+
+    const numValue = value === '' ? null : Number(value)
+
+    if (numValue !== null && (Number.isNaN(numValue) || numValue < 0)) {
+      return
+    }
+
     setMatrixData((prev) => {
       const newData = { ...prev }
       if (!newData[competencyId]) {
@@ -127,6 +138,10 @@ function PerformanceTermMatrixTable() {
   }
 
   const handleSaveAll = async () => {
+    if (!isEditing) {
+      return
+    }
+
     if (!session?.accessToken) return
     
     setLoading(true)
@@ -202,6 +217,7 @@ function PerformanceTermMatrixTable() {
       })
       
       setRefreshKey((prev) => prev + 1)
+      setIsEditing(false)
     } catch (error) {
       console.error('Error saving performance terms:', error)
       Swal.fire({
@@ -213,6 +229,17 @@ function PerformanceTermMatrixTable() {
       })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setMatrixData(JSON.parse(JSON.stringify(initialMatrixData)) as PerformanceMatrixDataState)
+    setIsEditing(false)
+  }
+
+  const handleStartEditing = () => {
+    if (!loading) {
+      setIsEditing(true)
     }
   }
 
@@ -236,7 +263,7 @@ function PerformanceTermMatrixTable() {
           </h2>
         </div>
 
-      {loading && competencies.length === 0 ? (
+      {loading || competencies.length === 0 ? (
         <div className="flex items-center justify-center py-8">
           <div className="text-gray-500">กำลังโหลดข้อมูล...</div>
         </div>
@@ -290,11 +317,15 @@ function PerformanceTermMatrixTable() {
                         >
                           <input
                             type="number"
-                            min="1"
-                            max="5"
+                            min="0"
                             value={cellValue ?? ''}
                             onChange={(e) => handleCellChange(competency.competency_id, position.position_id, e.target.value)}
-                            className="w-16 rounded border border-gray-300 px-2 py-1 text-center text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-zinc-800 dark:text-gray-400"
+                            disabled={!isEditing || loading}
+                            className={`w-16 rounded border border-gray-300 px-2 py-1 text-center text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-zinc-800 ${
+                              !isEditing || loading
+                                ? 'cursor-default opacity-70 text-gray-500 dark:text-gray-400'
+                                : 'text-gray-600 dark:text-gray-300'
+                            }`}
                             placeholder="0"
                           />
                         </td>
@@ -310,9 +341,13 @@ function PerformanceTermMatrixTable() {
       </div>
 
       <StickyFooter
-        showSubmitOnly={true}
-        onSubmit={handleSaveAll}
-        submitText="บันทึกข้อมูล"
+        isEditing={isEditing}
+        onEditToggle={handleStartEditing}
+        onCancel={handleCancelEdit}
+        onSave={handleSaveAll}
+        editText="แก้ไข"
+        cancelText="ยกเลิก"
+        saveText="บันทึก"
         disabled={loading}
       />
     </>

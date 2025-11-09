@@ -103,7 +103,7 @@ export default function Breadcrumb() {
       },
       {
         path: `/admin/set-assessor/${round_list_id}/${ex_u_id}`,
-        label: 'ผู้ตรวจประเมินภาระงาน',
+        label: 'ผู้ประเมินภาระงาน',
       },
     ]
   } else if (

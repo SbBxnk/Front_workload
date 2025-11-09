@@ -10,24 +10,28 @@ import Swal from 'sweetalert2'
 import StickyFooter from '@/components/StickyFooter'
 import useUtility from '@/hooks/useUtility'
 
+type QuantityMatrixDataState = {
+  [task_id: number]: {
+    [workload_group_id: number]: {
+      quantity_workload_id?: number
+      quantity_workload_hours: number | null
+      isNew?: boolean
+    }
+  }
+}
+
 function QuantityWorkloadMatrixTable() {
   const { data: session } = useSession()
   const { setBreadcrumbs } = useUtility()
-  const [loading, setLoading] = useState<boolean>(false)
+  const [loading, setLoading] = useState<boolean>(true)
   const [mainTasks, setMainTasks] = useState<MainTask[]>([])
   const [workloadGroups, setWorkloadGroups] = useState<WorkloadGroup[]>([])
   const [quantityWorkloads, setQuantityWorkloads] = useState<QuantityWorkload[]>([])
   const [refreshKey, setRefreshKey] = useState(0)
-  
-  const [matrixData, setMatrixData] = useState<{
-    [task_id: number]: {
-      [workload_group_id: number]: {
-        quantity_workload_id?: number
-        quantity_workload_hours: number | null
-        isNew?: boolean
-      }
-    }
-  }>({})
+  const [isEditing, setIsEditing] = useState<boolean>(false)
+
+  const [matrixData, setMatrixData] = useState<QuantityMatrixDataState>({})
+  const [initialMatrixData, setInitialMatrixData] = useState<QuantityMatrixDataState>({})
 
   useEffect(() => {
     setBreadcrumbs(
@@ -93,19 +97,19 @@ function QuantityWorkloadMatrixTable() {
         })
         if (response.success) {
           setQuantityWorkloads(response.payload || [])
-          // Build matrix data
-          const matrix: typeof matrixData = {}
-          response.payload?.forEach((qty: QuantityWorkload) => {
-            if (!matrix[qty.task_id]) {
-              matrix[qty.task_id] = {}
+          const matrix: QuantityMatrixDataState = {}
+          response.payload?.forEach((item: QuantityWorkload) => {
+            if (!matrix[item.task_id]) {
+              matrix[item.task_id] = {}
             }
-            matrix[qty.task_id][qty.workload_group_id] = {
-              quantity_workload_id: qty.quantity_workload_id,
-              quantity_workload_hours: qty.quantity_workload_hours,
+            matrix[item.task_id][item.workload_group_id] = {
+              quantity_workload_id: item.quantity_workload_id,
+              quantity_workload_hours: item.quantity_workload_hours,
               isNew: false
             }
           })
           setMatrixData(matrix)
+          setInitialMatrixData(JSON.parse(JSON.stringify(matrix)) as QuantityMatrixDataState)
         }
       } catch (error) {
         console.error('Error fetching quantity workloads:', error)
@@ -118,6 +122,10 @@ function QuantityWorkloadMatrixTable() {
 
   // Handle cell value change
   const handleCellChange = (taskId: number, workloadGroupId: number, value: string) => {
+    if (!isEditing) {
+      return
+    }
+
     const numValue = value === '' ? null : parseFloat(value)
     if (numValue !== null && (numValue < 0 || isNaN(numValue))) {
       return // Invalid value
@@ -139,6 +147,10 @@ function QuantityWorkloadMatrixTable() {
 
   // Save all changes
   const handleSaveAll = async () => {
+    if (!isEditing) {
+      return
+    }
+
     if (!session?.accessToken) return
     
     setLoading(true)
@@ -218,6 +230,7 @@ function QuantityWorkloadMatrixTable() {
       })
       
       setRefreshKey((prev) => prev + 1)
+      setIsEditing(false)
     } catch (error) {
       console.error('Error saving quantity workloads:', error)
       Swal.fire({
@@ -232,6 +245,16 @@ function QuantityWorkloadMatrixTable() {
     }
   }
 
+  const handleCancelEdit = () => {
+    setMatrixData(JSON.parse(JSON.stringify(initialMatrixData)) as QuantityMatrixDataState)
+    setIsEditing(false)
+  }
+
+  const handleStartEditing = () => {
+    if (!loading) {
+      setIsEditing(true)
+    }
+  }
 
   const sortedWorkloadGroups = useMemo(() => {
     return [...workloadGroups].sort((a, b) => a.workload_group_id - b.workload_group_id)
@@ -309,7 +332,12 @@ function QuantityWorkloadMatrixTable() {
                               step="0.01"
                               value={cellValue ?? ''}
                               onChange={(e) => handleCellChange(task.task_id, group.workload_group_id, e.target.value)}
-                              className="w-20 rounded border border-gray-300 px-2 py-1 text-center text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-zinc-800 dark:text-gray-400"
+                              disabled={!isEditing || loading}
+                              className={`w-20 rounded border border-gray-300 px-2 py-1 text-center text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-zinc-800 ${
+                                !isEditing || loading
+                                  ? 'cursor-default opacity-70 text-gray-500 dark:text-gray-400'
+                                  : 'text-gray-600 dark:text-gray-300'
+                              }`}
                               placeholder="0"
                             />
                             <span className="text-xs text-gray-500 dark:text-gray-400">ชม.</span>
@@ -327,9 +355,13 @@ function QuantityWorkloadMatrixTable() {
       </div>
 
       <StickyFooter
-        showSubmitOnly={true}
-        onSubmit={handleSaveAll}
-        submitText="บันทึกข้อมูล"
+        isEditing={isEditing}
+        onEditToggle={handleStartEditing}
+        onCancel={handleCancelEdit}
+        onSave={handleSaveAll}
+        editText="แก้ไข"
+        cancelText="ยกเลิก"
+        saveText="บันทึก"
         disabled={loading}
       />
     </>

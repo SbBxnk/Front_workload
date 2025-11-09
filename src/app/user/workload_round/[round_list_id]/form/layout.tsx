@@ -23,7 +23,7 @@ import {
   AlertCircle,
   CircleX
 } from 'lucide-react'
-import ConfirmModal from '../confirmWorkloadModal'
+import ConfirmModal from '../_partial/confirmWorkloadModal'
 import InfoHoverModal from './infoTermModal'
 import _successForm from '../_successForm'
 import useUtility from '@/hooks/useUtility'

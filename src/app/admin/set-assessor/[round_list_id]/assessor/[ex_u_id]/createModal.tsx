@@ -189,7 +189,7 @@ export default function CreateModal({
                   <div className="flex flex-row">
                     <div className="flex w-full flex-col">
                 <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
-                        เลือกผู้ตรวจประเมิน (สามารถเลือกได้หลายคน)
+                        เลือกผู้ประเมิน (สามารถเลือกได้หลายคน)
                 </label>
                       <div className="flex w-full flex-row gap-4">
                 {isLoadingUsers ? (
@@ -198,7 +198,7 @@ export default function CreateModal({
                   </div>
                 ) : noUsersAvailable ? (
                   <div className="rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm font-light text-amber-500">
-                            ผู้ใช้ทั้งหมดถูกกำหนดเป็นผู้ตรวจประเมินในรอบนี้แล้ว
+                            ผู้ใช้ทั้งหมดถูกกำหนดเป็นผู้ประเมินในรอบนี้แล้ว
                     ไม่มีผู้ใช้ที่สามารถเลือกได้
                   </div>
                 ) : (
@@ -206,8 +206,8 @@ export default function CreateModal({
                     options={userOptions}
                             value={selectedInputValue}
                     onChange={handleSelectChange}
-                            placeholder="เลือกผู้ตรวจประเมิน"
-                            noOptionsMessage={() => 'ไม่พบข้อมูลผู้ตรวจประเมิน'}
+                            placeholder="เลือกผู้ประเมิน"
+                            noOptionsMessage={() => 'ไม่พบข้อมูลผู้ประเมิน'}
                             isMulti={false}
                             isClearable
                             isSearchable
@@ -332,7 +332,7 @@ export default function CreateModal({
                       ) : (
                         <div className="text-center py-8">
                           <span className="text-sm text-gray-500 dark:text-gray-400">
-                            ยังไม่ได้เลือกผู้ตรวจประเมิน
+                            ยังไม่ได้เลือกผู้ประเมิน
                           </span>
                         </div>
                       )}

@@ -153,7 +153,7 @@ function SetAssessor() {
       if (response.payload && Array.isArray(response.payload)) {
         roundsData = response.payload
         
-        // ดึงจำนวนผู้ถูกประเมินสำหรับแต่ละ round
+        // ดึงจำนวนผู้รับการประเมินสำหรับแต่ละ round
         const roundsWithCount = await Promise.all(
           roundsData.map(async (round) => {
             try {
@@ -426,7 +426,7 @@ function SetAssessor() {
     },
     {
       key: 'form_count',
-      label: 'จำนวนผู้ถูกประเมิน',
+      label: 'จำนวนผู้รับการประเมิน',
       align: 'left',
       sortable: true,
       render: (value) => (

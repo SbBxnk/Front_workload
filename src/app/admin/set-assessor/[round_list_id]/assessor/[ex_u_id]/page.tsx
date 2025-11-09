@@ -151,8 +151,8 @@ export default function AsDetailsPage() {
   useEffect(() => {
     setBreadcrumbs(
       [{ text: 'รอบประเมินภาระงาน', path: '/admin/set-assessor' },
-      { text: 'ผู้ถูกประเมินภาระงาน', path: `/admin/set-assessor/${round_list_id}` },
-      { text: 'ผู้ตรวจประเมินภาระงาน', path: `/admin/set-assessor/${round_list_id}/assessor/${set_asses_list_id}` }
+      { text: 'ผู้รับการประเมินภาระงาน', path: `/admin/set-assessor/${round_list_id}` },
+      { text: 'ผู้ประเมินภาระงาน', path: `/admin/set-assessor/${round_list_id}/assessor/${set_asses_list_id}` }
       ])
   }, [setBreadcrumbs, round_list_id])
 
@@ -443,8 +443,8 @@ export default function AsDetailsPage() {
   }))
 
   const selectedLabel = selectedAssessor
-    ? `ผู้ตรวจประเมิน ${selectedAssessor}`
-    : 'เลือกผู้ตรวจประเมิน'
+    ? `ผู้ประเมิน ${selectedAssessor}`
+    : 'เลือกผู้ประเมิน'
 
   // Define table columns
   const columns: TableColumn<Assessor>[] = [
@@ -484,7 +484,7 @@ export default function AsDetailsPage() {
     },
     {
       key: 'u_fname',
-      label: 'ชื่อผู้ตรวจประเมิน',
+      label: 'ชื่อผู้ประเมิน',
       align: 'left',
       sortable: true,
       render: (_, record) => (
@@ -506,7 +506,7 @@ export default function AsDetailsPage() {
     },
     {
       key: 'u_id_card',
-      label: 'รหัสผู้ตรวจประเมิน',
+      label: 'รหัสผู้ประเมิน',
       align: 'left',
       render: (_, record) => (
         <span className="text-sm font-light text-gray-500 dark:text-gray-400">
@@ -546,12 +546,12 @@ export default function AsDetailsPage() {
       }
 
       if (!dataToSubmit.ex_u_id || dataToSubmit.ex_u_id.length === 0) {
-        alert('กรุณาเลือกผู้ตรวจประเมิน')
+        alert('กรุณาเลือกผู้ประเมิน')
         setLoading(false)
         return
       }
 
-      // เพิ่มผู้ตรวจประเมินแบบ multiple
+      // เพิ่มผู้ประเมินแบบ multiple
       await SetAssessorServices.createSetAssessorInfoMultiple(
         dataToSubmit,
         headers.Authorization?.replace('Bearer ', '') || ''
@@ -581,7 +581,7 @@ export default function AsDetailsPage() {
         position: 'center',
         icon: 'error',
         title: 'เกิดข้อผิดพลาด!',
-        text: 'เกิดข้อผิดพลาดในการเพิ่มผู้ตรวจประเมิน',
+        text: 'เกิดข้อผิดพลาดในการเพิ่มผู้ประเมิน',
         showConfirmButton: false,
         timer: 1500,
       })
@@ -618,7 +618,7 @@ export default function AsDetailsPage() {
       Swal.fire({
         icon: 'success',
         title: 'ลบสำเร็จ!',
-        text: `ลบสาขาผู้ตรวจประเมินสำเร็จ!`,
+        text: `ลบสาขาผู้ประเมินสำเร็จ!`,
         showConfirmButton: false,
         timer: 1500,
       })
@@ -627,7 +627,7 @@ export default function AsDetailsPage() {
       Swal.fire({
         icon: 'error',
         title: 'เกิดข้อผิดพลาด!',
-        text: 'เกิดข้อผิดพลาดในการลบผู้ตรวจประเมิน',
+        text: 'เกิดข้อผิดพลาดในการลบผู้ประเมิน',
         showConfirmButton: false,
         timer: 1500,
       })
@@ -640,7 +640,7 @@ export default function AsDetailsPage() {
     <div className="rounded-md bg-white p-4 shadow transition-all duration-300 ease-in-out dark:bg-zinc-900 dark:text-gray-400">
       <div className="pb-4">
         <h1 className="text-xl text-gray-500">
-          รายชื่อผู้ตรวจประเมินภาระงานของ{' '}
+          รายชื่อผู้ประเมินภาระงานของ{' '}
           <span className="text-business1">
             {assesseeInfo ? `${assesseeInfo.prefix_name}${assesseeInfo.u_fname} ${assesseeInfo.u_lname}` : '-'}
           </span>
@@ -660,7 +660,7 @@ export default function AsDetailsPage() {
           <div className="relative flex w-full items-center md:w-52">
             <input
               className="w-full rounded-md border border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
-              placeholder="ค้นหาชื่อผู้ตรวจประเมิน"
+              placeholder="ค้นหาชื่อผู้ประเมิน"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
             />
@@ -694,11 +694,11 @@ export default function AsDetailsPage() {
                 isCheckingExaminers 
                   ? "กำลังตรวจสอบ..." 
                   : hasAvailableExaminers 
-                    ? "เพิ่มผู้ตรวจประเมิน" 
-                    : "ไม่มีผู้ตรวจประเมินที่สามารถเพิ่มได้"
+                    ? "เพิ่มผู้ประเมิน" 
+                    : "ไม่มีผู้ประเมินที่สามารถเพิ่มได้"
               }
             >
-              {isCheckingExaminers ? "เพิ่มผู้ตรวจประเมิน" : "เพิ่มผู้ตรวจประเมิน"}
+              {isCheckingExaminers ? "เพิ่มผู้ประเมิน" : "เพิ่มผู้ประเมิน"}
               <Plus className="h-4 w-4" />
             </label>
           </div>
@@ -742,7 +742,7 @@ export default function AsDetailsPage() {
           rowsPerPage={rowsPerPage}
           onPageChange={(newPage) => handlePageChange(newPage - 1)}
           onRowsPerPageChange={handleRowsPerPageChange}
-          emptyMessage={'ไม่พบข้อมูลผู้ตรวจประเมิน'}
+          emptyMessage={'ไม่พบข้อมูลผู้ประเมิน'}
           skeletonRows={rowsPerPage}
           stickyColumns={1}
           sortable={true}
@@ -778,7 +778,7 @@ export default function AsDetailsPage() {
             position: 'center',
             icon: 'success',
             title: 'สำเร็จ!',
-            text: `เพิ่มผู้ตรวจประเมิน สำเร็จ!`,
+            text: `เพิ่มผู้ประเมิน สำเร็จ!`,
             showConfirmButton: false,
             timer: 1500,
           })

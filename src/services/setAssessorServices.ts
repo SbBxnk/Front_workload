@@ -254,14 +254,14 @@ const SetAssessorServices = {
     })
   },
 
-  // ดึงข้อมูลผู้ถูกประเมินจาก set_asses_list_id
+  // ดึงข้อมูลผู้รับการประเมินจาก set_asses_list_id
   getAssesseeBySetAssesListId: (setAssesListId: number, accessToken: string): Promise<ResponsePayload<any>> => {
     return http.get(`/assessee/${setAssesListId}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
   },
 
-  // ดึงรายชื่อผู้ใช้ที่มีตำแหน่งบริหาร (สำหรับแต่งตั้งผู้ตรวจประเมิน)
+  // ดึงรายชื่อผู้ใช้ที่มีตำแหน่งบริหาร (สำหรับแต่งตั้งผู้ประเมิน)
   getAllExUsers: (setAssesListId: number, accessToken: string): Promise<ResponsePayload<any>> => {
     return http.get(`/ex_user/?set_asses_list_id=${setAssesListId}`, {
       headers: { Authorization: `Bearer ${accessToken}` },

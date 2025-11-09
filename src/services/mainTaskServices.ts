@@ -10,17 +10,17 @@ export interface UpdateMainTaskRequest {
 }
 
 const MainTaskServices = {
-  getAllMainTasks: ( accessToken: string, param: MainTaskSearchParams ): Promise<ResponsePayload<MainTask>> => {
+  getAllMainTasks: ( accessToken: string, param?: MainTaskSearchParams ): Promise<ResponsePayload<MainTask>> => {
     return http.get('/maintask', {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
       params: {
-        search: param.search,
-        page: param.page,
-        limit: param.limit,
-        sort: param.sort,
-        order: param.order,
+        search: param?.search,
+        page: param?.page,
+        limit: param?.limit,
+        sort: param?.sort,
+        order: param?.order,
       },
     })
   },

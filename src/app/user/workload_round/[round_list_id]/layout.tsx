@@ -22,7 +22,7 @@ import WorkloadFormServices from '@/services/workloadFormServices'
 import useUtility from '@/hooks/useUtility'
 import SetAssessorServices from '@/services/setAssessorServices'
 import WorkloadGroupServices from '@/services/workloadGroupServices'
-import ConfirmModal from './confirmWorkloadModal'
+import ConfirmModal from './_partial/confirmWorkloadModal'
 
 const formatThaiDate = (dateString: string) => {
   const date = new Date(dateString)
@@ -69,13 +69,20 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const params = useParams()
   const round_list_id = params.round_list_id as string
 
-  // ตรวจสอบสถานะของรอบ - ไม่เช็ควันที่แล้ว
+  // ตรวจสอบสถานะของรอบ
   const getRoundStatus = (round: any | null) => {
     if (!round) {
       return 'not_found'
     }
 
-    // ไม่เช็ควันที่แล้ว - ให้แสดงฟอร์มเสมอ
+    if (round.date_start) {
+      const startDate = new Date(round.date_start)
+      const now = new Date()
+      if (!isNaN(startDate.getTime()) && now < startDate) {
+        return 'not_started'
+      }
+    }
+
     return 'active'
   }
 
@@ -320,6 +327,20 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
             </div>
           </div>
         </div>
+      ) : targetRoundStatus === 'not_started' ? (
+        <div className="mb-4 rounded-md bg-white p-6 shadow dark:bg-zinc-900 dark:text-gray-400">
+          <div className="flex flex-col items-center justify-center gap-4 py-8 text-center">
+            <ClockAlert className="h-12 w-12 text-amber-500 md:h-24 md:w-24" />
+            <div className="">
+              <h2 className="mb-2 text-4xl font-medium text-gray-700 dark:text-gray-300">
+                รอบการประเมินยังไม่เปิด
+              </h2>
+              <p className="text-gray-500 dark:text-gray-400">
+                กรุณากลับมาอีกครั้งเมื่อถึงช่วงเวลาเริ่มต้นของรอบนี้
+              </p>
+            </div>
+          </div>
+        </div>
       ) : hasFormInRound === false ? (
         <div className="mb-4 rounded-md bg-white p-6 shadow dark:bg-zinc-900 dark:text-gray-400">
           <div className="flex flex-col items-center justify-center gap-4 py-8 text-center">
@@ -338,7 +359,7 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
           </div>
         </div>
       ) : hasFormInRound === true ? (
-        <div className="space-y-4">
+        <div className="space-y-4 mb-24">
           {currentRound && (
             <div className="z-10 rounded-md bg-white p-4 shadow dark:bg-zinc-900 dark:text-gray-400">
               <h2 className="mb-4 text-lg font-medium text-gray-700 dark:text-gray-300">
@@ -348,7 +369,7 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
                 <div className="">
                   <p className="flex items-center gap-2 text-sm font-light text-gray-500">
                     <Armchair className="h-4 w-4" />
-                    ตำแหน่งผู้ถูกประเมิน
+                    ตำแหน่งผู้รับการประเมิน
                   </p>
                   <p className="text-md text-md p-2 font-normal">
                     {user?.position_name || '-'}

@@ -35,8 +35,8 @@ export interface AssessorEvaluationResponse {
 
 class AssessorEvaluationService {
   /**
-   * ดึงรายการการประเมินสำหรับผู้ตรวจประเมิน
-   * @param ex_u_id - ID ของผู้ตรวจประเมิน
+   * ดึงรายการการประเมินสำหรับผู้ประเมิน
+   * @param ex_u_id - ID ของผู้ประเมิน
    * @param accessToken - Access token สำหรับ authentication
    * @returns Promise<AssessorEvaluation[]>
    */

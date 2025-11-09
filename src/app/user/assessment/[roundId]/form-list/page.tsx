@@ -140,7 +140,7 @@ export default function AssessmentRoundPage() {
         </button>
         
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          {roundInfo ? roundInfo.round_list_name : 'รายการผู้ถูกประเมิน'}
+          {roundInfo ? roundInfo.round_list_name : 'รายการผู้รับการประเมิน'}
         </h1>
         <p className="text-gray-600">
           {roundInfo && `รอบที่ ${roundInfo.round} ปี ${roundInfo.year}`}
@@ -162,7 +162,7 @@ export default function AssessmentRoundPage() {
               <div className="text-2xl font-bold text-blue-900">
                 {assessees.length}
               </div>
-              <div className="text-sm text-blue-700">ผู้ถูกประเมิน</div>
+              <div className="text-sm text-blue-700">ผู้รับการประเมิน</div>
             </div>
           </div>
         </div>
@@ -171,8 +171,8 @@ export default function AssessmentRoundPage() {
       {assessees.length === 0 ? (
         <div className="text-center py-12">
           <Users className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">ไม่พบรายการผู้ถูกประเมิน</h3>
-          <p className="text-gray-500">คุณยังไม่มีผู้ถูกประเมินในรอบนี้</p>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">ไม่พบรายการผู้รับการประเมิน</h3>
+          <p className="text-gray-500">คุณยังไม่มีผู้รับการประเมินในรอบนี้</p>
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
@@ -181,7 +181,7 @@ export default function AssessmentRoundPage() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    ผู้ถูกประเมิน
+                    ผู้รับการประเมิน
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     ตำแหน่ง

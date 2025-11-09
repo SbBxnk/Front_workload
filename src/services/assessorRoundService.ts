@@ -24,8 +24,8 @@ export interface AssessorRoundResponse {
 
 class AssessorRoundService {
   /**
-   * ดึงรอบการประเมินสำหรับผู้ตรวจประเมิน
-   * @param ex_u_id - ID ของผู้ตรวจประเมิน
+   * ดึงรอบการประเมินสำหรับผู้ประเมิน
+   * @param ex_u_id - ID ของผู้ประเมิน
    * @param accessToken - Access token สำหรับ authentication
    * @returns Promise<AssessorRound[]>
    */

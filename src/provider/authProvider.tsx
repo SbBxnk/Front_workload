@@ -104,7 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       showUnauthorizedAlert('/user')
       setIsAuthorized(false)
     } else if (
-      role === 'ผู้ตรวจประเมิน' &&
+      role === 'ผู้ประเมิน' &&
       (path.startsWith('/admin') || path.startsWith('/user'))
     ) {
       showUnauthorizedAlert('/examiner')

@@ -36,7 +36,7 @@ export interface AssesseeResponse {
 class AssesseeService {
   /**
    * ดึงรายการผู้ใช้ที่ต้องตรวจในรอบการประเมินเฉพาะ
-   * @param ex_u_id - ID ของผู้ตรวจประเมิน
+   * @param ex_u_id - ID ของผู้ประเมิน
    * @param round_list_id - ID ของรอบการประเมิน
    * @param accessToken - Access token สำหรับ authentication
    * @returns Promise<Assessee[]>

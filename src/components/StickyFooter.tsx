@@ -107,7 +107,12 @@ const StickyFooter: React.FC<StickyFooterProps> = ({
               <button
                 type="button"
                 onClick={handleSaveClick}
-                className="h-10 px-6 py-2.5 text-sm font-medium text-white bg-success border border-transparent rounded-md hover:bg-success/80 transition-colors duration-200"
+                disabled={disabled}
+                className={`h-10 px-6 py-2.5 text-sm font-medium text-white border border-transparent rounded-md transition-colors duration-200 ${
+                  disabled
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-success hover:bg-success/80'
+                }`}
               >
                 {saveText}
               </button>

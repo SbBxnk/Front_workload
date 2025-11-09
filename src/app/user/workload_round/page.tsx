@@ -3,9 +3,9 @@ import type React from 'react'
 import { Edit, Eye } from 'lucide-react'
 import { FiX } from 'react-icons/fi'
 import { useEffect, useState, useRef } from 'react'
-import Swal from 'sweetalert2'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
+import { jwtDecode } from 'jwt-decode'
 import Table, { TableColumn, SortState } from '@/components/Table'
 import SearchFilter from '@/components/SearchFilter'
 import SetAssessorServices, { RoundList, CreateRoundListRequest, UpdateRoundListRequest } from '@/services/setAssessorServices'
@@ -30,6 +30,11 @@ const FormRoundList: FormDataRoundList = {
   date_end: '',
   year: '',
   round: 0,
+}
+
+interface RoundAccessInfo {
+  hasUserAssignment: boolean
+  hasAssignedAssessor: boolean
 }
 
 type Order = 'asc' | 'desc'
@@ -63,28 +68,16 @@ const formatThaiDate = (dateString: string) => {
   return `${day} ${month} ${year}`
 }
 
-const isDateInRange = (startDate: string, endDate: string): boolean => {
-  if (!startDate || !endDate) return false
-
-  const currentDate = new Date()
-  const start = new Date(startDate)
-  const end = new Date(endDate)
-
-  // Check if current date is within the date range (between start and end)
-  return currentDate >= start && currentDate <= end
-}
-
-const getRoundStatusLabel = (startDate: string, endDate: string, hasCompletedForms?: number, hasAssessorData?: boolean): string => {
+const getRoundStatusLabel = (
+  startDate: string,
+  endDate: string,
+  hasCompletedForms?: number,
+  accessInfo?: RoundAccessInfo
+): string => {
   if (!startDate || !endDate) return 'รอดำเนินการ'
 
-  // ถ้าไม่มี assessor data ในรอบนี้เลย ให้แสดง "สิ้นสุดการดำเนินการ"
-  if (hasAssessorData === false) {
-    return 'สิ้นสุดการดำเนินการ'
-  }
-
-  // ถ้ามีฟอร์มที่เสร็จสิ้นแล้ว (status = 1) ให้แสดง "เสร็จสิ้น"
   if (hasCompletedForms === 1) {
-    return 'เสร็จสิ้น'
+    return 'รอการประเมิน'
   }
 
   const currentDate = new Date()
@@ -93,38 +86,37 @@ const getRoundStatusLabel = (startDate: string, endDate: string, hasCompletedFor
 
   if (currentDate < start) {
     return 'รอดำเนินการ'
-  } else if (currentDate >= start && currentDate <= end) {
-    return 'กำลังดำเนินการ'
-  } else {
-    // เลยวันที่กำหนดแล้ว แต่ยังมี assessor data ให้แสดง "กำลังดำเนินการ"
-    return 'กำลังดำเนินการ'
   }
+
+  if (currentDate > end) {
+    return 'สิ้นสุดการดำเนินการ'
+  }
+
+  if (!accessInfo?.hasUserAssignment || !accessInfo?.hasAssignedAssessor) {
+    return 'รอดำเนินการ'
+  }
+
+  return 'กำลังดำเนินการ'
 }
 
-const getRoundStatusColor = (startDate: string, endDate: string, hasCompletedForms?: number, hasAssessorData?: boolean): string => {
-  if (!startDate || !endDate) return 'bg-gray-300 text-gray-500'
+const getRoundStatusColor = (
+  startDate: string,
+  endDate: string,
+  hasCompletedForms?: number,
+  accessInfo?: RoundAccessInfo
+): string => {
+  const status = getRoundStatusLabel(startDate, endDate, hasCompletedForms, accessInfo)
 
-  // ถ้าไม่มี assessor data ในรอบนี้เลย ให้แสดงสีเทา
-  if (hasAssessorData === false) {
-    return 'bg-gray-200 text-gray-500'
-  }
-
-  // ถ้ามีฟอร์มที่เสร็จสิ้นแล้ว (status = 1) ให้แสดงสีเขียว
-  if (hasCompletedForms === 1) {
-    return 'text-white bg-success'
-  }
-
-  const currentDate = new Date()
-  const start = new Date(startDate)
-  const end = new Date(endDate)
-
-  if (currentDate < start) {
-    return 'text-white bg-amber-500'
-  } else if (currentDate >= start && currentDate <= end) {
-    return 'text-white bg-blue-500'
-  } else {
-    // เลยวันที่กำหนดแล้ว แต่ยังมี assessor data ให้แสดงสีน้ำเงิน
-    return 'text-white bg-blue-500'
+  switch (status) {
+    case 'รอการประเมิน':
+      return 'text-white bg-purple-500'
+    case 'กำลังดำเนินการ':
+      return 'text-white bg-blue-500'
+    case 'สิ้นสุดการดำเนินการ':
+      return 'bg-gray-200 text-gray-500'
+    case 'รอดำเนินการ':
+    default:
+      return 'bg-amber-500 text-white'
   }
 }
 
@@ -154,7 +146,8 @@ function SetAssessor() {
   const [selectedRoundList, setSelectedRoundList] = useState<string>('')
   const [selectedRoundListId, setSelectedRoundListId] = useState<number>(0)
   const [selectedRoundListName, setSelectedRoundListName] = useState<string>('')
-  const [roundsWithAssessorData, setRoundsWithAssessorData] = useState<number[]>([])
+  const [roundAccessInfo, setRoundAccessInfo] = useState<Record<number, RoundAccessInfo>>({})
+  const [userId, setUserId] = useState<number | null>(null)
   const [sortState, setSortState] = useState<SortState>({
     column: null,
     order: null,
@@ -169,6 +162,33 @@ function SetAssessor() {
       [{ text: 'ฟอร์มประเมินภาระงาน', path: '/user/workload_round' },
       ])
   }, [setBreadcrumbs])
+
+  useEffect(() => {
+    if (!session?.accessToken) {
+      setUserId(null)
+      return
+    }
+
+    try {
+      const decoded = jwtDecode<{ id?: number | string }>(session.accessToken)
+      if (decoded) {
+        const decodedId = decoded.id
+        if (typeof decodedId === 'number') {
+          setUserId(decodedId)
+        } else if (typeof decodedId === 'string') {
+          const parsedId = Number(decodedId)
+          setUserId(Number.isFinite(parsedId) ? parsedId : null)
+        } else {
+          setUserId(null)
+        }
+      } else {
+        setUserId(null)
+      }
+    } catch (error) {
+      console.error('Error decoding access token:', error)
+      setUserId(null)
+    }
+  }, [session?.accessToken])
 
   useEffect(() => {
     if (!session?.accessToken) return
@@ -257,25 +277,36 @@ function SetAssessor() {
     session?.accessToken,
   ])
 
-  const checkRoundHasAssessorData = async (round_list_id: number) => {
-    try {
-      if (!session?.accessToken) return false
+  const getUserAccessForRound = async (round_list_id: number): Promise<RoundAccessInfo> => {
+    if (!session?.accessToken || !userId) {
+      return {
+        hasUserAssignment: false,
+        hasAssignedAssessor: false,
+      }
+    }
 
-      const response = await SetAssessorServices.getSetAssessorListByRound(
+    try {
+      const response = await SetAssessorServices.checkUserAccessToRound(
+        userId,
         round_list_id,
         session.accessToken
       )
 
-      if (response.payload && Array.isArray(response.payload) && response.payload.length > 0) {
-        return true
+      if (response.success && Array.isArray(response.payload)) {
+        const hasUserAssignment = response.payload.length > 0
+        const hasAssignedAssessor = response.payload.some((record: any) => record.ex_u_id !== null)
+        return {
+          hasUserAssignment,
+          hasAssignedAssessor,
+        }
       }
-      return false
     } catch (error) {
-      console.error(
-        `Error checking assessor data for round ${round_list_id}:`,
-        error
-      )
-      return false
+      console.error(`Error checking user access for round ${round_list_id}:`, error)
+    }
+
+    return {
+      hasUserAssignment: false,
+      hasAssignedAssessor: false,
     }
   }
 
@@ -318,21 +349,6 @@ function SetAssessor() {
         setTotal(roundsData.length)
       }
 
-      // Check which rounds have assessor data (ทำแบบ parallel เพื่อความเร็ว)
-      const assessorDataPromises = roundsData.map(round =>
-        checkRoundHasAssessorData(round.round_list_id)
-      )
-
-      const assessorResults = await Promise.all(assessorDataPromises)
-      const roundsWithData: number[] = []
-
-      roundsData.forEach((round, index) => {
-        if (assessorResults[index]) {
-          roundsWithData.push(round.round_list_id)
-        }
-      })
-
-      setRoundsWithAssessorData(roundsWithData)
       setLoading(false)
 
       // Update URL parameters
@@ -351,6 +367,41 @@ function SetAssessor() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    let isCancelled = false
+
+    const fetchAccessInfo = async () => {
+      if (!session?.accessToken || !userId || data.length === 0) {
+        if (!isCancelled) {
+          setRoundAccessInfo({})
+        }
+        return
+      }
+
+      try {
+        const accessResults = await Promise.all(
+          data.map((round) => getUserAccessForRound(round.round_list_id))
+        )
+
+        const updatedAccessInfo: Record<number, RoundAccessInfo> = {}
+        data.forEach((round, index) => {
+          updatedAccessInfo[round.round_list_id] = accessResults[index]
+        })
+        if (!isCancelled) {
+          setRoundAccessInfo(updatedAccessInfo)
+        }
+      } catch (error) {
+        console.error('Error fetching round access info:', error)
+      }
+    }
+
+    fetchAccessInfo()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [data, session?.accessToken, userId])
 
   const updateUrlParams = (newParams: {
     search?: string
@@ -480,10 +531,23 @@ function SetAssessor() {
       align: 'left',
       sortable: true,
       render: (_, record) => {
-        const hasAssessorData = roundsWithAssessorData.includes(record.round_list_id)
+        const accessInfo = roundAccessInfo[record.round_list_id]
+        const statusLabel = getRoundStatusLabel(
+          record.date_start,
+          record.date_end,
+          record.has_completed_forms,
+          accessInfo
+        )
         return (
-          <span className={`text-xs font-normal rounded-md px-2 py-1 ${getRoundStatusColor(record.date_start, record.date_end, record.has_completed_forms, hasAssessorData)}`}>
-            {getRoundStatusLabel(record.date_start, record.date_end, record.has_completed_forms, hasAssessorData)}
+          <span
+            className={`text-xs font-normal rounded-md px-2 py-1 ${getRoundStatusColor(
+              record.date_start,
+              record.date_end,
+              record.has_completed_forms,
+              accessInfo
+            )}`}
+          >
+            {statusLabel}
           </span>
         )
       },
@@ -496,9 +560,16 @@ function SetAssessor() {
       render: (_, record) => {
         const currentDate = new Date()
         const start = new Date(record.date_start)
-        const end = new Date(record.date_end)
-        const isInRange = currentDate >= start && currentDate <= end
-        const hasAssessorData = roundsWithAssessorData.includes(record.round_list_id)
+        const accessInfo = roundAccessInfo[record.round_list_id]
+        const canEdit = Boolean(accessInfo?.hasUserAssignment && accessInfo?.hasAssignedAssessor)
+        const isBeforeStart = currentDate < start
+        const statusLabel = getRoundStatusLabel(
+          record.date_start,
+          record.date_end,
+          record.has_completed_forms,
+          accessInfo
+        )
+        const shouldDisableEdit = statusLabel === 'รอดำเนินการ'
         
         return (
           <div className="w-full flex justify-center gap-2 p-0">
@@ -510,11 +581,29 @@ function SetAssessor() {
               >
                 <Eye className="h-4 w-4" />
               </button>
-            ) : hasAssessorData ? (
+            ) : isBeforeStart ? (
+              <button
+                type="button"
+                className="cursor-default rounded-md p-1 text-gray-300"
+                disabled
+                aria-disabled="true"
+              >
+                <Edit className="h-4 w-4" />
+              </button>
+            ) : canEdit ? (
               <button
                 type="button"
                 className="cursor-pointer rounded-md p-1 text-amber-500 transition duration-300 ease-in-out hover:bg-amber-500 hover:text-white"
                 onClick={() => handleSetAssessorInfo(record.round_list_id)}
+              >
+                <Edit className="h-4 w-4" />
+              </button>
+            ) : shouldDisableEdit ? (
+              <button
+                type="button"
+                className="cursor-default rounded-md p-1 text-gray-300"
+                disabled
+                aria-disabled="true"
               >
                 <Edit className="h-4 w-4" />
               </button>

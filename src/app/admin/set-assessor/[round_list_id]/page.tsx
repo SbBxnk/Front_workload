@@ -154,7 +154,7 @@ export default function ExDetailsPage() {
   useEffect(() => {
     setBreadcrumbs(
       [{ text: 'รอบประเมินภาระงาน', path: '/admin/set-assessor' },
-      { text: 'ผู้ถูกประเมินภาระงาน', path: `/admin/set-assessor/${round_list_id}` }
+      { text: 'ผู้รับการประเมินภาระงาน', path: `/admin/set-assessor/${round_list_id}` }
       ])
   }, [setBreadcrumbs, round_list_id])
 
@@ -473,8 +473,8 @@ export default function ExDetailsPage() {
   }))
 
   const selectedLabel = selectedAssessor
-    ? `ผู้ถูกประเมิน ${selectedAssessor}`
-    : 'เลือกผู้ถูกประเมิน'
+    ? `ผู้รับการประเมิน ${selectedAssessor}`
+    : 'เลือกผู้รับการประเมิน'
 
   // Define table columns
   const columns: TableColumn<Assessor>[] = [
@@ -514,7 +514,7 @@ export default function ExDetailsPage() {
     },
     {
       key: 'u_fname',
-      label: 'ชื่อผู้ถูกประเมิน',
+      label: 'ชื่อผู้รับการประเมิน',
       align: 'left',
       sortable: true,
       render: (_, record) => (
@@ -536,7 +536,7 @@ export default function ExDetailsPage() {
     },
     {
       key: 'u_id_card',
-      label: 'รหัสผู้ถูกประเมิน',
+      label: 'รหัสผู้รับการประเมิน',
       align: 'left',
       render: (_, record) => (
         <span className="text-sm font-light text-gray-500 dark:text-gray-400">
@@ -906,7 +906,7 @@ export default function ExDetailsPage() {
 
     try {
       if (!FormData.as_u_id || FormData.as_u_id.length === 0) {
-        alert('กรุณาเลือกผู้ถูกประเมิน')
+        alert('กรุณาเลือกผู้รับการประเมิน')
         setLoading(false)
         return
       }
@@ -1018,7 +1018,7 @@ export default function ExDetailsPage() {
       const duplicateCount = (createResponse.meta as any)?.duplicate || 0
       const errorCount = (createResponse.meta as any)?.error || 0
       
-      let message = `เพิ่มผู้ถูกประเมินเสร็จสิ้น: สำเร็จ ${successCount} รายการ`
+      let message = `เพิ่มผู้รับการประเมินเสร็จสิ้น: สำเร็จ ${successCount} รายการ`
       if (duplicateCount > 0) {
         message += `, ซ้ำ ${duplicateCount} รายการ`
       }
@@ -1042,8 +1042,8 @@ export default function ExDetailsPage() {
           Swal.fire({
             position: 'center',
             icon: 'warning',
-            title: 'ผู้ถูกประเมินนี้ถูกเพิ่มแล้ว!',
-            text: 'ผู้ถูกประเมินนี้ถูกเพิ่มในรอบการประเมินแล้ว',
+            title: 'ผู้รับการประเมินนี้ถูกเพิ่มแล้ว!',
+            text: 'ผู้รับการประเมินนี้ถูกเพิ่มในรอบการประเมินแล้ว',
             showConfirmButton: false,
             timer: 1500,
           })
@@ -1052,7 +1052,7 @@ export default function ExDetailsPage() {
             position: 'center',
             icon: 'error',
             title: 'เกิดข้อผิดพลาด!',
-            text: 'เกิดข้อผิดพลาดในการเพิ่มผู้ถูกประเมิน',
+            text: 'เกิดข้อผิดพลาดในการเพิ่มผู้รับการประเมิน',
             showConfirmButton: false,
             timer: 1500,
           })
@@ -1085,7 +1085,7 @@ export default function ExDetailsPage() {
       Swal.fire({
         icon: 'success',
         title: 'ลบสำเร็จ!',
-        text: `ลบสาขาผู้ถูกประเมินสำเร็จ!`,
+        text: `ลบสาขาผู้รับการประเมินสำเร็จ!`,
         showConfirmButton: false,
         timer: 1500,
       })
@@ -1102,7 +1102,7 @@ export default function ExDetailsPage() {
       Swal.fire({
         icon: 'error',
         title: 'เกิดข้อผิดพลาด!',
-        text: 'เกิดข้อผิดพลาดในการลบผู้ถูกประเมิน',
+        text: 'เกิดข้อผิดพลาดในการลบผู้รับการประเมิน',
         showConfirmButton: false,
         timer: 1500,
       })
@@ -1113,7 +1113,7 @@ export default function ExDetailsPage() {
     <div className="rounded-md bg-white p-4 shadow transition-all duration-300 ease-in-out dark:bg-zinc-900 dark:text-gray-400">
       <div className="pb-4">
           <h1 className="text-xl text-gray-500">
-            ผู้ถูกประเมิน{' '}
+            ผู้รับการประเมิน{' '}
             <span className="text-business1">{rounds?.round_list_name}</span>
           </h1>
       </div>
@@ -1132,7 +1132,7 @@ export default function ExDetailsPage() {
           <div className="relative flex w-full items-center md:w-52">
             <input
               className="w-full rounded-md border border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
-              placeholder="ค้นหาชื่อผู้ถูกประเมิน"
+              placeholder="ค้นหาชื่อผู้รับการประเมิน"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
             />
@@ -1163,9 +1163,9 @@ export default function ExDetailsPage() {
                     ? "cursor-default bg-gray-200 text-gray-400"
                     : "cursor-pointer bg-success text-white hover:bg-success/80"
                 }`}
-                title={users.length === 0 ? "เพิ่มผู้ถูกประเมิน" : "เพิ่มผู้ถูกประเมิน"}
+                title={users.length === 0 ? "เพิ่มผู้รับการประเมิน" : "เพิ่มผู้รับการประเมิน"}
               >
-                เพิ่มผู้ถูกประเมิน
+                เพิ่มผู้รับการประเมิน
                 <Plus className="h-4 w-4" />
               </label>
             ) : (
@@ -1173,7 +1173,7 @@ export default function ExDetailsPage() {
                 className="flex w-full items-center justify-between gap-2 rounded-md px-4 py-2.5 text-sm font-light cursor-not-allowed bg-gray-200 text-gray-400 md:w-52"
                 title="ไม่สามารถเพิ่มได้เนื่องจากอยู่นอกช่วงเวลาที่กำหนด"
               >
-                เพิ่มผู้ถูกประเมิน
+                เพิ่มผู้รับการประเมิน
                 <Plus className="h-4 w-4" />
               </div>
             )}

@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import type { Terms } from '@/Types'
 import useAuthHeaders from '@/hooks/Header'
-import { LinkIcon, FileText, ImageIcon, FileDown, AlertCircle } from 'lucide-react'
+import { FileDown, AlertCircle } from 'lucide-react'
 import axios from 'axios'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -14,6 +14,11 @@ import MainTaskServices from '@/services/mainTaskServices'
 import SubTaskServices from '@/services/subTaskServices'
 import WorkloadGroupServices from '@/services/workloadGroupServices'
 import PerformanceService, { type PerformanceSnapshot } from '@/services/performanceService'
+import type { FormInfo, Subtask, Task } from './types'
+import Section1 from './section_1'
+import Section2 from './section_2'
+import Section2CalModal from './_partial/section2CalModal'
+import Section3 from './section_3'
 
 interface WorkloadFormProps {
   selectedGroupName?: string
@@ -33,42 +38,6 @@ const isImageFile = (fileName: string | null | undefined): boolean => {
   return imageExtensions.includes(ext)
 }
 
-interface FormInfo {
-  form_id: number
-  form_title: string
-  description: string
-  workload: number
-  quality: number
-  file_type: string
-  ex_score: number
-  evidence?: string
-  link_name?: string
-  link_path?: string
-  files?: Array<{
-    fileinfo_id: number
-    file_name: string
-  }>
-  links?: Array<{
-    link_name: string
-    link_path: string
-  }>
-}
-
-interface Subtask {
-  subtask_id: number
-  subtask_name: string
-  form_infos: FormInfo[]
-}
-
-interface Task {
-  task_id: number
-  task_name: string
-  workload_group_id?: number
-  workload_group_name?: string
-  quantity_workload_hours?: number
-  subtasks: { [key: number]: Subtask }
-}
-
 export default function WorkloadForm({ selectedGroupName, terms = [], userId, roundId, isPreview = false, forceSnapshot = false }: WorkloadFormProps) {
   const [workloadData, setWorkloadData] = useState<Task[]>([])
   const [masterTasks, setMasterTasks] = useState<Task[]>([])
@@ -80,6 +49,7 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
   const [expectedLevels, setExpectedLevels] = useState<any[]>([])
   const [competencies, setCompetencies] = useState<any[]>([])
   const [performanceEvaluations, setPerformanceEvaluations] = useState<any[]>([]) // สำหรับ preview
+  const [isCompetencyModalOpen, setIsCompetencyModalOpen] = useState(false)
   const headers = useAuthHeaders()
   const { data: session } = useSession()
 
@@ -90,6 +60,154 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
     { position_id: 3, position_name: 'รองศาสตราจารย์', short_name: 'รศ.' },
     { position_id: 4, position_name: 'ศาสตราจารย์', short_name: 'ศ.' },
   ]
+
+  const decodedUser = useMemo(() => {
+    if (!session?.accessToken) return null
+    try {
+      return jwtDecode<any>(session.accessToken)
+    } catch (error) {
+      console.warn('Failed to decode access token:', error)
+      return null
+    }
+  }, [session?.accessToken])
+
+  const userPositionName = useMemo(() => {
+    if (!decodedUser) return '-'
+    if (decodedUser.position_name) return decodedUser.position_name
+    if (decodedUser.position_id) {
+      const matchedPosition = POSITIONS.find(
+        position => position.position_id === decodedUser.position_id
+      )
+      if (matchedPosition) {
+        return matchedPosition.position_name
+      }
+    }
+    return '-'
+  }, [decodedUser])
+
+  const userPositionId = decodedUser?.position_id ?? null
+
+  const expectedLevelsByCompetency = useMemo(() => {
+    const map = new Map<number, Map<number, number>>()
+
+    expectedLevels.forEach((item: any) => {
+      const competencyId = Number(item?.competency_id ?? item?.competencyId)
+      const positionId = Number(item?.position_id ?? item?.positionId)
+      const expectedLevel = Number(item?.expected_level ?? item?.expectedLevel)
+
+      if (!Number.isFinite(competencyId) || !Number.isFinite(positionId) || !Number.isFinite(expectedLevel)) {
+        return
+      }
+
+      if (!map.has(competencyId)) {
+        map.set(competencyId, new Map<number, number>())
+      }
+
+      map.get(competencyId)!.set(positionId, expectedLevel)
+    })
+
+    return map
+  }, [expectedLevels])
+
+  const competencyScoreSummary = useMemo(() => {
+    const rawSource = isPreview ? performanceEvaluations : performanceSnapshot?.evaluations ?? []
+    const evaluations = Array.isArray(rawSource) ? rawSource : []
+
+    const categories = [
+      {
+        id: 'gte',
+        multiplier: 3,
+        count: 0,
+        score: 0,
+      },
+      {
+        id: 'minus1',
+        multiplier: 2,
+        count: 0,
+        score: 0,
+      },
+      {
+        id: 'minus2',
+        multiplier: 1,
+        count: 0,
+        score: 0,
+      },
+      {
+        id: 'minus3',
+        multiplier: 0,
+        count: 0,
+        score: 0,
+      },
+    ] as Array<{ id: string; multiplier: number; count: number; score: number }>
+
+    evaluations.forEach((evaluation: any) => {
+      const competencyId = Number(evaluation?.competency_id ?? evaluation?.competencyId)
+      const demonstrated = Number(evaluation?.demonstrated_level ?? evaluation?.demonstratedLevel)
+
+      if (!Number.isFinite(demonstrated)) {
+        return
+      }
+
+      const fallbackExpected = evaluation?.expected_level ?? evaluation?.expectedLevel ?? evaluation?.expected
+      let expected = Number(fallbackExpected)
+
+      if (!Number.isFinite(expected)) {
+        const byPosition = expectedLevelsByCompetency.get(competencyId)
+
+        if (byPosition) {
+          if (Number.isFinite(userPositionId) && userPositionId !== null && byPosition.has(userPositionId)) {
+            expected = byPosition.get(userPositionId) ?? NaN
+          } else {
+            const iterator = byPosition.values()
+            const first = iterator.next()
+            if (!first.done) {
+              expected = first.value
+            }
+          }
+        }
+      }
+
+      if (!Number.isFinite(expected)) {
+        return
+      }
+
+      const diff = demonstrated - expected
+
+      let category = categories[3]
+      if (diff >= 0) {
+        category = categories[0]
+      } else if (diff === -1) {
+        category = categories[1]
+      } else if (diff === -2) {
+        category = categories[2]
+      }
+
+      category.count += 1
+    })
+
+    categories.forEach(category => {
+      category.score = category.count * category.multiplier
+    })
+
+    const totalScore = categories.reduce((sum, category) => sum + category.score, 0)
+    const totalCount = categories.reduce((sum, category) => sum + category.count, 0)
+
+    return { rows: categories, totalScore, totalCount }
+  }, [
+    expectedLevelsByCompetency,
+    isPreview,
+    performanceEvaluations,
+    performanceSnapshot,
+    userPositionId,
+  ])
+
+  const competencyTotalScoreCalc = useMemo(() => {
+    const raw = competencyScoreSummary?.totalScore ?? 0
+    if (!Number.isFinite(raw)) {
+      return 0
+    }
+    return (raw / 30)
+  }, [competencyScoreSummary?.totalScore])
 
   const memoizedHeaders = useMemo(() => headers, [headers.Authorization])
 
@@ -566,14 +684,14 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
             PerformanceService.getAllCompetencies(session.accessToken),
             PerformanceService.getAllExpectedLevels(session.accessToken)
           ])
-          
+
           if (competenciesRes.success && competenciesRes.payload) {
-            const comps = Array.isArray(competenciesRes.payload) 
-              ? competenciesRes.payload 
+            const comps = Array.isArray(competenciesRes.payload)
+              ? competenciesRes.payload
               : [competenciesRes.payload]
             setCompetencies(comps)
           }
-          
+
           if (expectedLevelsRes.success && expectedLevelsRes.payload) {
             const levels = Array.isArray(expectedLevelsRes.payload)
               ? expectedLevelsRes.payload
@@ -670,8 +788,8 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
 
           // เก็บข้อมูล competencies และ expected levels
           if (competenciesRes.success && competenciesRes.payload) {
-            const comps = Array.isArray(competenciesRes.payload) 
-              ? competenciesRes.payload 
+            const comps = Array.isArray(competenciesRes.payload)
+              ? competenciesRes.payload
               : [competenciesRes.payload]
             setCompetencies(comps)
           }
@@ -713,8 +831,8 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
             ])
 
             if (competenciesRes.success && competenciesRes.payload) {
-              const comps = Array.isArray(competenciesRes.payload) 
-                ? competenciesRes.payload 
+              const comps = Array.isArray(competenciesRes.payload)
+                ? competenciesRes.payload
                 : [competenciesRes.payload]
               setCompetencies(comps)
             }
@@ -1061,11 +1179,17 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
 
       // หน่วยงาน
       doc.setFontSize(14)
-      doc.setFont('THSarabunNew', 'bold')
-      const fullText = 'หน่วยงาน  คณะบริหารธุรกิจและศิลปศาสตร์  มหาวิทยาลัยเทคโนโลยีราชมงคลล้านนา'
-      const textWidth = doc.getTextWidth(fullText)
-      const centerX = (pageWidth - textWidth) / 2
-      doc.text(fullText, centerX, roundY + 8)
+      doc.setFont('THSarabunNew', 'normal')
+      const titleText = 'หน่วยงาน'
+      doc.setTextColor(0, 0, 0)
+      doc.text(titleText, 14, roundY + 8)
+      const bluePart = 'คณะบริหารธุรกิจและศิลปศาสตร์'
+      const blackPart = '  มหาวิทยาลัยเทคโนโลยีราชมงคลล้านนา'
+      const subTextX = 14 + doc.getTextWidth(titleText) + 5
+      doc.setTextColor(0, 0, 255)
+      doc.text(bluePart, subTextX, roundY + 8)
+      doc.setTextColor(0, 0, 0)
+      doc.text(blackPart, subTextX + doc.getTextWidth(bluePart), roundY + 8)
 
       // ข้อมูลส่วนตัว - จัดแนว Y
       doc.setFont('THSarabunNew', 'normal')
@@ -1974,12 +2098,11 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
       doc.text(textAfterScore, scoreStartX + beforeWidth + numberWidth, summaryTableFinalY)
 
       // ส่วนที่ 2 องค์ประกอบที่ 2 พฤติกรรมการปฏิบัติงาน (สมรรถนะ)
-      // ตรวจสอบว่ามีข้อมูล snapshot หรือไม่
       if (performanceSnapshot && performanceSnapshot.evaluations && performanceSnapshot.evaluations.length > 0) {
         // ขึ้นหน้าใหม่สำหรับส่วนที่ 2
         doc.addPage()
         let performanceStartY = 32
-        
+
         doc.setFont('THSarabunNew', 'bold')
         doc.setFontSize(14)
         doc.text('ส่วนที่ 2 องค์ประกอบที่ 2 พฤติกรรมการปฏิบัติงาน (สมรรถนะ)', 14, performanceStartY)
@@ -1993,17 +2116,17 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
         })
 
         // ดึง position_name และ position_short_name จาก snapshot
-        const snapshotPositionName = sortedEvaluations.length > 0 
+        const snapshotPositionName = sortedEvaluations.length > 0
           ? sortedEvaluations[0]?.position_name || null
           : null
-        const snapshotPositionShortName = sortedEvaluations.length > 0 
+        const snapshotPositionShortName = sortedEvaluations.length > 0
           ? sortedEvaluations[0]?.position_short_name || null
           : null
 
         // สร้างข้อมูลตาราง performance evaluation
         const performanceHead = [[
           'ลำดับ',
-          'สมรรถนะหลัก',
+          'สมรรถนะหลัก (ที่สภามหาวิทยาลัยกำหนด)',
           `ระดับสมรรถนะที่คาดหวัง\n(${snapshotPositionShortName || snapshotPositionName || 'ตำแหน่ง'})`,
           'ระดับสมรรถนะที่แสดงออก'
         ]]
@@ -2045,25 +2168,25 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
             lineColor: [0, 0, 0]
           },
           columnStyles: {
-            0: { 
-              cellWidth: 20, 
+            0: {
+              cellWidth: 20,
               halign: 'center',
               font: 'THSarabunNew'
             },
-            1: { 
-              cellWidth: 80, 
+            1: {
+              cellWidth: 80,
               font: 'THSarabunNew',
               halign: 'left'
             },
-            2: { 
-              cellWidth: 50, 
+            2: {
+              cellWidth: 50,
               halign: 'center',
               font: 'THSarabunNew',
               textColor: [0, 0, 0],
               fillColor: [255, 255, 255] // สีขาว (ไม่ highlight สีเขียวแล้ว)
             },
-            3: { 
-              cellWidth: 40, 
+            3: {
+              cellWidth: 40,
               halign: 'center',
               font: 'THSarabunNew',
               textColor: [0, 0, 255] // สีน้ำเงิน
@@ -2115,628 +2238,68 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
   // }
 
   return (
-    <div id="workload-content" className="space-y-4">
-      <div className="flex flex-col gap-10 rounded-md p-4 bg-white dark:bg-zinc-900">
-        <div className="flex justify-end gap-3 mb-4">
-          <button
-            id="export-pdf-btn"
-            onClick={handleExportPDFWithLinks}
-            disabled={exporting || !Array.isArray(workloadData) || workloadData.length === 0}
-            className="inline-flex h-10 items-center px-4 py-2 bg-red-500 text-white rounded-lg hover:text-white hover:bg-red-600 transition-colors duration-200"
-            title="Export PDF พร้อม clickable links"
-          >
-            <FileDown className="mr-2 h-4 w-4" />
-            ส่งออกเป็น PDF
-          </button>
-        </div>
-        <div className="overflow-x-auto">
-          <div className="">
-            <p className="text-lg font-light text-center text-gray-800 dark:text-gray-200">ข้อตกลงและแบบประเมินผลการปฏิบัติงานของบุคลากรสายวิชาการ</p>
-            <p className="text-lg font-light text-center text-gray-800 dark:text-gray-200 mb-8">มหาวิทยาลัยเทคโนโลยีราชมงคลล้านนา</p>
-            <p className="text-md font-normal text-gray-800 dark:text-gray-200 mb-4">ส่วนที่ 1 องค์ประกอบที่ 1 ผลสัมฤทธิ์ของงาน</p>
+    <>
+      <div id="workload-content" className="space-y-4">
+        <div className="flex flex-col gap-10 rounded-md p-4 bg-white dark:bg-zinc-900">
+          <div className="flex justify-end gap-3 mb-4">
+            <button
+              id="export-pdf-btn"
+              onClick={handleExportPDFWithLinks}
+              disabled={exporting || !Array.isArray(workloadData) || workloadData.length === 0}
+              className="inline-flex h-10 items-center px-4 py-2 bg-red-500 text-white rounded-lg hover:text-white hover:bg-red-600 transition-colors duration-200"
+              title="Export PDF พร้อม clickable links"
+            >
+              <FileDown className="mr-2 h-4 w-4" />
+              ส่งออกเป็น PDF
+            </button>
           </div>
-          <table className="w-full border-collapse border border-gray-300 dark:border-gray-600">
-            <thead className="bg-gray-50 dark:bg-gray-800">
-              <tr>
-                <th className="border border-gray-300 px-4 py-3 text-center text-gray-700 dark:text-gray-300 font-medium">
-                  ภาระงาน/กิจกรรม/โครงการ/งาน
-                  <p>(1)</p>
-                </th>
-                <th className="border border-gray-300 px-4 py-3 text-center text-gray-700 dark:text-gray-300 font-medium">
-                  หลักฐาน
-                  <p>(2)</p>
-                </th>
-                <th className="border border-gray-300 px-4 py-3 text-center text-gray-700 dark:text-gray-300 font-medium">
-                  จำนวน
-                  <p>(3)</p>
-                </th>
-                <th className="border border-gray-300 px-4 py-3 text-center text-gray-700 dark:text-gray-300 font-medium">
-                  ภาระงาน
-                  <p>(4)</p>
-                </th>
-                <th className="border border-gray-300 px-4 py-3 text-center text-gray-700 dark:text-gray-300 font-medium">
-                  รวมภาระงาน
-                  <p>(3 x 4)</p>
-                </th>
-                <th className="border border-gray-300 px-4 py-3 text-center text-gray-700 dark:text-gray-300 font-medium max-w-10">
-                  หมายเหตุ
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white dark:bg-zinc-900">
-              {Array.isArray(mergedTasks) && mergedTasks.length > 0 ? (
-                mergedTasks.map((task) => (
-                  <React.Fragment key={task.task_id}>
-                    {/* Task Row */}
-                    <tr className="bg-business1 text-white dark:bg-zinc-900">
-                      <td colSpan={6} className="border border-gray-300 px-4 py-3 dark:text-gray-200 font-normal">
-                        <div className="flex items-center justify-between">
-                          <span className="">
-                            {task.task_id}. {task?.task_name || 'Unknown Task'} (ภาระงานขั้นต่ำ)
-                          </span>
-                          {task.quantity_workload_hours && (
-                            <span className="text-sm bg-white text-business1 px-2 py-1 rounded">
-                              {task.quantity_workload_hours} ภาระงาน/สัปดาห์
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
 
-                    {/* Subtask Rows */}
-                    {Object.values(task.subtasks).map((subtask, subtaskIndex) => (
-                      <React.Fragment key={subtask.subtask_id}>
-                        {/* Subtask Header */}
-                        <tr className="bg-gray-50 dark:bg-gray-800/50">
-                          <td colSpan={6} className="border border-gray-300 px-4 py-2 text-gray-700 dark:text-gray-300">
-                            <div className="ml-6 flex items-center gap-2">
-                              <span className="text-sm">
-                                {task.task_id}.{subtaskIndex + 1} {subtask?.subtask_name || 'Unknown Subtask'}
-                              </span>
-                            </div>
-                          </td>
-                        </tr>
+          <Section1
+            mergedTasks={mergedTasks}
+            terms={terms}
+            selectedGroupName={selectedGroupName}
+            totalPerformanceWorkload={totalPerformanceWorkload}
+            performanceScoreOutOf70={performanceScoreOutOf70}
+            isImageFile={isImageFile}
+          />
 
-                        {(subtask.form_infos.length === 0 ? [null] : subtask.form_infos).map((formInfo, index) => (
-                          formInfo === null ? (
-                            <tr key={`placeholder-${task.task_id}-${subtask.subtask_id}`}>
-                              <td className="border border-gray-300 px-4 py-2 text-gray-500 dark:text-gray-400">
-                                <div className="ml-12 text-sm">-</div>
-                              </td>
-                              <td className="border border-gray-300 px-4 py-2 text-left text-gray-500 dark:text-gray-400 text-sm">-</td>
-                              <td className="border border-gray-300 px-4 py-2 text-center text-gray-500 dark:text-gray-400 text-sm">-</td>
-                              <td className="border border-gray-300 px-4 py-2 text-center text-gray-500 dark:text-gray-400 text-sm">-</td>
-                              <td className="border border-gray-300 px-4 py-2 text-center text-gray-500 dark:text-gray-400 text-sm">-</td>
-                              <td className="border border-gray-300 px-4 py-2 text-left text-gray-500 dark:text-gray-400 text-sm">-</td>
-                            </tr>
-                          ) : (
-                            <tr key={`${task.task_id}-${subtask.subtask_id}-${formInfo.form_id}-${index}`}>
-                              <td className="border border-gray-300 px-4 py-2 text-gray-800 dark:text-gray-200">
-                                <div className="ml-12 flex items-center gap-2">
-                                  <div>
-                                    <div className="font-light text-sm dark:text-gray-200 max-w-[280px]">
-                                      {task.task_id}.{subtaskIndex + 1}.{index + 1} {formInfo.form_title}
-                                    </div>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="border border-gray-300 px-4 py-2 text-left text-blue-600 dark:text-blue-400 text-sm max-w-[200px]">
-                                <div className="space-y-1">
-                                  {formInfo.files && formInfo.files.length > 0 ? (
-                                    formInfo.files.map((file, fileIndex) => (
-                                      <button
-                                        key={`file-${formInfo.form_id}-${fileIndex}`}
-                                        onClick={() => {
-                                          const baseUrl = process.env.NEXT_PUBLIC_API?.replace('/api', '') || 'http://localhost:3333'
-                                          window.open(`${baseUrl}/files/${file.file_name}`, '_blank')
-                                        }}
-                                        className="inline-flex items-center text-sm text-blue-600 transition-colors duration-150 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300 w-full"
-                                        title={file.file_name}
-                                      >
-                                        {isImageFile(file.file_name) ? (
-                                          <ImageIcon className="mr-2 h-4 w-4 text-blue-500 dark:text-blue-400" />
-                                        ) : (
-                                          <FileText className="mr-2 h-4 w-4 text-blue-500 dark:text-blue-400" />
-                                        )}
-                                        <span className="max-w-32 truncate">
-                                          {file.file_name}
-                                        </span>
-                                      </button>
-                                    ))
-                                  ) : formInfo.links && formInfo.links.length > 0 ? (
-                                    formInfo.links.map((link, linkIndex) => (
-                                      <button
-                                        key={`link-${formInfo.form_id}-${linkIndex}`}
-                                        onClick={() => {
-                                          let url = link.link_path || ''
-                                          if (!url.startsWith('http://') && !url.startsWith('https://')) {
-                                            url = `https://${url}`
-                                          }
-                                          window.open(url, '_blank')
-                                        }}
-                                        className="inline-flex items-center text-sm text-blue-600 transition-colors duration-150 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300 w-full"
-                                        title={link.link_path}
-                                      >
-                                        <LinkIcon className="mr-2 h-4 w-4 text-blue-500 dark:text-blue-400" />
-                                        <span className="max-w-32 truncate">
-                                          {link.link_name}
-                                        </span>
-                                      </button>
-                                    ))
-                                  ) : (formInfo.files && formInfo.files.length > 0) || (formInfo.links && formInfo.links.length > 0) ? (
-                                    <div className="space-y-1">
-                                      {/* แสดงไฟล์ */}
-                                      {formInfo.files && formInfo.files.map((file: any, fileIndex: number) => (
-                                        <button
-                                          key={fileIndex}
-                                          onClick={() => {
-                                            const baseUrl = process.env.NEXT_PUBLIC_API?.replace('/api', '') || 'http://localhost:3333'
-                                            window.open(`${baseUrl}/files/${file.file_name}`, '_blank')
-                                          }}
-                                          className="inline-flex items-center text-sm text-blue-600 transition-colors duration-150 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300 w-full"
-                                          title={file.file_name}
-                                        >
-                                          {isImageFile(file.file_name) ? (
-                                            <ImageIcon className="mr-2 h-4 w-4 text-blue-500 dark:text-blue-400" />
-                                          ) : (
-                                            <FileText className="mr-2 h-4 w-4 text-blue-500 dark:text-blue-400" />
-                                          )}
-                                          <span className="max-w-32 truncate">{file.file_name}</span>
-                                        </button>
-                                      ))}
+        <Section2
+          isPreview={isPreview}
+          competencies={competencies}
+          expectedLevels={expectedLevels}
+          performanceEvaluations={performanceEvaluations}
+          performanceSnapshot={performanceSnapshot}
+          userPositionName={userPositionName}
+          userPositionId={userPositionId}
+          positions={POSITIONS}
+          competencyScoreSummary={competencyScoreSummary}
+          competencyTotalScoreCalc={competencyTotalScoreCalc}
+          onOpenCompetencyModal={() => setIsCompetencyModalOpen(true)}
+        />
 
-                                      {/* แสดงลิงก์ */}
-                                      {formInfo.links && formInfo.links.map((link: any, linkIndex: number) => (
-                                        <button
-                                          key={linkIndex}
-                                          onClick={() => {
-                                            let url = link.link_path || ''
-                                            if (!url.startsWith('http://') && !url.startsWith('https://')) {
-                                              url = `https://${url}`
-                                            }
-                                            window.open(url, '_blank')
-                                          }}
-                                          className="inline-flex items-center text-sm text-blue-600 transition-colors duration-150 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300 w-full"
-                                          title={link.link_path}
-                                        >
-                                          <LinkIcon className="mr-2 h-4 w-4 text-blue-500 dark:text-blue-400" />
-                                          <span className="max-w-32 truncate">{link.link_name}</span>
-                                        </button>
-                                      ))}
-                                    </div>
-                                  ) : (
-                                    <span className="text-gray-500 dark:text-gray-400">-</span>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="border border-gray-300 px-4 py-2 text-center dark:text-blue-400 font-light text-sm">
-                                {formInfo.quality}
-                              </td>
-                              <td className="border border-gray-300 px-4 py-2 text-center dark:text-blue-400 font-light text-sm">
-                                {formInfo.workload}
-                              </td>
-                              <td className="border border-gray-300 px-4 py-2 text-center dark:text-success-400 font-normal text-sm">
-                                {formInfo.quality * formInfo.workload}
-                              </td>
-                              <td className="border border-gray-300 px-4 py-2 text-left dark:text-blue-400 text-sm font-light break-words whitespace-normal max-w-[200px]">
-                                {formInfo.description && formInfo.description !== '-' ? formInfo.description : '-'}
-                              </td>
-                            </tr>
-                          )
-                        ))}
-                      </React.Fragment>
-                    ))}
+         
 
-                    <tr className="dark:bg-blue-900/20 dark:border-blue-700">
-                      <td colSpan={4} className="border border-gray-300 px-4 py-2 text-right font-light dark:text-blue-200 text-sm">
-                        รวมภาระงาน
-                      </td>
-                      <td className={`border border-gray-300 px-4 py-2 text-center font-normal dark:text-blue-200 text-sm ${task.quantity_workload_hours &&
-                        Object.values(task.subtasks).reduce((subSum, subtask) =>
-                          subSum + subtask.form_infos.reduce((formSum, formInfo) =>
-                            formSum + (formInfo.quality * formInfo.workload), 0
-                          ), 0
-                        ) < task.quantity_workload_hours
-                        ? 'text-red-500'
-                        : ''
-                        }`}>
-                        {(() => {
-                          const hasAny = Object.values(task.subtasks).some(st => st.form_infos.length > 0)
-                          const total = Object.values(task.subtasks).reduce((subSum, subtask) =>
-                            subSum + subtask.form_infos.reduce((formSum, formInfo) =>
-                              formSum + (formInfo.quality * formInfo.workload), 0
-                            ), 0
-                          )
-                          return hasAny ? total : '-'
-                        })()}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2 text-left dark:text-blue-200">
-                      </td>
-                    </tr>
-                  </React.Fragment>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={6} className="border border-gray-300 px-4 py-8 text-center text-gray-500 dark:text-gray-400">กำลังโหลดรายการ...</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse border border-gray-300 dark:border-gray-600">
-            <thead className="bg-gray-50 dark:bg-gray-800">
-              <tr>
-                <th className="border border-gray-300 px-4 py-3 text-sm text-center text-gray-700 dark:text-gray-300 font-normal">
-                  ภาระงาน/กิจกรรม/โครงการ/งาน
-                </th>
-                <th className="border border-gray-300 px-4 py-3 text-sm text-center text-gray-700 dark:text-gray-300 font-normal">
-                  รวมภาระงาน
-                </th>
-                <th className="border border-gray-300 px-4 py-3 text-sm text-center text-gray-700 dark:text-gray-300 font-normal">
-                  หมายเหตุ
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white dark:bg-white">
-              {Array.isArray(mergedTasks) && mergedTasks.map((task, index) => {
-                const hasAny = Object.values(task.subtasks).some(st => st.form_infos.length > 0)
-                const taskTotal = Object.values(task.subtasks).reduce((subSum, subtask) =>
-                  subSum + subtask.form_infos.reduce((formSum, formInfo) =>
-                    formSum + (formInfo.quality * formInfo.workload), 0
-                  ), 0
-                )
+          <Section3
+          performanceScoreOutOf70={performanceScoreOutOf70}
+          performanceScoreOutOf30={competencyScoreSummary.totalScore}
 
-                const displayTaskName = task?.task_name
-                  ? (task?.task_id ? `${task.task_id}. ${task.task_name}` : task.task_name)
-                  : ''
+           />
 
-                // สร้างข้อมูล workloadGroups จาก terms แทน hardcode
-                const workloadGroups: Array<{ name: string; hours: { [key: string]: number } }> = []
-                if (terms && terms.length > 0) {
-                  // สร้าง unique groups จาก terms
-                  const uniqueGroups = [...new Set(terms.map(term => term.workload_group_name))]
-                  uniqueGroups.forEach(groupName => {
-                    // สร้าง map ของ task_name -> hours
-                    const hours: { [key: string]: number } = {}
-                    terms.forEach(term => {
-                      if (term.workload_group_name === groupName) {
-                        hours[term.task_name] = term.quantity_workload_hours
-                      }
-                    })
-                    if (Object.values(hours).some(h => h > 0)) {
-                      workloadGroups.push({ name: groupName, hours })
-                    }
-                  })
-                }
-
-                const hasGroupMinimum = workloadGroups.some(g => g.hours[task.task_name] > 0)
-                // คำนวณจำนวนกลุ่มที่มีขั้นต่ำสำหรับ task นี้
-                const groupCountWithMinimum = workloadGroups.filter(g => g.hours[task.task_name] > 0).length
-                const rowSpanValue = hasGroupMinimum ? groupCountWithMinimum + 1 : 1
-
-                return (
-                  <React.Fragment key={task.task_id}>
-                    {/* แสดงหัวข้อภาระงานหลัก */}
-                    <tr className="bg-white">
-                      <td className={`px-4 py-2 text-gray-800 font-normal text-sm underline ${index > 0 ? 'border-t border-l border-r border-gray-300' : 'border-l border-r border-gray-300'
-                        }`}>
-                        {displayTaskName}
-                      </td>
-                      <td rowSpan={rowSpanValue} className="border border-gray-300 px-4 py-3 text-center font-light text-sm bg-white">
-                        {hasAny ? taskTotal : '-'}
-                      </td>
-                      <td rowSpan={rowSpanValue} className="border border-gray-300 px-4 py-3 text-center text-gray-500 bg-white">
-
-                      </td>
-                    </tr>
-
-                    {/* แสดงตัวเลือกแต่ละกลุ่ม/term เฉพาะเมื่อมีขั้นต่ำในอย่างน้อยหนึ่งกลุ่ม */}
-                    {hasGroupMinimum && workloadGroups.map((group, groupIndex) => {
-                      // เช็กจาก selectedGroupName prop โดยตรง
-                      const isSelected = selectedGroupName === group.name
-
-                      // ถ้ากลุ่มนี้ไม่มีขั้นต่ำสำหรับภาระงานนี้ ไม่ต้องแสดงแถว
-                      const hourValue = group.hours[task.task_name] || 0
-                      if (!(hourValue > 0)) return null
-
-                      return (
-                        <tr key={`${task.task_id}-${groupIndex}`} className="bg-white">
-                          <td className="border-l border-r border-gray-300 px-4 pb-2 text-gray-800 font-light text-sm">
-                            <div className="flex items-center gap-3">
-                              <div
-                                className={`w-4 h-4 border-2 rounded flex items-center justify-center flex-shrink-0 ${isSelected
-                                    ? 'border-red-500 bg-red-500'
-                                    : 'border-gray-400 bg-white'
-                                  }`}
-                                role="checkbox"
-                                aria-checked={isSelected}
-                              >
-                                {isSelected && (
-                                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                  </svg>
-                                )}
-                              </div>
-                              <span className={isSelected ? 'text-red-500 font-light' : 'text-gray-700'}>
-                                {group.name} {hourValue} ภาระงาน/สัปดาห์
-                              </span>
-                            </div>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </React.Fragment>
-                )
-              })}
-
-              {/* แถวสรุป */}
-              <tr className="bg-white font-bold">
-                <td className="border border-gray-300 px-4 py-3 text-end text-sm font-semibold text-gray-800">
-                  รวม
-                </td>
-                <td className="border border-gray-300 px-4 py-3 text-center font-semibold text-sm">
-                  <span className="text-blue-600 font-bold">
-                    {(() => {
-                      const firstFive = Array.isArray(mergedTasks) ? mergedTasks.slice(0, 5) : []
-                      const hasAny = firstFive.some(task => Object.values(task.subtasks).some(st => st.form_infos.length > 0))
-                      return hasAny ? totalPerformanceWorkload : '-'
-                    })()}
-                  </span>
-                </td>
-                <td className="border border-gray-300 px-4 py-3 text-center text-gray-500">
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          <div className="flex justify-between items-center mt-4">
-            <p className="text-md font-light text-gray-500 m-0 flex items-center gap-2">สรุปคะแนนส่วนผลสัมฤทธิ์ของงาน
-              <span className="text-md font-light text-red-500 m-0">คะแนนเต็ม 70 คะแนน </span>
-              <AlertCircle className="h-4 w-4" />
-            </p>
-            <p className="text-md font-semibold text-blue-600 m-0">{performanceScoreOutOf70.toFixed(2)} <span className="text-sm font-light text-gray-500 m-0">&nbsp;คะแนน</span></p>
-          </div>
-        </div>
-                <div className="">
-          <p className="text-md font-normal text-gray-800 dark:text-gray-200 mb-4">ส่วนที่ 2 องค์ประกอบที่ 2 พฤติกรรมการปฏิบัติงาน (สมรรถนะ)</p>
-          
-          {/* ตารางแสดงข้อมูล performance evaluation สำหรับ preview (ไม่ใช่ snapshot) */}
-          {isPreview && competencies.length > 0 && (
-            <div className="overflow-x-auto mt-4">
-              <table className="w-full border-collapse border border-gray-300 dark:border-gray-600">
-                <thead className="bg-gray-50 dark:bg-gray-800">
-                  <tr>
-                    <th
-                      rowSpan={2}
-                      className="border border-gray-300 px-2 py-2 text-center text-md font-normal text-gray-700 dark:text-gray-300 w-12"
-                    >
-                      ลำดับ
-                    </th>
-                    <th
-                      rowSpan={2}
-                      className="border border-gray-300 px-3 py-2 text-center text-md font-normal text-gray-700 dark:text-gray-300"
-                    >
-                      สมรรถนะหลัก
-                    </th>
-                    <th
-                      colSpan={4}
-                      className="border border-gray-300 px-2 py-2 text-center text-md font-normal text-gray-700 dark:text-gray-300"
-                    >
-                      ระดับสมรรถนะที่คาดหวัง
-                    </th>
-                    <th
-                      rowSpan={2}
-                      className="border border-gray-300 px-1 py-2 text-center text-md font-normal text-gray-700 dark:text-gray-300 w-32"
-                    >
-                      ระดับสมรรถนะที่แสดงออก
-                    </th>
-                  </tr>
-                  <tr>
-                    {POSITIONS.map((position) => {
-                      // หา user position_id จาก decoded token
-                      let userPositionId: number | null = null
-                      try {
-                        if (session?.accessToken) {
-                          const decoded = jwtDecode(session.accessToken) as any
-                          userPositionId = decoded?.position_id || null
-                        }
-                      } catch (error) {
-                        console.error('Error decoding token:', error)
-                      }
-                      
-                      const isHighlighted = userPositionId === position.position_id
-                      
-                      return (
-                        <th
-                          key={position.position_id}
-                          className={`border border-gray-300 px-1 py-1 text-center text-md font-normal ${
-                            isHighlighted
-                              ? 'bg-green-100 dark:bg-green-900/30'
-                              : 'bg-gray-50 dark:bg-gray-800'
-                          } text-gray-700 dark:text-gray-300`}
-                        >
-                          {position.short_name}
-                        </th>
-                      )
-                    })}
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-zinc-900">
-                  {(() => {
-                    // สร้าง map ของ expected levels: competency_id -> position_id -> expected_level
-                    const expectedLevelsMap: Record<number, Record<number, number>> = {}
-                    expectedLevels.forEach((level: any) => {
-                      if (!expectedLevelsMap[level.competency_id]) {
-                        expectedLevelsMap[level.competency_id] = {}
-                      }
-                      expectedLevelsMap[level.competency_id][level.position_id] = level.expected_level
-                    })
-
-                    // สร้าง map ของ evaluations: competency_id -> demonstrated_level
-                    const evaluationsMap: Record<number, number | null> = {}
-                    performanceEvaluations.forEach((evaluation: any) => {
-                      evaluationsMap[evaluation.competency_id] = evaluation.demonstrated_level
-                    })
-
-                    // จัดเรียง competencies ตาม competency_order
-                    const sortedCompetencies = [...competencies].sort((a, b) => (a.competency_order || 0) - (b.competency_order || 0))
-
-                    return sortedCompetencies.map((competency: any, index: number) => {
-                      // หา user position_id
-                      let userPositionId: number | null = null
-                      try {
-                        if (session?.accessToken) {
-                          const decoded = jwtDecode(session.accessToken) as any
-                          userPositionId = decoded?.position_id || null
-                        }
-                      } catch (error) {
-                        // ignore
-                      }
-
-                      return (
-                        <tr key={competency.competency_id}>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-md font-light text-gray-800 dark:text-gray-200">
-                            {index + 1}
-                          </td>
-                          <td className="border border-gray-300 px-3 py-2 text-md font-light text-gray-800 dark:text-gray-200">
-                            {competency.competency_name || '-'}
-                          </td>
-                          {POSITIONS.map((position) => {
-                            const expectedLevel = expectedLevelsMap[competency.competency_id]?.[position.position_id] || '-'
-                            const isHighlighted = userPositionId === position.position_id
-
-                            return (
-                              <td
-                                key={position.position_id}
-                                className={`font-light border border-gray-300 px-1 py-2 text-center text-md text-gray-700 dark:text-gray-300 ${
-                                  isHighlighted
-                                    ? '!bg-green-200 dark:!bg-green-700/50'
-                                    : ''
-                                }`}
-                              >
-                                {expectedLevel}
-                              </td>
-                            )
-                          })}
-                          <td className="font-light border border-gray-300 px-4 py-2 text-center text-md text-blue-600 dark:text-blue-400">
-                            {evaluationsMap[competency.competency_id] !== null && evaluationsMap[competency.competency_id] !== undefined
-                              ? evaluationsMap[competency.competency_id]
-                              : '-'}
-                          </td>
-                        </tr>
-                      )
-                    })
-                  })()}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* แสดงข้อความเมื่อไม่มี snapshot */}
-          {!isPreview && !performanceSnapshot && (
-            <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-300 dark:border-gray-600">
-              <p className="text-center text-gray-600 dark:text-gray-400">
-                ยังไม่มีข้อมูล snapshot กรุณาส่งฟอร์มเพื่อสร้าง snapshot
-              </p>
-            </div>
-          )}
-
-          {/* ตารางแสดงข้อมูล snapshot ของ performance evaluation - แสดงแค่ position ที่เก็บใน snapshot */}
-          {!isPreview && performanceSnapshot && performanceSnapshot.evaluations && performanceSnapshot.evaluations.length > 0 && (() => {
-            // จัดเรียง evaluations ตาม competency_order (ใช้ข้อมูลจาก snapshot โดยตรง)
-            const sortedEvaluations = [...performanceSnapshot.evaluations].sort((a, b) => {
-              const orderA = a.competency_order || 0
-              const orderB = b.competency_order || 0
-              return orderA - orderB
-            })
-
-            // ดึง position_name และ position_short_name จาก snapshot (จาก evaluation แรก - ทุก evaluation ควรมีค่าเดียวกัน)
-            const snapshotPositionName = sortedEvaluations.length > 0 
-              ? sortedEvaluations[0]?.position_name || null
-              : null
-            const snapshotPositionShortName = sortedEvaluations.length > 0 
-              ? sortedEvaluations[0]?.position_short_name || null
-              : null
-
-            // ใช้ข้อมูลจาก snapshot โดยตรง (เก็บเป็น text เพื่อป้องกันการเปลี่ยนแปลง)
-            const compsToShow = sortedEvaluations.map(e => ({
-              competency_name: e.competency_name || '-', // ใช้ข้อมูล text จาก snapshot
-              competency_order: e.competency_order || 0,
-              demonstrated_level: e.demonstrated_level,
-              expected_level: e.expected_level || null // ใช้ข้อมูลจาก snapshot (expected_level ของ position ที่เก็บไว้)
-            }))
-
-            return (
-              <div className="overflow-x-auto mt-4">
-                <table className="w-full border-collapse border border-gray-300 dark:border-gray-600">
-                  <thead className="bg-gray-50 dark:bg-gray-800">
-                    <tr>
-                      <th
-                        rowSpan={2}
-                        className="border border-gray-300 px-2 py-2 text-center text-md font-normal text-gray-700 dark:text-gray-300 w-12"
-                      >
-                        ลำดับ
-                      </th>
-                      <th
-                        rowSpan={2}
-                        className="border border-gray-300 px-3 py-2 text-center text-md font-normal text-gray-700 dark:text-gray-300 w-2/3"
-                      >
-                        สมรรถนะหลัก
-                      </th>
-                      <th
-                        colSpan={1}
-                        className="border border-gray-300 px-2 py-2 text-center text-md font-normal text-gray-700 dark:text-gray-300"
-                      >
-                        ระดับสมรรถนะที่คาดหวัง
-                      </th>
-                      <th
-                        rowSpan={2}
-                        className="border border-gray-300 px-1 py-2 text-center text-md font-normal text-gray-700 dark:text-gray-300 w-32"
-                      >
-                        ระดับสมรรถนะที่แสดงออก
-                      </th>
-                    </tr>
-                    <tr>
-                      {/* แสดงแค่ position ที่เก็บใน snapshot */}
-                      <th
-                        className="border border-gray-300 px-1 py-1 text-center text-md font-normal bg-green-100 dark:bg-green-900/30 text-gray-700 dark:text-gray-300"
-                      >
-                        {snapshotPositionShortName || snapshotPositionName || '-'}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white dark:bg-zinc-900">
-                    {compsToShow.map((competency: any, index: number) => {
-                      return (
-                        <tr key={`${competency.competency_name}-${index}`}>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-md font-light text-gray-800 dark:text-gray-200">
-                            {index + 1}
-                          </td>
-                          <td className="border border-gray-300 px-3 py-2 text-md font-light text-gray-800 dark:text-gray-200">
-                            {competency.competency_name || '-'}
-                          </td>
-                          {/* แสดง expected_level จาก snapshot สำหรับ position ที่เก็บไว้ */}
-                          <td className="font-light border border-gray-300 px-1 py-2 text-center text-md text-gray-700 dark:text-gray-300 !bg-green-200 dark:!bg-green-700/50">
-                            {competency.expected_level !== null && competency.expected_level !== undefined
-                              ? competency.expected_level
-                              : '-'}
-                          </td>
-                          <td className="font-normal border border-gray-300 px-4 py-2 text-center text-md text-blue-600 dark:text-blue-400">
-                            {competency.demonstrated_level !== null && competency.demonstrated_level !== undefined
-                              ? competency.demonstrated_level
-                              : '-'}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )
-          })()}
         </div>
       </div>
-    </div>
+      <Section2CalModal
+        isOpen={isCompetencyModalOpen}
+        onClose={() => setIsCompetencyModalOpen(false)}
+        title="วิธีคำนวณ"
+      >
+        <div className="flex flex-col items-center text-center text-base font-light">
+          <p>ผลรวมคะแนน</p>
+          <div className="my-3 h-px w-2/3 mx-auto bg-gray-300" />
+          <p>จำนวนสมรรถนะที่ใช้ในการประเมิน x 3</p>
+        </div>
+      </Section2CalModal>
+    </>
   )
 }
+

@@ -136,9 +136,9 @@ export default function Topbar({
               className="rounded-lg"
             >
               {OpenSidebar ? (
-                <Menu className="h-7 w-7 text-gray-800 dark:text-gray-200" />
+                <Menu className="h-5 w-5 text-gray-800 dark:text-gray-200" />
               ) : (
-                <Menu className="h-7 w-7 rotate-180 text-gray-800 dark:text-gray-200" />
+                <Menu className="h-5 w-5 rotate-180 text-gray-800 dark:text-gray-200" />
               )}
             </button>
             <BreadcrumbNav />
