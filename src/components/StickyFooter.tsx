@@ -9,16 +9,20 @@ interface StickyFooterProps {
   cancelText?: string
   saveText?: string
   className?: string
-  // สำหรับ submit ปุ่มเดียว
+  // สำหรับ submit ปุ่มเดียว หรือจัดชุดปุ่มเอง
   onSubmit?: () => void
   submitText?: string
   showSubmitOnly?: boolean
+  // ปุ่มรองเพิ่มเติม (เช่น บันทึกแบบร่าง)
+  secondaryText?: string
+  onSecondary?: () => void
   // สำหรับ preview
   onPreview?: () => void
   previewText?: string
   showPreview?: boolean
   // สำหรับ disabled state
   disabled?: boolean
+  secondaryDisabled?: boolean
 }
 
 const StickyFooter: React.FC<StickyFooterProps> = ({
@@ -30,16 +34,19 @@ const StickyFooter: React.FC<StickyFooterProps> = ({
   cancelText = 'ยกเลิก',
   saveText = 'บันทึก',
   className = '',
-  // สำหรับ submit ปุ่มเดียว
+  // สำหรับ submit ปุ่มเดียว หรือจัดชุดปุ่มเอง
   onSubmit,
   submitText = 'ส่งข้อมูล',
   showSubmitOnly = false,
+  secondaryText,
+  onSecondary,
   // สำหรับ preview
   onPreview,
   previewText = 'ดูตัวอย่าง',
   showPreview = false,
   // สำหรับ disabled state
-  disabled = false
+  disabled = false,
+  secondaryDisabled = false
 }) => {
   const handleEditClick = () => {
     if (isEditing && onCancel) {
@@ -73,6 +80,18 @@ const StickyFooter: React.FC<StickyFooterProps> = ({
         <div className="flex justify-end gap-3">
           {showSubmitOnly ? (
             <>
+              {secondaryText && onSecondary && (
+                <button
+                  type="button"
+                  onClick={onSecondary}
+                  disabled={secondaryDisabled}
+                  className={`h-10 px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md transition-colors duration-200 ${
+                    secondaryDisabled ? 'cursor-not-allowed opacity-60' : 'hover:bg-gray-50'
+                  }`}
+                >
+                  {secondaryText}
+                </button>
+              )}
               {showPreview && (
                 <button
                   type="button"

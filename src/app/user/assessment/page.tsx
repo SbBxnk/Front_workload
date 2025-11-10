@@ -104,7 +104,7 @@ function SetAssessor() {
     column: null,
     order: null,
   })
-  
+
   const isInitialized = useRef(false)
   const hasFetchedInitial = useRef(false)
   const isFirstRender = useRef(true)
@@ -146,25 +146,26 @@ function SetAssessor() {
       setError('')
 
       const decoded: DecodedToken = jwtDecode(session.accessToken)
-      
+
       const response = await AssessorServices.checkRound(queryParams, session.accessToken)
 
       let roundsData: RoundList[] = []
       if (response.payload && Array.isArray(response.payload)) {
         roundsData = response.payload
-        
+
         // ดึงจำนวนผู้รับการประเมินสำหรับแต่ละ round
         const roundsWithCount = await Promise.all(
           roundsData.map(async (round) => {
             try {
-              const assesseesData = await AssesseeService.getAssesseesByRound(
+              const assesseesResponse = await AssesseeService.getAssesseesByRound(
                 decoded.id,
                 round.round_list_id,
                 session.accessToken as string
               )
+              const totalAssessees = assesseesResponse.meta?.total_rows ?? assesseesResponse.payload?.length ?? 0
               return {
                 ...round,
-                form_count: assesseesData.length
+                form_count: totalAssessees
               }
             } catch (error) {
               console.error(`Error fetching assessees for round ${round.round_list_id}:`, error)
@@ -175,9 +176,9 @@ function SetAssessor() {
             }
           })
         )
-        
+
         roundsData = roundsWithCount
-        
+
         if (roundsData.length > 0) {
           setRoundId(roundsData[0].round_list_id.toString())
           setCount(roundsData[0].form_count)
@@ -226,7 +227,7 @@ function SetAssessor() {
   // Initialize params from URL and fetch data immediately
   useEffect(() => {
     if (!session?.accessToken) return
-    
+
     const urlParams = new URLSearchParams(window.location.search)
     const searchFromUrl = urlParams.get('search') || ''
     const pageFromUrl = parseInt(urlParams.get('page') || '1', 10)
@@ -236,7 +237,7 @@ function SetAssessor() {
     const yearFromUrl = urlParams.get('year') || ''
 
     setSearchInput(searchFromUrl)
-    
+
     const initialParams = {
       search: searchFromUrl,
       page: pageFromUrl,
@@ -245,7 +246,7 @@ function SetAssessor() {
       order: orderFromUrl,
       year: yearFromUrl,
     }
-    
+
     if (sortFromUrl && orderFromUrl) {
       setOrderBy(sortFromUrl)
       setOrder(orderFromUrl as Order)
@@ -254,7 +255,7 @@ function SetAssessor() {
     // Fetch data immediately with initial params (only once)
     if (!hasFetchedInitial.current) {
       hasFetchedInitial.current = true
-      
+
       // Set initial params ref to prevent duplicate fetch
       prevParamsRef.current = JSON.stringify({
         search: initialParams.search,
@@ -264,14 +265,14 @@ function SetAssessor() {
         order: initialParams.order,
         year: initialParams.year,
       })
-      
+
       fetchRoundListData({
         ...initialParams,
         page: initialParams.page.toString(),
         limit: initialParams.limit.toString()
       })
     }
-    
+
     // Set params AFTER fetch to prevent triggering the params change useEffect
     setParams(initialParams)
     isInitialized.current = true
@@ -285,7 +286,7 @@ function SetAssessor() {
       isFirstRender.current = false
       return
     }
-    
+
     const delayDebounce = setTimeout(() => {
       setParams((prev) => ({
         ...prev,
@@ -301,7 +302,7 @@ function SetAssessor() {
     if (!session?.accessToken || !isInitialized.current || !hasFetchedInitial.current) {
       return
     }
-    
+
     // Create a string representation of current params to compare
     const currentParamsString = JSON.stringify({
       search: params.search,
@@ -311,7 +312,7 @@ function SetAssessor() {
       order: params.order,
       year: params.year,
     })
-    
+
     // Only fetch if params actually changed
     if (currentParamsString !== prevParamsRef.current) {
       prevParamsRef.current = currentParamsString
@@ -440,17 +441,16 @@ function SetAssessor() {
       label: 'สถานะ',
       align: 'left',
       sortable: true,
-        render: (_, record) => (
-          <span className={`inline-flex px-2 py-1 text-xs font-normal rounded-md ${
-            isCurrentRound(record.date_start, record.date_end)
-              ? 'bg-blue-500 text-white'
-              : 'bg-gray-200 text-gray-500'
+      render: (_, record) => (
+        <span className={`inline-flex px-2 py-1 text-xs font-normal rounded-md ${isCurrentRound(record.date_start, record.date_end)
+            ? 'bg-blue-500 text-white'
+            : 'bg-gray-200 text-gray-500'
           }`}>
-            {isCurrentRound(record.date_start, record.date_end)
-              ? 'กำลังดำเนินการ'
-              : 'สิ้นสุดการดำเนินการ'
+          {isCurrentRound(record.date_start, record.date_end)
+            ? 'กำลังดำเนินการ'
+            : 'สิ้นสุดการดำเนินการ'
           }</span>
-        ),
+      ),
     },
     {
       key: 'actions',
@@ -478,7 +478,7 @@ function SetAssessor() {
           {loading ? (
             <div className="skeleton h-7 w-16 rounded-md"></div>
           ) : (
-            <div className="w-auto rounded-md bg-gray-200 px-2 py-1 text-sm font-normal text-business1 dark:text-gray-400">
+            <div className="w-auto rounded-md bg-gray-200 px-2 py-1 text-sm font-normal text-business1 dark:text-blue-500 dark:bg-zinc-800">
               {total} รายการ
             </div>
           )}

@@ -79,6 +79,9 @@ const getRoundStatusLabel = (
   if (hasCompletedForms === 1) {
     return 'รอการประเมิน'
   }
+  if (Number(hasCompletedForms) === 2) {
+    return 'เสร็จสิ้น'
+  }
 
   const currentDate = new Date()
   const start = new Date(startDate)
@@ -108,6 +111,8 @@ const getRoundStatusColor = (
   const status = getRoundStatusLabel(startDate, endDate, hasCompletedForms, accessInfo)
 
   switch (status) {
+    case 'เสร็จสิ้น':
+      return 'bg-success text-white'
     case 'รอการประเมิน':
       return 'text-white bg-purple-500'
     case 'กำลังดำเนินการ':
@@ -573,7 +578,7 @@ function SetAssessor() {
         
         return (
           <div className="w-full flex justify-center gap-2 p-0">
-            {record.has_completed_forms === 1 ? (
+            {record.has_completed_forms === 1 || record.has_completed_forms === 2 ? (
               <button
                 type="button"
                 className="cursor-pointer rounded-md p-1 text-blue-500 transition duration-300 ease-in-out hover:bg-blue-500 hover:text-white"
@@ -629,7 +634,7 @@ function SetAssessor() {
           {loading ? (
             <div className="skeleton h-7 w-16 rounded-md"></div>
           ) : (
-            <div className="w-auto rounded-md bg-gray-200 px-2 py-1 text-sm font-normal text-business1 dark:text-gray-400">
+            <div className="w-auto rounded-md bg-gray-200 px-2 py-1 text-sm font-normal text-business1 dark:text-blue-500 dark:bg-zinc-800">
               {total} รายการ
             </div>
           )}

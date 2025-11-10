@@ -375,15 +375,6 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
                     {user?.position_name || '-'}
                   </p>
                 </div>
-                {/* <div className="">
-                  <p className="flex items-center gap-2 text-sm font-light text-gray-500">
-                    <Tag className="h-4 w-4" />
-                    ชื่อรอบการประเมิน
-                  </p>
-                  <p className="text-md text-md p-2 font-normal">
-                    {currentRound.round_list_name}
-                  </p>
-                </div> */}
                 <div className="">
                   <p className="flex items-center gap-2 text-sm font-light text-gray-500">
                     <Calendar className="h-4 w-4" />

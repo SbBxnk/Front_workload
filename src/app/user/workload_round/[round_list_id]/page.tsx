@@ -194,7 +194,7 @@ export default function ExpositionSelection() {
 
     // แสดง _successForm เมื่อฟอร์มถูกส่งแล้ว (สถานะ = 1)
     // หรือเมื่อมี query parameter success=true
-    if (formStatus === 1 || isSuccess) {
+    if (formStatus === 1 || formStatus === 2 || isSuccess) {
         return (
             <div className="">
                 {isSuccess && (

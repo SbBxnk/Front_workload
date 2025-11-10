@@ -62,6 +62,21 @@ export interface SetAssessorInfo {
   ex_user_email?: string
 }
 
+export interface AssesseeSummary {
+  set_asses_list_id: number
+  as_u_id: number
+  prefix_name?: string | null
+  u_fname?: string | null
+  u_lname?: string | null
+  u_img?: string | null
+  u_id_card?: string | null
+  position_name?: string | null
+  ex_position_name?: string | null
+  workload_group_id?: number | null
+  workload_group_name?: string | null
+  date_save?: string | null
+}
+
 export interface CreateSetAssessorInfoRequest {
   ex_u_id: number
   set_asses_list_id: number
@@ -212,6 +227,15 @@ const SetAssessorServices = {
         order: params?.order || 'desc',
         ex_position_name: params?.ex_position_name || '',
       },
+    })
+  },
+
+  getAssesseeBySetAssesListId: (
+    setAssesListId: number,
+    accessToken: string
+  ): Promise<ResponsePayload<AssesseeSummary>> => {
+    return http.get(`/assessee/${setAssesListId}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
     })
   },
 

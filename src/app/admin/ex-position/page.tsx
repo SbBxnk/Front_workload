@@ -443,7 +443,7 @@ function PositionTable() {
           {loading ? (
             <div className="skeleton h-7 w-16 rounded-md"></div>
           ) : (
-            <div className="w-auto rounded-md bg-gray-200 px-2 py-1 text-sm font-normal text-business1 dark:text-gray-400">
+            <div className="w-auto rounded-md bg-gray-200 px-2 py-1 text-sm font-normal text-business1 dark:text-blue-500 dark:bg-zinc-800">
               {total} รายการ
             </div>
           )}

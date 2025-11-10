@@ -22,7 +22,6 @@ export default function Login() {
   useEffect(() => {
 
     sessionStorage.removeItem('assessorData')
-    sessionStorage.removeItem('assessorEvaluations')
 
     // Load remembered credentials
     const savedEmail = Cookies.get('rememberedEmail')
@@ -367,7 +366,7 @@ export default function Login() {
                       <button
                         type="submit"
                         disabled={isLoading}
-                        className="text-md mt-2 w-full rounded-md bg-business1 px-4 py-2 text-center font-light text-white hover:bg-blue-900 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="text-md mt-2 w-full rounded-md bg-business1 px-4 py-2 text-center font-light text-white hover:bg-blue-900 disabled:cursor-default disabled:opacity-50"
                       >
                         {isLoading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
                       </button>

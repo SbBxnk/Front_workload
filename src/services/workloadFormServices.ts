@@ -230,6 +230,17 @@ const WorkloadFormServices = {
     })
   },
 
+  // Get formlist info by user and round
+  getFormlistByUserAndRound: (
+    userId: number,
+    roundId: number,
+    accessToken: string
+  ): Promise<ResponsePayload<{ formlist_id: number; set_asses_list_id: number; status: number }>> => {
+    return http.get(`/workload_form/get_formlist_id/${userId}/${roundId}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+  },
+
   // Submit workload form
   submitWorkloadForm: (
     userId: number,
