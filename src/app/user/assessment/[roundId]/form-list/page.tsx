@@ -162,21 +162,22 @@ export default function AssessmentRoundPage() {
           let formStatus: number | null | undefined = assessee.form_status
           let evaluationStatus: 'not_started' | 'in_progress' | 'completed' | undefined = assessee.evaluation_status
 
-          if (assessee.set_asses_list_id) {
-            const cachedEvaluation = evaluationStatusCache.get(assessee.set_asses_list_id)
+          // ใช้ set_asses_info_id แทน set_asses_list_id เพื่อตรวจสอบสถานะของ assessor เฉพาะคน
+          if (assessee.set_asses_info_id) {
+            const cachedEvaluation = evaluationStatusCache.get(assessee.set_asses_info_id)
 
             if (cachedEvaluation) {
               evaluationStatus = cachedEvaluation.evaluation_status
               formStatus = cachedEvaluation.form_status ?? formStatus ?? null
             } else if (evaluationStatus !== undefined && evaluationStatus !== null) {
-              evaluationStatusCache.set(assessee.set_asses_list_id, {
+              evaluationStatusCache.set(assessee.set_asses_info_id, {
                 evaluation_status: evaluationStatus,
                 form_status: formStatus ?? null,
               })
             } else {
               try {
                 const statusRes = await WorkloadFormServices.getAssessorEvaluationStatus(
-                  assessee.set_asses_list_id,
+                  assessee.set_asses_info_id,
                   session.accessToken as string
                 )
                 const statusPayload = Array.isArray(statusRes.payload) ? statusRes.payload[0] : statusRes.payload
@@ -184,7 +185,7 @@ export default function AssessmentRoundPage() {
                 if (statusPayload) {
                   evaluationStatus = statusPayload.evaluation_status
                   formStatus = statusPayload.form_status ?? formStatus ?? null
-                  evaluationStatusCache.set(assessee.set_asses_list_id, {
+                  evaluationStatusCache.set(assessee.set_asses_info_id, {
                     evaluation_status: evaluationStatus,
                     form_status: formStatus ?? null,
                   })

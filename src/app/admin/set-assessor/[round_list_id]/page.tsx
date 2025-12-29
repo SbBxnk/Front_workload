@@ -838,7 +838,7 @@ export default function ExDetailsPage() {
     
     for (const assessor of assessors) {
       try {
-        const response = await WorkloadFormServices.getAssessorEvaluationStatus(
+        const response = await WorkloadFormServices.getAssessorFormStatus(
           assessor.set_asses_list_id,
           session.accessToken
         )
@@ -869,7 +869,7 @@ export default function ExDetailsPage() {
     
     for (const assessor of assessors) {
       try {
-        const response = await WorkloadFormServices.getAssessorEvaluationStatus(
+        const response = await WorkloadFormServices.getAssessorFormStatus(
           assessor.set_asses_list_id,
           session.accessToken
         )

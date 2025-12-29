@@ -215,8 +215,23 @@ const WorkloadFormServices = {
     })
   },
 
-  // Get assessor evaluation status
+  // Get assessor evaluation status (ตาม set_asses_info_id เพื่อตรวจสอบเฉพาะ assessor คนนั้น)
   getAssessorEvaluationStatus: (
+    setAssesInfoId: number,
+    accessToken: string
+  ): Promise<ResponsePayload<{ 
+    set_asses_info_id: number; 
+    workload_group_id: number | null;
+    form_status: number;
+    evaluation_status: 'not_started' | 'in_progress' | 'completed';
+  }>> => {
+    return http.get(`/workload_form/evaluation_status/${setAssesInfoId}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+  },
+
+  // Get assessor form status (ตาม set_asses_list_id สำหรับ admin page)
+  getAssessorFormStatus: (
     setAssesListId: number,
     accessToken: string
   ): Promise<ResponsePayload<{ 
@@ -225,7 +240,7 @@ const WorkloadFormServices = {
     form_status: number;
     evaluation_status: 'not_started' | 'in_progress' | 'completed';
   }>> => {
-    return http.get(`/workload_form/evaluation_status/${setAssesListId}`, {
+    return http.get(`/workload_form/form_status/${setAssesListId}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
   },
