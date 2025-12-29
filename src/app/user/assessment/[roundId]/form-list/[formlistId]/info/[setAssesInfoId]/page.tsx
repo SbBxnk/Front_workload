@@ -16,6 +16,7 @@ import useUtility from '@/hooks/useUtility'
 import React from 'react'
 import SetAssessorServices, { AssesseeSummary, RoundList } from '@/services/setAssessorServices'
 import InfoHoverModal from '@/app/user/workload_round/[round_list_id]/form/infoTermModal'
+import ConfirmSubmitEvaluationModal from './partial/confirmSubmitEvaluationModal'
 
 interface ItemDraft {
     snapshot_form_id: number
@@ -74,6 +75,7 @@ export default function AssessmentEvaluationPage() {
     const isInitializing = useRef(true)
     const [assesseeInfo, setAssesseeInfo] = useState<AssesseeSummary | null>(null)
     const [roundInfo, setRoundInfo] = useState<RoundList | null>(null)
+    const [showConfirmModal, setShowConfirmModal] = useState(false)
 
     const canEdit = evaluation?.status !== 1
 
@@ -330,7 +332,23 @@ export default function AssessmentEvaluationPage() {
         [session?.accessToken, evaluation, items, generalComment, dirty]
     )
 
-    const handleScoreChange = (snapshotFormId: number, value: string) => {
+    const getCurrentEvaluationSumForTask = useCallback((task: StructuredTask): number => {
+        let sum = 0
+        task.subtasks.forEach((subtask) => {
+            subtask.form_infos.forEach((formInfo) => {
+                const item = items.find((i) => i.snapshot_form_id === formInfo.snapshot_form_id)
+                if (item?.score) {
+                    const scoreValue = Number(item.score)
+                    if (Number.isFinite(scoreValue)) {
+                        sum += scoreValue
+                    }
+                }
+            })
+        })
+        return sum
+    }, [items])
+
+    const handleScoreChange = (snapshotFormId: number, value: string, task: StructuredTask) => {
         if (!canEdit) return
 
         let sanitized = value.replace(/[^0-9.]/g, '')
@@ -341,6 +359,56 @@ export default function AssessmentEvaluationPage() {
             sanitized = `${before}${after}`
         }
 
+        // Calculate total workload for this task (quantity * workload)
+        const totalWorkload = task.subtasks.reduce((taskSum, subtask) => {
+            return (
+                taskSum +
+                subtask.form_infos.reduce((formSum, formInfo) => {
+                    const quality = Number.isFinite(formInfo.quality) ? Number(formInfo.quality) : 0
+                    const workload = Number.isFinite(formInfo.workload) ? Number(formInfo.workload) : 0
+                    return formSum + quality * workload
+                }, 0)
+            )
+        }, 0)
+
+        // Calculate current sum of all evaluation scores for this task, excluding the field being edited
+        let sumWithoutCurrent = 0
+        task.subtasks.forEach((subtask) => {
+            subtask.form_infos.forEach((formInfo) => {
+                if (formInfo.snapshot_form_id !== snapshotFormId) {
+                    const item = items.find((i) => i.snapshot_form_id === formInfo.snapshot_form_id)
+                    if (item?.score) {
+                        const scoreValue = Number(item.score)
+                        if (Number.isFinite(scoreValue) && scoreValue >= 0) {
+                            sumWithoutCurrent += scoreValue
+                        }
+                    }
+                }
+            })
+        })
+
+        // Calculate max allowed value
+        const maxAllowed = Math.max(0, totalWorkload - sumWithoutCurrent)
+
+        // Parse the new value
+        let newValue: number
+        if (sanitized === '' || sanitized === '.') {
+            newValue = 0
+        } else {
+            newValue = Number(sanitized)
+        }
+
+        // Validate: new total should not exceed total workload
+        if (Number.isFinite(newValue) && newValue >= 0) {
+            if (newValue > maxAllowed) {
+                // Limit to maximum allowed value
+                sanitized = formatScoreValue(maxAllowed)
+            }
+        } else if (sanitized !== '' && sanitized !== '-') {
+            // If invalid number, keep only valid part or empty
+            sanitized = ''
+        }
+
         setItems((prev) =>
             prev.map((item) =>
                 item.snapshot_form_id === snapshotFormId
@@ -349,6 +417,62 @@ export default function AssessmentEvaluationPage() {
             )
         )
         setDirty(true)
+    }
+
+    const handleScoreBlur = (snapshotFormId: number, value: string, task: StructuredTask) => {
+        if (!canEdit) return
+
+        // Calculate total workload for this task (quantity * workload)
+        const totalWorkload = task.subtasks.reduce((taskSum, subtask) => {
+            return (
+                taskSum +
+                subtask.form_infos.reduce((formSum, formInfo) => {
+                    const quality = Number.isFinite(formInfo.quality) ? Number(formInfo.quality) : 0
+                    const workload = Number.isFinite(formInfo.workload) ? Number(formInfo.workload) : 0
+                    return formSum + quality * workload
+                }, 0)
+            )
+        }, 0)
+
+        // Calculate current sum of all evaluation scores for this task, excluding the field being edited
+        let sumWithoutCurrent = 0
+        task.subtasks.forEach((subtask) => {
+            subtask.form_infos.forEach((formInfo) => {
+                if (formInfo.snapshot_form_id !== snapshotFormId) {
+                    const item = items.find((i) => i.snapshot_form_id === formInfo.snapshot_form_id)
+                    if (item?.score) {
+                        const scoreValue = Number(item.score)
+                        if (Number.isFinite(scoreValue) && scoreValue >= 0) {
+                            sumWithoutCurrent += scoreValue
+                        }
+                    }
+                }
+            })
+        })
+
+        // Calculate max allowed value
+        const maxAllowed = Math.max(0, totalWorkload - sumWithoutCurrent)
+
+        // Parse the current value
+        const currentValue = value === '' ? 0 : Number(value)
+
+        // If value exceeds max, correct it
+        if (Number.isFinite(currentValue) && currentValue > maxAllowed) {
+            const correctedValue = formatScoreValue(maxAllowed)
+            setItems((prev) =>
+                prev.map((item) =>
+                    item.snapshot_form_id === snapshotFormId
+                        ? { ...item, score: correctedValue }
+                        : item
+                )
+            )
+            setDirty(true)
+        }
+    }
+
+    const handleScoreWheel = (event: React.WheelEvent<HTMLInputElement>) => {
+        // Prevent scrolling from changing the input value
+        event.currentTarget.blur()
     }
 
     const handleCommentChange = (snapshotFormId: number, value: string) => {
@@ -407,19 +531,11 @@ export default function AssessmentEvaluationPage() {
             return
         }
 
-        const confirmResult = await Swal.fire({
-            title: 'ยืนยันการส่งผลประเมิน?',
-            text: 'เมื่อส่งแล้วจะไม่สามารถแก้ไขได้อีก',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'ส่งผลประเมิน',
-            cancelButtonText: 'ยกเลิก',
-            reverseButtons: true,
-        })
+        setShowConfirmModal(true)
+    }
 
-        if (!confirmResult.isConfirmed) {
-            return
-        }
+    const handleConfirmSubmit = async () => {
+        if (!session?.accessToken || !evaluationId || !evaluation) return
 
         setIsSubmitting(true)
         try {
@@ -481,6 +597,7 @@ export default function AssessmentEvaluationPage() {
                 })
             )
             setDirty(false)
+            setShowConfirmModal(false)
 
             Swal.fire({
                 title: 'ส่งผลสำเร็จ',
@@ -495,6 +612,7 @@ export default function AssessmentEvaluationPage() {
             }
         } catch (err) {
             console.error('Error submitting evaluation:', err)
+            setShowConfirmModal(false)
             Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถส่งผลประเมินได้', 'error')
         } finally {
             setIsSubmitting(false)
@@ -617,8 +735,8 @@ export default function AssessmentEvaluationPage() {
                         </p>
                     </div>
 
-                    <div className="overflow-x-auto">
-                        <table className="w-full min-w-[1100px] border-collapse border border-gray-300">
+                    <div className="w-full">
+                        <table className="w-full border-collapse border border-gray-300">
                             <thead className="bg-gray-50">
                                 <tr>
                                     <th className="border border-gray-300 px-4 py-3 text-center text-gray-700 font-normal truncate">
@@ -801,16 +919,53 @@ export default function AssessmentEvaluationPage() {
                                                                         {formInfo.description && formInfo.description !== '-' ? formInfo.description : '-'}
                                                                     </td>
                                                                     <td className="border border-gray-300 px-4 py-2 text-center">
-                                                                        <input
-                                                                            type="number"
-                                                                            step="0.1"
-                                                                            min="0"
-                                                                            value={draft?.score ?? ''}
-                                                                            onChange={(event) => handleScoreChange(formInfo.snapshot_form_id, event.target.value)}
-                                                                            disabled={!canEdit}
-                                                                            className="w-20 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-business1 focus:outline-none disabled:cursor-default disabled:bg-gray-50"
-                                                                            placeholder="0"
-                                                                        />
+                                                                        {(() => {
+                                                                            // Calculate total workload for this task (quantity * workload)
+                                                                            const totalWorkload = task.subtasks.reduce((taskSum, subtask) => {
+                                                                                return (
+                                                                                    taskSum +
+                                                                                    subtask.form_infos.reduce((formSum, formInfo) => {
+                                                                                        const q = Number.isFinite(formInfo.quality) ? Number(formInfo.quality) : 0
+                                                                                        const w = Number.isFinite(formInfo.workload) ? Number(formInfo.workload) : 0
+                                                                                        return formSum + q * w
+                                                                                    }, 0)
+                                                                                )
+                                                                            }, 0)
+                                                                            
+                                                                            // Calculate current sum of all evaluation scores for this task, excluding the current field
+                                                                            let sumWithoutCurrent = 0
+                                                                            task.subtasks.forEach((subtask) => {
+                                                                                subtask.form_infos.forEach((fi) => {
+                                                                                    if (fi.snapshot_form_id !== formInfo.snapshot_form_id) {
+                                                                                        const item = items.find((i) => i.snapshot_form_id === fi.snapshot_form_id)
+                                                                                        if (item?.score) {
+                                                                                            const scoreValue = Number(item.score)
+                                                                                            if (Number.isFinite(scoreValue) && scoreValue >= 0) {
+                                                                                                sumWithoutCurrent += scoreValue
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                })
+                                                                            })
+                                                                            
+                                                                            const maxAllowed = Math.max(0, totalWorkload - sumWithoutCurrent)
+                                                                            
+                                                                            return (
+                                                                                <input
+                                                                                    type="number"
+                                                                                    step="0.1"
+                                                                                    min="0"
+                                                                                    max={maxAllowed}
+                                                                                    value={draft?.score ?? ''}
+                                                                                    onChange={(event) => handleScoreChange(formInfo.snapshot_form_id, event.target.value, task)}
+                                                                                    onBlur={(event) => handleScoreBlur(formInfo.snapshot_form_id, event.target.value, task)}
+                                                                                    onWheel={handleScoreWheel}
+                                                                                    disabled={!canEdit}
+                                                                                    className="w-20 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-business1 focus:outline-none disabled:cursor-default disabled:bg-gray-50 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+                                                                                    placeholder="0"
+                                                                                />
+                                                                            )
+                                                                        })()}
                                                                     </td>
                                                                     <td className="border border-gray-300 px-4 py-2">
                                                                         <textarea
@@ -891,6 +1046,11 @@ export default function AssessmentEvaluationPage() {
                     disabled={!canEdit || isSubmitting}
                 />
             ) : null}
+            <ConfirmSubmitEvaluationModal
+                isOpen={showConfirmModal}
+                onConfirm={handleConfirmSubmit}
+                onClose={() => setShowConfirmModal(false)}
+            />
         </div>
     )
 }
