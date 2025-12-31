@@ -1,5 +1,8 @@
 'use client'
 
+import { createPortal } from 'react-dom'
+import { useEffect, useState } from 'react'
+
 interface ConfirmSubmitEvaluationModalProps {
   onConfirm: () => void
   onClose?: () => void
@@ -11,10 +14,15 @@ export default function ConfirmSubmitEvaluationModal({
   onClose,
   isOpen,
 }: ConfirmSubmitEvaluationModalProps) {
+  const [mounted, setMounted] = useState(false)
 
-  if (!isOpen) return null
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
-  return (
+  if (!isOpen || !mounted) return null
+
+  return createPortal(
     <div className="relative z-[100]">
       <input type="checkbox" id={`confirm-submit-evaluation-modal`} className="modal-toggle" checked={isOpen} readOnly />
       <div className="modal" role="dialog" aria-labelledby="modal-title">
@@ -65,7 +73,8 @@ export default function ConfirmSubmitEvaluationModal({
           Close
         </label>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 

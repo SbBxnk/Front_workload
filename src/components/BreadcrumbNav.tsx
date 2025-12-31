@@ -38,9 +38,19 @@ export default function BreadcrumbNav() {
       {/* แสดงแค่ currentBreadcrumb บนหน้าจอขนาดเล็ก */}
       <div className="flex items-center justify-center space-x-2 md:hidden">
         {previousBreadcrumb && (
-          <Link href={previousBreadcrumb.path}>
-            <ChevronRight className="h-5 w-5 rotate-180 text-business1 dark:text-blue-500" />
-          </Link>
+          previousBreadcrumb.path === 'back-to-selection' ? (
+            <button
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('breadcrumb-back-to-selection'))
+              }}
+            >
+              <ChevronRight className="h-5 w-5 rotate-180 text-business1 dark:text-blue-500" />
+            </button>
+          ) : (
+            <Link href={previousBreadcrumb.path}>
+              <ChevronRight className="h-5 w-5 rotate-180 text-business1 dark:text-blue-500" />
+            </Link>
+          )
         )}
         <p className="text-lg text-business1 dark:text-blue-500 max-w-[180px] truncate">
           {currentBreadcrumb?.text}
@@ -58,11 +68,22 @@ export default function BreadcrumbNav() {
               {(item as any).isEllipsis ? (
                 <span className="text-lg text-gray-400">{item.text}</span>
               ) : item.path && index < displayBreadcrumbs.length - 1 ? (
-                <Link href={item.path}>
-                  <p className="text-lg text-gray-500 hover:underline dark:text-gray-400 cursor-pointer">
+                item.path === 'back-to-selection' ? (
+                  <button
+                    onClick={() => {
+                      window.dispatchEvent(new CustomEvent('breadcrumb-back-to-selection'))
+                    }}
+                    className="text-lg text-gray-500 hover:underline dark:text-gray-400 cursor-pointer"
+                  >
                     {item.text}
-                  </p>
-                </Link>
+                  </button>
+                ) : (
+                  <Link href={item.path}>
+                    <p className="text-lg text-gray-500 hover:underline dark:text-gray-400 cursor-pointer">
+                      {item.text}
+                    </p>
+                  </Link>
+                )
               ) : (
                 <p className="text-lg text-business1 dark:text-blue-500">{item.text}</p>
               )}
