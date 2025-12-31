@@ -36,6 +36,8 @@ export interface SnapshotFormData {
   file_type: string
   ex_score: number
   evidence?: string
+  evaluation_score?: number | null
+  snapshot_form_id?: number
   files?:
     | string
     | Array<{

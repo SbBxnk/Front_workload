@@ -251,8 +251,8 @@ const Section2: React.FC<Section2Props> = ({
           )
         })()}
       <div className="mt-6 flex flex-col gap-4">
-        <div className="flex flex-col gap-4 md:flex-row">
-          <div className="w-full overflow-x-auto md:w-1/2">
+        <div className="flex flex-col gap-4 ">
+          <div className="w-full overflow-x-auto md:w-2/3">
             <table className="w-full min-w-[640px] border-collapse border border-gray-300 dark:border-gray-600">
               <thead className="bg-gray-50 dark:bg-gray-800">
                 <tr>

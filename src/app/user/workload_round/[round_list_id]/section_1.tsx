@@ -11,7 +11,9 @@ interface Section1Props {
   selectedGroupName?: string
   totalPerformanceWorkload: number
   performanceScoreOutOf70: number
+  performanceScoreOutOf70Evaluated?: number
   isImageFile: (fileName: string | null | undefined) => boolean
+  formlistStatus?: number | null
 }
 
 const Section1: React.FC<Section1Props> = ({
@@ -20,8 +22,11 @@ const Section1: React.FC<Section1Props> = ({
   selectedGroupName,
   totalPerformanceWorkload,
   performanceScoreOutOf70,
+  performanceScoreOutOf70Evaluated,
   isImageFile,
+  formlistStatus = null,
 }) => {
+  const isFinalized = formlistStatus === 2
   const baseUrl = process.env.NEXT_PUBLIC_API?.replace('/api', '') || 'http://localhost:3333'
 
   return (
@@ -42,7 +47,7 @@ const Section1: React.FC<Section1Props> = ({
           <table className="w-full min-w-[1100px] border-collapse border border-gray-300 dark:border-gray-600">
             <thead className="bg-gray-50 dark:bg-gray-800">
               <tr>
-                <th className="border border-gray-300 px-4 py-3 text-center text-gray-700 dark:text-gray-300 font-medium">
+                <th className={`border border-gray-300 px-4 py-3 text-center text-gray-700 dark:text-gray-300 font-medium ${isFinalized ? 'w-[280px]' : 'min-w-[280px] max-w-[420px]'}`}>
                   ภาระงาน/กิจกรรม/โครงการ/งาน
                   <p>(1)</p>
                 </th>
@@ -62,6 +67,11 @@ const Section1: React.FC<Section1Props> = ({
                   รวมภาระงาน
                   <p>(3 x 4)</p>
                 </th>
+                {isFinalized && (
+                  <th className="border border-gray-300 px-4 py-3 text-center text-gray-700 dark:text-gray-300 font-medium">
+                    ภาระงานจากผู้ตรวจ
+                  </th>
+                )}
                 <th className="border border-gray-300 px-4 py-3 text-center text-gray-700 dark:text-gray-300 font-medium max-w-10">
                   หมายเหตุ
                 </th>
@@ -72,7 +82,7 @@ const Section1: React.FC<Section1Props> = ({
                 mergedTasks.map((task) => (
                   <React.Fragment key={task.task_id}>
                     <tr className="bg-business1 text-white dark:bg-zinc-900">
-                      <td colSpan={6} className="border border-gray-300 px-4 py-3 dark:text-gray-200 font-normal">
+                      <td colSpan={isFinalized ? 7 : 6} className="border border-gray-300 px-4 py-3 dark:text-gray-200 font-normal">
                         <div className="flex items-center justify-between">
                           <span>
                             {task.task_id}. {task?.task_name || 'Unknown Task'} (ภาระงานขั้นต่ำ)
@@ -89,7 +99,7 @@ const Section1: React.FC<Section1Props> = ({
                     {Object.values(task.subtasks).map((subtask, subtaskIndex) => (
                       <React.Fragment key={subtask.subtask_id}>
                         <tr className="bg-gray-50 dark:bg-gray-800/50">
-                          <td colSpan={6} className="border border-gray-300 px-4 py-2 text-gray-700 dark:text-gray-300">
+                          <td colSpan={isFinalized ? 7 : 6} className="border border-gray-300 px-4 py-2 text-gray-700 dark:text-gray-300">
                             <div className="ml-6 flex items-center gap-2">
                               <span className="text-sm">
                                 {task.task_id}.{subtaskIndex + 1} {subtask?.subtask_name || 'Unknown Subtask'}
@@ -101,7 +111,7 @@ const Section1: React.FC<Section1Props> = ({
                         {(subtask.form_infos.length === 0 ? [null] : subtask.form_infos).map((formInfo, index) =>
                           formInfo === null ? (
                             <tr key={`placeholder-${task.task_id}-${subtask.subtask_id}`}>
-                              <td className="border border-gray-300 px-4 py-2 text-gray-500 dark:text-gray-400">
+                              <td className={`border border-gray-300 px-4 py-2 text-gray-500 dark:text-gray-400 ${isFinalized ? 'w-[280px]' : 'min-w-[280px] max-w-[420px]'}`}>
                                 <div className="ml-12 text-sm">-</div>
                               </td>
                               <td className="border border-gray-300 px-4 py-2 text-left text-gray-500 dark:text-gray-400 text-sm">
@@ -116,16 +126,21 @@ const Section1: React.FC<Section1Props> = ({
                               <td className="border border-gray-300 px-4 py-2 text-center text-gray-500 dark:text-gray-400 text-sm">
                                 -
                               </td>
+                              {isFinalized && (
+                                <td className="border border-gray-300 px-4 py-2 text-center text-gray-500 dark:text-gray-400 text-sm">
+                                  -
+                                </td>
+                              )}
                               <td className="border border-gray-300 px-4 py-2 text-left text-gray-500 dark:text-gray-400 text-sm">
                                 -
                               </td>
                             </tr>
                           ) : (
                             <tr key={`${task.task_id}-${subtask.subtask_id}-${formInfo.form_id}-${index}`}>
-                              <td className="border border-gray-300 px-4 py-2 text-gray-800 dark:text-gray-200">
+                              <td className={`border border-gray-300 px-4 py-2 text-gray-800 dark:text-gray-200 ${isFinalized ? 'w-[280px]' : 'min-w-[280px] max-w-[420px]'}`}>
                                 <div className="ml-12 flex items-center gap-2">
                                   <div>
-                                    <div className="font-light text-sm dark:text-gray-200 min-w-[280px] max-w-[420px]">
+                                    <div className={`font-light text-sm dark:text-gray-200 ${isFinalized ? 'w-[280px]' : 'min-w-[280px] max-w-[420px]'}`}>
                                       {task.task_id}.{subtaskIndex + 1}.{index + 1} {formInfo.form_title}
                                     </div>
                                   </div>
@@ -183,6 +198,13 @@ const Section1: React.FC<Section1Props> = ({
                               <td className="border border-gray-300 px-4 py-2 text-center text-blue-600 font-normal dark:text-blue-200 text-sm">
                                 {formInfo.quality * formInfo.workload}
                               </td>
+                              {isFinalized && (
+                                <td className="border border-gray-300 px-4 py-2 text-center text-green-600 font-semibold dark:text-green-200 text-sm">
+                                  {(formInfo as any).evaluation_score != null 
+                                    ? Number((formInfo as any).evaluation_score).toFixed(2)
+                                    : '-'}
+                                </td>
+                              )}
                               <td className="border border-gray-300 px-4 py-2 text-left dark:text-blue-400 text-sm font-light break-words whitespace-normal max-w-[200px]">
                                 {formInfo.description && formInfo.description !== '-' ? formInfo.description : '-'}
                               </td>
@@ -219,13 +241,32 @@ const Section1: React.FC<Section1Props> = ({
                           return hasAny ? total : '-'
                         })()}
                       </td>
+                      {isFinalized && (
+                        <td className="border border-gray-300 px-4 py-2 text-center text-green-600 font-bold dark:text-green-200 text-sm">
+                          {(() => {
+                            const hasAny = Object.values(task.subtasks).some((st) => st.form_infos.length > 0)
+                            const total = Object.values(task.subtasks).reduce(
+                              (subSum, subtask) =>
+                                subSum +
+                                subtask.form_infos.reduce((formSum, formInfo: any) => {
+                                  if (formInfo.evaluation_score != null) {
+                                    return formSum + Number(formInfo.evaluation_score)
+                                  }
+                                  return formSum
+                                }, 0),
+                              0
+                            )
+                            return hasAny ? total.toFixed(2) : '-'
+                          })()}
+                        </td>
+                      )}
                       <td className="border border-gray-300 px-4 py-2 text-left dark:text-blue-200" />
                     </tr>
                   </React.Fragment>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="border border-gray-300 px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                  <td colSpan={isFinalized ? 7 : 6} className="border border-gray-300 px-4 py-8 text-center text-gray-500 dark:text-gray-400">
                     กำลังโหลดรายการ...
                   </td>
                 </tr>
@@ -239,7 +280,7 @@ const Section1: React.FC<Section1Props> = ({
             <table className="w-full min-w-[1100px] border-collapse border border-gray-300 dark:border-gray-600">
               <thead className="bg-gray-50 dark:bg-gray-800">
                 <tr>
-                  <th className="border border-gray-300 px-4 py-3 text-sm text-center text-gray-700 dark:text-gray-300 font-normal">
+                  <th className={`border border-gray-300 px-4 py-3 text-sm text-center text-gray-700 dark:text-gray-300 font-normal ${isFinalized ? 'w-[280px]' : 'min-w-[320px]'}`}>
                     ภาระงาน/กิจกรรม/โครงการ/งาน
                   </th>
                   <th className="border border-gray-300 px-4 py-3 text-sm text-center text-gray-700 dark:text-gray-300 font-normal">
@@ -248,6 +289,11 @@ const Section1: React.FC<Section1Props> = ({
                   <th className="border border-gray-300 px-4 py-3 text-sm text-center text-gray-700 dark:text-gray-300 font-normal">
                     รวมภาระงาน
                   </th>
+                  {isFinalized && (
+                    <th className="border border-gray-300 px-4 py-3 text-sm text-center text-gray-700 dark:text-gray-300 font-normal">
+                      ภาระงานจากผู้ตรวจ
+                    </th>
+                  )}
                   <th className="border border-gray-300 px-4 py-3 text-sm text-center text-gray-700 dark:text-gray-300 font-normal">
                     หมายเหตุ
                   </th>
@@ -289,7 +335,7 @@ const Section1: React.FC<Section1Props> = ({
                       <React.Fragment key={task.task_id}>
                         <tr className="bg-white">
                           <td
-                            className={`px-4 py-2 text-gray-500 font-light text-sm min-w-[320px] ${index > 0 ? 'border-t border-l border-r border-gray-300' : 'border-l border-r border-gray-300'
+                            className={`px-4 py-2 text-gray-500 font-light text-sm ${isFinalized ? 'w-[280px]' : 'min-w-[320px]'} ${index > 0 ? 'border-t border-l border-r border-gray-300' : 'border-l border-r border-gray-300'
                               }`}
                           >
                             {displayTaskName}
@@ -309,6 +355,23 @@ const Section1: React.FC<Section1Props> = ({
                           <td rowSpan={rowSpanValue} className="border border-gray-300 text-blue-600 px-4 py-3 text-center font-light text-sm bg-white">
                             {hasAny ? taskTotal : '-'}
                           </td>
+                          {isFinalized && (
+                            <td rowSpan={rowSpanValue} className="border border-gray-300 text-green-600 px-4 py-3 text-center font-semibold text-sm bg-white">
+                              {(() => {
+                                const evalTotal = Object.values(task.subtasks).reduce(
+                                  (subSum, subtask) =>
+                                    subSum + subtask.form_infos.reduce((formSum, formInfo: any) => {
+                                      if (formInfo.evaluation_score != null) {
+                                        return formSum + Number(formInfo.evaluation_score)
+                                      }
+                                      return formSum
+                                    }, 0),
+                                  0
+                                )
+                                return hasAny ? evalTotal.toFixed(2) : '-'
+                              })()}
+                            </td>
+                          )}
                           <td rowSpan={rowSpanValue} className="border border-gray-300 px-4 py-3 text-center text-gray-500 bg-white" />
                         </tr>
 
@@ -318,9 +381,9 @@ const Section1: React.FC<Section1Props> = ({
                             const hourValue = group.hours[task.task_name] || 0
                             if (!(hourValue > 0)) return null
 
-                            return (
-                              <tr key={`${task.task_id}-${groupIndex}`} className="bg-white">
-                                <td className="border-l border-r border-gray-300 px-4 pb-2 text-gray-800 font-light text-sm min-w-[320px]">
+                              return (
+                                <tr key={`${task.task_id}-${groupIndex}`} className="bg-white">
+                                  <td className={`border-l border-r border-gray-300 px-4 pb-2 text-gray-800 font-light text-sm ${isFinalized ? 'w-[280px]' : 'min-w-[320px]'}`}>
                                   <div className="flex items-center gap-3">
                                     <div
                                       className={`w-4 h-4 border-2 rounded flex items-center justify-center flex-shrink-0 ${isSelected ? 'border-red-500 bg-red-500' : 'border-gray-400 bg-white'
@@ -357,24 +420,70 @@ const Section1: React.FC<Section1Props> = ({
                       {(() => {
                         const firstFive = Array.isArray(mergedTasks) ? mergedTasks.slice(0, 5) : []
                         const hasAny = firstFive.some((task) => Object.values(task.subtasks).some((st) => st.form_infos.length > 0))
-                        return hasAny ? totalPerformanceWorkload : '-'
+                        // คำนวณ totalPerformanceWorkload จาก quality * workload (ไม่ใช่ evaluation_score)
+                        const total = firstFive.reduce((sum, task) =>
+                          sum + Object.values(task.subtasks).reduce((subSum, subtask) =>
+                            subSum + subtask.form_infos.reduce((formSum, formInfo) =>
+                              formSum + (formInfo.quality * formInfo.workload), 0
+                            ), 0
+                          ), 0
+                        )
+                        return hasAny ? total : '-'
                       })()}
                     </span>
                   </td>
+                  {isFinalized && (
+                    <td className="border border-gray-300 px-4 py-3 text-center font-semibold text-sm">
+                      <span className="text-green-600 font-bold">
+                        {(() => {
+                          const firstFive = Array.isArray(mergedTasks) ? mergedTasks.slice(0, 5) : []
+                          const hasAny = firstFive.some((task) => Object.values(task.subtasks).some((st) => st.form_infos.length > 0))
+                          // คำนวณ total จาก evaluation_score
+                          const total = firstFive.reduce((sum, task) =>
+                            sum + Object.values(task.subtasks).reduce((subSum, subtask) =>
+                              subSum + subtask.form_infos.reduce((formSum, formInfo: any) => {
+                                if (formInfo.evaluation_score != null) {
+                                  return formSum + Number(formInfo.evaluation_score)
+                                }
+                                return formSum
+                              }, 0), 0
+                            ), 0
+                          )
+                          return hasAny ? total.toFixed(2) : '-'
+                        })()}
+                      </span>
+                    </td>
+                  )}
                   <td className="border border-gray-300 px-4 py-3 text-center text-gray-500" />
                 </tr>
               </tbody>
             </table>
           </div>
-          <div className="flex md:flex-row flex-col justify-between items-start md:items-center mt-4">
+          <div className="flex md:flex-row flex-col justify-between items-start  mt-4">
             <p className="text-md font-light text-gray-500 m-0 flex flex-wrap items-center gap-2">
               สรุปคะแนนส่วนผลสัมฤทธิ์ของงาน
               <span className="text-md font-light text-red-500 m-0">คะแนนเต็ม 70 คะแนน </span>
               <AlertCircle className="h-4 w-4" />
             </p>
-            <p className="text-md font-semibold text-blue-600 text-start md:text-end mt-2 md:mt-0">
-              <span className="text-md font-light text-gray-500">(7) คะแนนที่ได้ {" "}</span> {performanceScoreOutOf70.toFixed(2)} <span className="text-sm font-light text-gray-500 m-0">คะแนน</span>
-            </p>
+            <div className="text-start md:text-end mt-2 md:mt-0">
+              {isFinalized && performanceScoreOutOf70Evaluated != null ? (
+                <div className="flex flex-col items-end gap-1">
+                  <p className="text-md font-semibold text-blue-600 m-0">
+                    <span className="text-md font-light text-gray-500">(7) คะแนนที่คาดหวัง {" "}</span> 
+                    {performanceScoreOutOf70.toFixed(2)} <span className="text-sm font-light text-gray-500 m-0">คะแนน</span>
+                  </p>
+                  <p className="text-md font-semibold text-green-600 m-0">
+                    <span className="text-md font-light text-gray-500">(7) คะแนนที่ได้ {" "}</span> 
+                    {performanceScoreOutOf70Evaluated.toFixed(2)} <span className="text-sm font-light text-gray-500 m-0">คะแนน</span>
+                  </p>
+                </div>
+              ) : (
+                <p className="text-md font-semibold text-blue-600 m-0">
+                  <span className="text-md font-light text-gray-500">(7) คะแนนที่คาดหวัง {" "}</span> 
+                  {performanceScoreOutOf70.toFixed(2)} <span className="text-sm font-light text-gray-500 m-0">คะแนน</span>
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>
