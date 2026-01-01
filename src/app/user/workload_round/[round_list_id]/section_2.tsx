@@ -245,30 +245,30 @@ const Section2: React.FC<Section2Props> = ({
 
       {isPreview && competencies.length > 0 && (
         <div className="overflow-x-auto mt-4">
-          <table className="w-full min-w-[1100px] border-collapse border border-gray-300 dark:border-gray-600">
+          <table className="w-full min-w-[1100px] border-collapse border border-gray-300 dark:border-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-800">
               <tr>
                 <th
                   rowSpan={2}
-                  className="border border-gray-300 px-2 py-2 text-center text-md font-normal text-gray-700 dark:text-gray-300 w-12"
+                  className="border border-gray-300 dark:border-gray-700 px-2 py-2 text-center text-md font-normal text-gray-700 dark:text-gray-300 w-12"
                 >
                   ลำดับ
                 </th>
                 <th
                   rowSpan={2}
-                  className="border border-gray-300 px-3 py-2 text-center text-md font-normal text-gray-700 dark:text-gray-300"
+                  className="border border-gray-300 dark:border-gray-700 px-3 py-2 text-center text-md font-normal text-gray-700 dark:text-gray-300"
                 >
                   สมรรถนะหลัก (ที่สภามหาวิทยาลัยกำหนด)
                 </th>
                 <th
                   colSpan={4}
-                  className="border border-gray-300 px-2 py-2 text-center text-md font-normal text-gray-700 dark:text-gray-300"
+                  className="border border-gray-300 dark:border-gray-700 px-2 py-2 text-center text-md font-normal text-gray-700 dark:text-gray-300"
                 >
                   ระดับสมรรถนะที่คาดหวัง
                 </th>
                 <th
                   rowSpan={2}
-                  className="border border-gray-300 px-1 py-2 text-center text-md font-normal text-gray-700 dark:text-gray-300 w-32"
+                  className="border border-gray-300 dark:border-gray-700 px-1 py-2 text-center text-md font-normal text-gray-700 dark:text-gray-300 w-32"
                 >
                   ระดับสมรรถนะที่แสดงออก
                 </th>
@@ -279,7 +279,7 @@ const Section2: React.FC<Section2Props> = ({
                   return (
                     <th
                       key={position.position_id}
-                      className={`border border-gray-300 px-1 py-1 text-center text-md font-normal ${isHighlighted ? ' dark:bg-green-900/30' : 'bg-gray-50 dark:bg-gray-800'
+                      className={`border border-gray-300 dark:border-gray-700 px-1 py-1 text-center text-md font-normal ${isHighlighted ? ' dark:bg-green-900/30' : 'bg-gray-50 dark:bg-gray-800'
                         } text-gray-700 dark:text-gray-300`}
                     >
                       {position.short_name}
@@ -309,10 +309,10 @@ const Section2: React.FC<Section2Props> = ({
 
                 return sortedCompetencies.map((competency: any, index: number) => (
                   <tr key={competency.competency_id}>
-                    <td className="border border-gray-300 px-2 py-2 text-center text-md font-light text-gray-800 dark:text-gray-200">
+                    <td className="border border-gray-300 dark:border-gray-700 px-2 py-2 text-center text-md font-light text-gray-800 dark:text-gray-200">
                       {index + 1}
                     </td>
-                    <td className="border border-gray-300 px-3 py-2 text-md font-light text-gray-800 dark:text-gray-200">
+                    <td className="border border-gray-300 dark:border-gray-700 px-3 py-2 text-md font-light text-gray-800 dark:text-gray-200">
                       {competency.competency_name || '-'}
                     </td>
                     {positions.map((position) => {
@@ -323,14 +323,14 @@ const Section2: React.FC<Section2Props> = ({
                       return (
                         <td
                           key={position.position_id}
-                          className={`font-light border border-gray-300 px-1 py-2 text-center text-md text-gray-700 dark:text-gray-300 ${isHighlighted ? '!bg-green-100 dark:!bg-green-700/50' : ''
+                          className={`font-light border border-gray-300 dark:border-gray-700 px-1 py-2 text-center text-md text-gray-700 dark:text-gray-300 ${isHighlighted ? '!bg-green-100 dark:!bg-green-700/50' : ''
                             }`}
                         >
                           {expectedLevel}
                         </td>
                       )
                     })}
-                    <td className="font-light border border-gray-300 px-4 py-2 text-center text-md text-blue-600 dark:text-blue-400">
+                    <td className="font-light border border-gray-300 dark:border-gray-700 px-4 py-2 text-center text-md text-blue-600 dark:text-blue-400">
                       {evaluationsMap[competency.competency_id] !== null &&
                         evaluationsMap[competency.competency_id] !== undefined
                         ? evaluationsMap[competency.competency_id]
@@ -345,7 +345,7 @@ const Section2: React.FC<Section2Props> = ({
       )}
 
       {!isPreview && !performanceSnapshot && (
-        <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-300 dark:border-gray-600">
+        <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-300 dark:border-gray-700">
           <p className="text-center text-gray-600 dark:text-gray-400">
             ยังไม่มีข้อมูล snapshot กรุณาส่งฟอร์มเพื่อสร้าง snapshot
           </p>
@@ -373,24 +373,24 @@ const Section2: React.FC<Section2Props> = ({
 
           return (
             <div className="overflow-x-auto mt-4">
-              <table className="w-full min-w-[900px] border-collapse border border-gray-300 dark:border-gray-600">
+              <table className="w-full min-w-[900px] border-collapse border border-gray-300 dark:border-gray-700">
                 <thead className="bg-gray-50 dark:bg-gray-800">
                   <tr>
                     <th
                       rowSpan={2}
-                      className="border border-gray-300 px-2 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300 w-12"
+                      className="border border-gray-300 dark:border-gray-700 px-2 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300 w-12"
                     >
                       ลำดับ
                     </th>
                     <th
                       rowSpan={2}
-                      className={`border border-gray-300 px-3 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300 ${isFinalized ? 'w-3/6' : 'w-2/3'}`}
+                      className={`border border-gray-300 dark:border-gray-700 px-3 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300 ${isFinalized ? 'w-3/6' : 'w-2/3'}`}
                     >
                       สมรรถนะหลัก (ที่สภามหาวิทยาลัยกำหนด)
                     </th>
                     <th
                       colSpan={1}
-                      className="border border-gray-300 px-2 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300"
+                      className="border border-gray-300 dark:border-gray-700 px-2 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300"
                     >
                       ระดับสมรรถนะที่คาดหวัง
                     </th>
@@ -403,14 +403,14 @@ const Section2: React.FC<Section2Props> = ({
                     {isFinalized && (
                       <th
                         rowSpan={2}
-                        className="border border-gray-300 px-1 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300 w-32"
+                        className="border border-gray-300 dark:border-gray-700 px-1 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300 w-32"
                       >
                         ระดับสมรรถนะจากผู้ตรวจ
                       </th>
                     )}
                   </tr>
                   <tr>
-                    <th className="border border-gray-300 px-1 py-1 text-center text-sm font-normal dark:bg-green-900/30 text-gray-700 dark:text-gray-300">
+                    <th className="border border-gray-300 dark:border-gray-700 px-1 py-1 text-center text-sm font-normal dark:bg-green-900/30 text-gray-700 dark:text-gray-300">
                       {snapshotPositionShortName || snapshotPositionName || '-'}
                     </th>
                   </tr>
@@ -418,24 +418,24 @@ const Section2: React.FC<Section2Props> = ({
                 <tbody className="bg-white dark:bg-zinc-900">
                   {compsToShow.map((competency, index) => (
                     <tr key={`${competency.competency_name}-${index}`}>
-                      <td className="border border-gray-300 px-2 py-2 text-center text-sm font-light text-gray-800 dark:text-gray-200">
+                      <td className="border border-gray-300 dark:border-gray-700 px-2 py-2 text-center text-sm font-light text-gray-800 dark:text-gray-200">
                         {index + 1}
                       </td>
-                      <td className="border border-gray-300 px-3 py-2 text-sm font-light text-gray-800 dark:text-gray-200">
+                      <td className="border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm font-light text-gray-800 dark:text-gray-200">
                         {competency.competency_name || '-'}
                       </td>
-                      <td className="font-light border border-gray-300 px-1 py-2 text-center text-sm text-gray-700 dark:text-gray-300 !bg-green-100 dark:!bg-green-700/50">
+                      <td className="font-light border border-gray-300 dark:border-gray-700 px-1 py-2 text-center text-sm text-gray-700 dark:text-gray-300 !bg-green-100 dark:!bg-green-700/50">
                         {competency.expected_level !== null && competency.expected_level !== undefined
                           ? competency.expected_level
                           : '-'}
                       </td>
-                      <td className="font-normal border border-gray-300 px-4 py-2 text-center text-sm text-blue-600 dark:text-blue-400">
+                      <td className="font-normal border border-gray-300 dark:border-gray-700 px-4 py-2 text-center text-sm text-blue-600 dark:text-blue-400">
                         {competency.demonstrated_level !== null && competency.demonstrated_level !== undefined
                           ? competency.demonstrated_level
                           : '-'}
                       </td>
                       {isFinalized && (
-                        <td className="font-semibold border border-gray-300 px-4 py-2 text-center text-sm text-green-600 dark:text-green-400">
+                        <td className="font-semibold border border-gray-300 dark:border-gray-700 px-4 py-2 text-center text-sm text-green-600 dark:text-green-400">
                           {(() => {
                             // ใช้ competency_name เป็น key ในการหา average assessed level
                             const competencyName = competency.competency_name
@@ -456,16 +456,16 @@ const Section2: React.FC<Section2Props> = ({
       <div className="mt-6 flex flex-col gap-4">
         <div className="flex flex-col gap-4 ">
           <div className="w-full overflow-x-auto md:w-2/3">
-            <table className="w-full min-w-[640px] border-collapse border border-gray-300 dark:border-gray-600">
+            <table className="w-full min-w-[640px] border-collapse border border-gray-300 dark:border-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-800">
                 <tr>
-                  <th className="border border-gray-300 px-3 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300">
+                  <th className="border border-gray-300 dark:border-gray-700 px-3 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300">
                     สมรรถนะทางการบริหาร (ที่สภามหาวิทยาลัยกำหนด)
                   </th>
-                  <th className="border border-gray-300 px-2 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300">
+                  <th className="border border-gray-300 dark:border-gray-700 px-2 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300">
                     ระดับสมรรถนะที่คาดหวัง
                   </th>
-                  <th className="border border-gray-300 px-1 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300">
+                  <th className="border border-gray-300 dark:border-gray-700 px-1 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300">
                     ระดับสมรรถนะที่แสดงออก
                   </th>
                 </tr>
@@ -474,11 +474,11 @@ const Section2: React.FC<Section2Props> = ({
                 {['สภาวะผู้นำ', 'วิสัยทัศน์', 'การวางแผนกลยุทธ์ภาครัฐ', 'ศักยภาพเพื่อนำการปรับเปลี่ยน', 'การควบคุมตนเอง', 'การสอนงานและการมอบหมายงาน'].map(
                   (title) => (
                     <tr key={title}>
-                      <td className="border border-gray-300 px-3 py-2 text-start text-sm font-light text-gray-800 dark:text-gray-200">
+                      <td className="border border-gray-300 dark:border-gray-700 px-3 py-2 text-start text-sm font-light text-gray-800 dark:text-gray-200">
                         {title}
                       </td>
-                      <td className="border border-gray-300 px-2 py-2 text-start text-sm font-light text-gray-800 dark:text-gray-200" />
-                      <td className="border border-gray-300 px-1 py-2 text-start text-sm font-light text-gray-800 dark:text-gray-200" />
+                      <td className="border border-gray-300 dark:border-gray-700 px-2 py-2 text-start text-sm font-light text-gray-800 dark:text-gray-200" />
+                      <td className="border border-gray-300 dark:border-gray-700 px-1 py-2 text-start text-sm font-light text-gray-800 dark:text-gray-200" />
                     </tr>
                   )
                 )}
@@ -492,16 +492,16 @@ const Section2: React.FC<Section2Props> = ({
                 จากระดับสมรรถนะที่แสดงออก
               </p>
             )}
-            <table className="w-full min-w-[480px] border-collapse border border-gray-300 dark:border-gray-600">
+            <table className="w-full min-w-[480px] border-collapse border border-gray-300 dark:border-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-800">
                 <tr>
-                  <th className="border border-gray-300 px-2 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300">
+                  <th className="border border-gray-300 dark:border-gray-700 px-2 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300">
                     จำนวนสมรรถนะ
                   </th>
-                  <th className="border border-gray-300 px-2 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300">
+                  <th className="border border-gray-300 dark:border-gray-700 px-2 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300">
                     คูณ (X)
                   </th>
-                  <th className="border border-gray-300 px-2 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300">
+                  <th className="border border-gray-300 dark:border-gray-700 px-2 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300">
                     คะแนน
                   </th>
                 </tr>
@@ -511,23 +511,23 @@ const Section2: React.FC<Section2Props> = ({
                   .filter((row) => row.count > 0)
                   .map((row) => (
                     <tr key={row.id}>
-                      <td className="border border-gray-300 px-2 py-2 text-center text-sm font-light text-blue-500 dark:text-gray-200">
+                      <td className="border border-gray-300 dark:border-gray-700 px-2 py-2 text-center text-sm font-light text-blue-500 dark:text-gray-200">
                         {row.count}
                       </td>
-                      <td className="border border-gray-300 px-2 py-2 text-center text-sm font-light text-red-500 dark:text-gray-200">
+                      <td className="border border-gray-300 dark:border-gray-700 px-2 py-2 text-center text-sm font-light text-red-500 dark:text-gray-200">
                         {row.multiplier}
                       </td>
-                      <td className="border border-gray-300 px-2 py-2 text-center text-sm font-normal text-blue-500 dark:text-gray-200">
+                      <td className="border border-gray-300 dark:border-gray-700 px-2 py-2 text-center text-sm font-normal text-blue-500 dark:text-gray-200">
                         {row.score}
                       </td>
                     </tr>
                   ))}
                 {competencyScoreSummary.totalCount > 0 ? (
                   <tr className="bg-gray-50 dark:bg-gray-800 font-normal text-gray-800 dark:text-gray-100">
-                    <td className="border border-gray-300 px-3 py-2 text-end text-sm" colSpan={2}>
+                    <td className="border border-gray-300 dark:border-gray-700 px-3 py-2 text-end text-sm" colSpan={2}>
                       ผลรวมคะแนน
                     </td>
-                    <td className="border border-gray-300 px-2 py-2 text-center text-sm font-bold text-blue-500">
+                    <td className="border border-gray-300 dark:border-gray-700 px-2 py-2 text-center text-sm font-bold text-blue-500">
                       {competencyScoreSummary.totalScore}
                     </td>
                   </tr>
@@ -549,16 +549,16 @@ const Section2: React.FC<Section2Props> = ({
               <p className="text-sm font-normal text-gray-700 dark:text-gray-300 mb-2">
                 จากระดับสมรรถนะจากผู้ตรวจ
               </p>
-              <table className="w-full min-w-[480px] border-collapse border border-gray-300 dark:border-gray-600">
+              <table className="w-full min-w-[480px] border-collapse border border-gray-300 dark:border-gray-700">
                 <thead className="bg-gray-50 dark:bg-gray-800">
                   <tr>
-                    <th className="border border-gray-300 px-2 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300">
+                    <th className="border border-gray-300 dark:border-gray-700 px-2 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300">
                       จำนวนสมรรถนะ
                     </th>
-                    <th className="border border-gray-300 px-2 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300">
+                    <th className="border border-gray-300 dark:border-gray-700 px-2 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300">
                       คูณ (X)
                     </th>
-                    <th className="border border-gray-300 px-2 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300">
+                    <th className="border border-gray-300 dark:border-gray-700 px-2 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300">
                       คะแนน
                     </th>
                   </tr>
@@ -568,23 +568,23 @@ const Section2: React.FC<Section2Props> = ({
                     .filter((row) => row.count > 0)
                     .map((row) => (
                       <tr key={row.id}>
-                        <td className="border border-gray-300 px-2 py-2 text-center text-sm font-light text-green-500 dark:text-gray-200">
+                        <td className="border border-gray-300 dark:border-gray-700 px-2 py-2 text-center text-sm font-light text-green-500 dark:text-gray-200">
                           {row.count}
                         </td>
-                        <td className="border border-gray-300 px-2 py-2 text-center text-sm font-light text-red-500 dark:text-gray-200">
+                        <td className="border border-gray-300 dark:border-gray-700 px-2 py-2 text-center text-sm font-light text-red-500 dark:text-gray-200">
                           {row.multiplier}
                         </td>
-                        <td className="border border-gray-300 px-2 py-2 text-center text-sm font-normal text-green-500 dark:text-gray-200">
+                        <td className="border border-gray-300 dark:border-gray-700 px-2 py-2 text-center text-sm font-normal text-green-500 dark:text-gray-200">
                           {row.score}
                         </td>
                       </tr>
                     ))}
                   {evaluatedCompetencyScoreSummary.totalCount > 0 ? (
                     <tr className="bg-gray-50 dark:bg-gray-800 font-normal text-gray-800 dark:text-gray-100">
-                      <td className="border border-gray-300 px-3 py-2 text-end text-sm" colSpan={2}>
+                      <td className="border border-gray-300 dark:border-gray-700 px-3 py-2 text-end text-sm" colSpan={2}>
                         ผลรวมคะแนน
                       </td>
-                      <td className="border border-gray-300 px-2 py-2 text-center text-sm font-bold text-green-500">
+                      <td className="border border-gray-300 dark:border-gray-700 px-2 py-2 text-center text-sm font-bold text-green-500">
                         {evaluatedCompetencyScoreSummary.totalScore}
                       </td>
                     </tr>
@@ -592,7 +592,7 @@ const Section2: React.FC<Section2Props> = ({
                     <tr>
                       <td
                         colSpan={3}
-                        className="border border-gray-300 px-3 py-4 text-center text-sm text-gray-500 dark:text-gray-300"
+                        className="border border-gray-300 dark:border-gray-700 px-3 py-4 text-center text-sm text-gray-500 dark:text-gray-300"
                       >
                         ยังไม่มีข้อมูลสมรรถนะจากผู้ตรวจ
                       </td>
@@ -606,10 +606,10 @@ const Section2: React.FC<Section2Props> = ({
         </div>
 
         <div>
-          <table className="w-full border-collapse border border-gray-300 dark:border-gray-600">
+          <table className="w-full border-collapse border border-gray-300 dark:border-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-800">
               <tr>
-                <th className="border border-gray-300 px-3 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300">
+                <th className="border border-gray-300 dark:border-gray-700 px-3 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300">
                   หลักเกณฑ์การประเมิน
                 </th>
               </tr>
@@ -622,7 +622,7 @@ const Section2: React.FC<Section2Props> = ({
                 'จำนวนสมรรถนะหลัก/สมรรถนะเฉพาะ/สมรรถนะทางการบริหาร ที่มีระดับสมรรถนะที่แสดงออก ต่ำกว่า ระดับสมรรถนะที่คาดหวัง 3 ระดับ x 0 คะแนน',
               ].map((text) => (
                 <tr key={text}>
-                  <td className="border border-gray-300 px-3 py-2 text-start text-sm font-light text-gray-800 dark:text-gray-200">
+                  <td className="border border-gray-300 dark:border-gray-700 px-3 py-2 text-start text-sm font-light text-gray-800 dark:text-gray-200">
                     {text}
                   </td>
                 </tr>

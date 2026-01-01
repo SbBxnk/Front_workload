@@ -20,8 +20,11 @@ import type {
 } from './types'
 import Section1 from './section_1'
 import Section2 from './section_2'
-import Section2CalModal from './_partial/section2CalModal'
 import Section3 from './section_3'
+import Section4 from './section_4'
+import Section5 from './section_5'
+import Section6 from './section_6'
+import Section2CalModal from './_partial/section2CalModal'
 import { handleExportPDFWithLinks } from './exportPDF'
 import { handleExportPDFWithLinks as handleExportPDFEvaluatedWithLinks } from './exportPDFEvaluated'
 
@@ -1063,6 +1066,13 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
             userName={decodedUser ? `${decodedUser.prefix_name || ''} ${decodedUser.u_fname || ''} ${decodedUser.u_lname || ''}`.trim() || null : null}
             evaluatorName={null}
           />
+
+          <Section4
+            userName={decodedUser ? `${decodedUser.prefix_name || ''} ${decodedUser.u_fname || ''} ${decodedUser.u_lname || ''}`.trim() || null : null}
+            evaluatorName={null}
+          />
+          <Section5/>
+          <Section6/>
         </div>
       </div>
       <Section2CalModal
