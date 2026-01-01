@@ -3,12 +3,26 @@ import React, { useMemo } from 'react'
 interface Section3Props {
     performanceScoreOutOf70: number
     performanceScoreOutOf30: number
+    formlistStatus?: number | null
+    performanceScoreOutOf70Evaluated?: number | null
+    performanceScoreOutOf30Evaluated?: number | null
+    userName?: string | null
+    evaluatorName?: string | null
 }
 
 const MAX_SCORE_COMPONENT_1 = 70
 const MAX_SCORE_COMPONENT_2 = 30
 
-function Section3({ performanceScoreOutOf70, performanceScoreOutOf30 }: Section3Props) {
+function Section3({ 
+    performanceScoreOutOf70, 
+    performanceScoreOutOf30,
+    formlistStatus = null,
+    performanceScoreOutOf70Evaluated,
+    performanceScoreOutOf30Evaluated,
+    userName = null,
+    evaluatorName = null,
+}: Section3Props) {
+    const isFinalized = formlistStatus === 2
     const { totalMaxScore, totalScore, totalPercentage } = useMemo(() => {
         const max = MAX_SCORE_COMPONENT_1 + MAX_SCORE_COMPONENT_2
         const score = (Number.isFinite(performanceScoreOutOf70) ? performanceScoreOutOf70 : 0) +
@@ -57,18 +71,33 @@ function Section3({ performanceScoreOutOf70, performanceScoreOutOf30 }: Section3
         []
     )
 
+    // คำนวณคะแนนจากผู้ตรวจเมื่อ isFinalized
+    const evaluatedTotalPercentage = useMemo(() => {
+        if (!isFinalized) return null
+        const max = MAX_SCORE_COMPONENT_1 + MAX_SCORE_COMPONENT_2
+        const evaluatedScore = (Number.isFinite(performanceScoreOutOf70Evaluated ?? null) ? (performanceScoreOutOf70Evaluated ?? 0) : 0) +
+            (Number.isFinite(performanceScoreOutOf30Evaluated ?? null) ? (performanceScoreOutOf30Evaluated ?? 0) : 0)
+        const percentage = max > 0 ? (evaluatedScore / max) * 100 : 0
+        return percentage
+    }, [isFinalized, performanceScoreOutOf70Evaluated, performanceScoreOutOf30Evaluated])
+
     const normalizedPercentage = useMemo(() => {
-        if (!Number.isFinite(totalPercentage)) {
+        // ใช้คะแนนจากผู้ตรวจเมื่อ isFinalized
+        const percentageToUse = (isFinalized && evaluatedTotalPercentage != null) 
+            ? evaluatedTotalPercentage 
+            : totalPercentage
+
+        if (!Number.isFinite(percentageToUse)) {
             return 0
         }
-        if (totalPercentage < 0) {
+        if (percentageToUse < 0) {
             return 0
         }
-        if (totalPercentage > 100) {
+        if (percentageToUse > 100) {
             return 100
         }
-        return totalPercentage
-    }, [totalPercentage])
+        return percentageToUse
+    }, [isFinalized, evaluatedTotalPercentage, totalPercentage])
 
     const formatScore = (value: number) => {
         if (!Number.isFinite(value)) {
@@ -82,10 +111,89 @@ function Section3({ performanceScoreOutOf70, performanceScoreOutOf30 }: Section3
 
     return (
         <div>
+             <div className="w-full mb-6">
+                <div className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-zinc-900 p-3 mb-3">
+                    <p className="text-sm font-light text-gray-800 dark:text-gray-200 mb-1">
+                        (9) ผู้ประเมินและผู้รับการประเมินได้ตกลงร่วมกันและเห็นพ้องกันแล้ว (ระบุข้อมูลใน (1) ให้ครบ)
+                    </p>
+                    <p className="text-sm font-light text-gray-800 dark:text-gray-200 text-center">
+                        จึงลงลายมือชื่อไว้เป็นหลักฐาน (ลงนามเมื่อจัดทำข้อตกลง)
+                    </p>
+                </div>
+                <div className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-zinc-900">
+                    <div className="grid grid-cols-2 divide-x divide-gray-300 dark:divide-gray-600">
+                        {/* คอลัมน์ซ้าย - ผู้ประเมิน */}
+                        <div className="p-3 space-y-3">
+                            <div>
+                                <p className="text-sm font-light text-gray-800 dark:text-gray-200 mb-1">
+                                    ลายมือชื่อ
+                                </p>
+                                <div className="relative border-b-2 border-dotted border-gray-500 dark:border-gray-400 pb-1 min-h-[1.5rem]">
+                                    {evaluatorName && (
+                                        <span className="text-sm font-light text-gray-800 dark:text-gray-200 absolute bottom-1 left-0">
+                                            {evaluatorName}
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-xs font-light text-gray-600 dark:text-gray-400 mt-0.5">
+                                    (ผู้ประเมิน)
+                                </p>
+                            </div>
+                            <div className="flex items-baseline gap-1.5 mt-3">
+                                <span className="text-sm font-light text-gray-800 dark:text-gray-200 whitespace-nowrap">วันที่</span>
+                                <div className="relative border-b border-dotted border-gray-500 dark:border-gray-400 flex-1 pb-0.5 min-h-[1.2rem]">
+                                    <span className="text-xs font-light text-gray-500 dark:text-gray-400 absolute bottom-0 left-0">........</span>
+                                </div>
+                                <span className="text-sm font-light text-gray-800 dark:text-gray-200 whitespace-nowrap ml-1">เดือน</span>
+                                <div className="relative border-b border-dotted border-gray-500 dark:border-gray-400 flex-1 pb-0.5 min-h-[1.2rem]">
+                                    <span className="text-xs font-light text-gray-500 dark:text-gray-400 absolute bottom-0 left-0">........</span>
+                                </div>
+                                <span className="text-sm font-light text-gray-800 dark:text-gray-200 whitespace-nowrap ml-1">พ.ศ.</span>
+                                <div className="relative border-b border-dotted border-gray-500 dark:border-gray-400 flex-1 pb-0.5 min-h-[1.2rem]">
+                                    <span className="text-xs font-light text-gray-500 dark:text-gray-400 absolute bottom-0 left-0">........</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* คอลัมน์ขวา - ผู้รับการประเมิน */}
+                        <div className="p-3 space-y-3">
+                            <div>
+                                <p className="text-sm font-light text-gray-800 dark:text-gray-200 mb-1">
+                                    ลายมือชื่อ
+                                </p>
+                                <div className="relative border-b-2 border-dotted border-gray-500 dark:border-gray-400 pb-1 min-h-[1.5rem]">
+                                    {userName && (
+                                        <span className="text-sm font-light text-gray-800 dark:text-gray-200 absolute bottom-1 left-0">
+                                            {userName}
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-xs font-light text-gray-600 dark:text-gray-400 mt-0.5">
+                                    (ผู้รับการประเมิน)
+                                </p>
+                            </div>
+                            <div className="flex items-baseline gap-1.5 mt-3">
+                                <span className="text-sm font-light text-gray-800 dark:text-gray-200 whitespace-nowrap">วันที่</span>
+                                <div className="relative border-b border-dotted border-gray-500 dark:border-gray-400 flex-1 pb-0.5 min-h-[1.2rem]">
+                                    <span className="text-xs font-light text-gray-500 dark:text-gray-400 absolute bottom-0 left-0">........</span>
+                                </div>
+                                <span className="text-sm font-light text-gray-800 dark:text-gray-200 whitespace-nowrap ml-1">เดือน</span>
+                                <div className="relative border-b border-dotted border-gray-500 dark:border-gray-400 flex-1 pb-0.5 min-h-[1.2rem]">
+                                    <span className="text-xs font-light text-gray-500 dark:text-gray-400 absolute bottom-0 left-0">........</span>
+                                </div>
+                                <span className="text-sm font-light text-gray-800 dark:text-gray-200 whitespace-nowrap ml-1">พ.ศ.</span>
+                                <div className="relative border-b border-dotted border-gray-500 dark:border-gray-400 flex-1 pb-0.5 min-h-[1.2rem]">
+                                    <span className="text-xs font-light text-gray-500 dark:text-gray-400 absolute bottom-0 left-0">........</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <p className="text-md mb-2 font-normal text-gray-800 dark:text-gray-200">
                 ส่วนที่ 3 สรุปการประเมินผลการปฏิบัติราชการ
             </p>
-
             <div className="w-full md:w-[70%] overflow-x-auto">
                 <table className="min-w-[640px] w-full border-collapse border border-gray-300 dark:border-gray-600">
                     <thead className="bg-gray-50 dark:bg-gray-800">
@@ -96,9 +204,14 @@ function Section3({ performanceScoreOutOf70, performanceScoreOutOf30 }: Section3
                             <th className="w-40 border border-gray-300 px-2 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300">
                                 คะแนนเต็ม
                             </th>
-                            <th className="w-32 border border-gray-300 px-1 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300">
+                            <th className={`border border-gray-300 px-1 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300 ${isFinalized ? 'w-32' : 'w-32'}`}>
                                 คะแนนที่ได้
                             </th>
+                            {isFinalized && (
+                                <th className="w-32 border border-gray-300 px-1 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300">
+                                    คะแนนที่ได้ (ประเมิน)
+                                </th>
+                            )}
                             <th className="w-32 border border-gray-300 px-1 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300">
                                 หมายเหตุ
                             </th>
@@ -115,6 +228,13 @@ function Section3({ performanceScoreOutOf70, performanceScoreOutOf30 }: Section3
                             <td className="border border-gray-300 px-1 py-2 text-center text-sm font-light text-gray-800 dark:text-gray-200">
                                 {formatScore(performanceScoreOutOf70)}
                             </td>
+                            {isFinalized && (
+                                <td className="border border-gray-300 px-1 py-2 text-center text-sm font-semibold text-green-600 dark:text-green-400">
+                                    {performanceScoreOutOf70Evaluated != null 
+                                        ? formatScore(performanceScoreOutOf70Evaluated)
+                                        : '-'}
+                                </td>
+                            )}
                             <td className="border border-gray-300 px-1 py-2 text-start text-sm font-light text-gray-800 dark:text-gray-200" />
                         </tr>
                         <tr>
@@ -127,6 +247,13 @@ function Section3({ performanceScoreOutOf70, performanceScoreOutOf30 }: Section3
                             <td className="border border-gray-300 px-1 py-2 text-center text-sm font-light text-gray-800 dark:text-gray-200">
                                 {formatScore(performanceScoreOutOf30)}
                             </td>
+                            {isFinalized && (
+                                <td className="border border-gray-300 px-1 py-2 text-center text-sm font-semibold text-green-600 dark:text-green-400">
+                                    {performanceScoreOutOf30Evaluated != null 
+                                        ? formatScore(performanceScoreOutOf30Evaluated)
+                                        : '-'}
+                                </td>
+                            )}
                             <td className="border border-gray-300 px-1 py-2 text-start text-sm font-light text-gray-800 dark:text-gray-200" />
                         </tr>
                         <tr>
@@ -135,6 +262,9 @@ function Section3({ performanceScoreOutOf70, performanceScoreOutOf30 }: Section3
                             </td>
                             <td className="border border-gray-300 px-2 py-2 text-start text-sm font-light text-gray-800 dark:text-gray-200" />
                             <td className="border border-gray-300 px-1 py-2 text-start text-sm font-light text-gray-800 dark:text-gray-200" />
+                            {isFinalized && (
+                                <td className="border border-gray-300 px-1 py-2 text-start text-sm font-light text-gray-800 dark:text-gray-200" />
+                            )}
                             <td className="border border-gray-300 px-1 py-2 text-start text-sm font-light text-gray-800 dark:text-gray-200" />
                         </tr>
                         <tr>
@@ -147,6 +277,15 @@ function Section3({ performanceScoreOutOf70, performanceScoreOutOf30 }: Section3
                             <td className="border border-gray-300 px-1 py-2 text-center text-sm font-semibold text-blue-600 dark:text-gray-100">
                                 {formatScore(totalScore)}
                             </td>
+                            {isFinalized && (
+                                <td className="border border-gray-300 px-1 py-2 text-center text-sm font-semibold text-green-600 dark:text-green-400">
+                                    {(() => {
+                                        const evaluatedScore = (Number.isFinite(performanceScoreOutOf70Evaluated ?? null) ? (performanceScoreOutOf70Evaluated ?? 0) : 0) +
+                                            (Number.isFinite(performanceScoreOutOf30Evaluated ?? null) ? (performanceScoreOutOf30Evaluated ?? 0) : 0)
+                                        return formatScore(evaluatedScore)
+                                    })()}
+                                </td>
+                            )}
                             <td className="border border-gray-300 px-1 py-2 text-start text-sm font-light text-gray-800 dark:text-gray-200" />
                         </tr>
                     </tbody>
@@ -166,19 +305,27 @@ function Section3({ performanceScoreOutOf70, performanceScoreOutOf30 }: Section3
                                 key={level.label}
                                 className={`flex items-center gap-3 text-sm ${
                                     isActive
-                                        ? 'text-blue-600 font-semibold'
+                                        ? 'text-business1 font-semibold'
                                         : 'text-gray-700 dark:text-gray-200'
                                 }`}
                             >
                                 <input
                                     type="checkbox"
                                     checked={isActive}
-                                    readOnly
-                                    className="h-4 w-4 accent-blue-600"
+                                    disabled
+                                    className={`h-4 w-4 cursor-default ${isActive ? 'checkbox-business1' : ''}`}
+                                    style={{
+                                        accentColor: isActive ? '#2E4497' : undefined,
+                                    }}
                                 />
                                 <span className="flex flex-row gap-2 leading-tight">
                                     <span className="text-sm font-light">{level.label}</span>
                                     <span className="text-sm font-light">{level.description}</span>
+                                    {isActive && isFinalized && (
+                                        <span className="text-sm font-light text-green-600 dark:text-green-400">
+                                            (ประเมินจากผู้ตรวจ)
+                                        </span>
+                                    )}
                                 </span>
                             </label>
                         )

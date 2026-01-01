@@ -1,8 +1,11 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { AlertCircle } from 'lucide-react'
+import { useSession } from 'next-auth/react'
 import type { PerformanceSnapshot } from '@/services/performanceService'
+import PerformanceEvaluationAssessmentService, { type AverageAssessedLevel } from '@/services/performanceEvaluationAssessmentService'
+import SnapshotService from '@/services/snapshotService'
 
 interface PositionInfo {
   position_id: number
@@ -35,6 +38,10 @@ interface Section2Props {
   competencyScoreSummary: CompetencyScoreSummary
   competencyTotalScoreCalc: number
   onOpenCompetencyModal: () => void
+  formlistStatus?: number | null
+  userId?: number
+  roundId?: number
+  onEvaluatedCompetencyScoreSummaryChange?: (summary: CompetencyScoreSummary | null) => void
 }
 
 const Section2: React.FC<Section2Props> = ({
@@ -49,7 +56,183 @@ const Section2: React.FC<Section2Props> = ({
   competencyScoreSummary,
   competencyTotalScoreCalc,
   onOpenCompetencyModal,
+  formlistStatus = null,
+  userId,
+  roundId,
+  onEvaluatedCompetencyScoreSummaryChange,
 }) => {
+  const { data: session } = useSession()
+  const isFinalized = formlistStatus === 2
+  const [averageAssessedLevels, setAverageAssessedLevels] = useState<AverageAssessedLevel[]>([])
+  const [formlistId, setFormlistId] = useState<number | null>(null)
+
+  // ดึง formlist_id
+  useEffect(() => {
+    const fetchFormlistId = async () => {
+      if (!userId || !roundId) return
+      try {
+        const response = await SnapshotService.getFormlistId(userId, roundId)
+        if (response.success && response.payload && response.payload.length > 0) {
+          setFormlistId(response.payload[0].formlist_id)
+        }
+      } catch (error) {
+        console.error('Error fetching formlist_id:', error)
+      }
+    }
+    fetchFormlistId()
+  }, [userId, roundId])
+
+  // ดึงข้อมูล average assessed_levels เมื่อ isFinalized
+  useEffect(() => {
+    const fetchAverageAssessedLevels = async () => {
+      if (!isFinalized || !formlistId || !session?.accessToken) {
+        setAverageAssessedLevels([])
+        return
+      }
+
+      try {
+        const data = await PerformanceEvaluationAssessmentService.getAverageAssessedLevels(
+          session.accessToken,
+          formlistId
+        )
+        setAverageAssessedLevels(data)
+      } catch (error: any) {
+        console.error('Error fetching average assessed levels:', error)
+        setAverageAssessedLevels([])
+      }
+    }
+
+    fetchAverageAssessedLevels()
+  }, [isFinalized, formlistId, session?.accessToken])
+
+  // ฟังก์ชันสำหรับปัดเศษและแสดงเป็นจำนวนเต็ม
+  // ถ้าทศนิยมตำแหน่งที่ 2 >= 0.50 ให้ปัดขึ้น, ถ้า < 0.50 ให้ปัดลง
+  const formatAverageLevel = (value: number): string => {
+    // คำนวณทศนิยมตำแหน่งที่ 2 (เช่น 2.56 -> 6, 2.50 -> 0, 2.49 -> 9)
+    const secondDecimal = Math.floor((value * 100) % 10)
+    
+    // ถ้า >= 5 (0.50) ปัดขึ้น, ถ้า < 5 (0.50) ปัดลง
+    let rounded: number
+    if (secondDecimal >= 5) {
+      rounded = Math.ceil(value)
+    } else {
+      rounded = Math.floor(value)
+    }
+    
+    return rounded.toString()
+  }
+
+  // สร้าง map ของ average assessed_levels โดยใช้ competency_name เป็น key
+  const averageAssessedLevelsMap = React.useMemo(() => {
+    const map = new Map<string, number>()
+    
+    averageAssessedLevels.forEach((item) => {
+      if (item.competency_id && item.average_assessed_level != null) {
+        // หา competency_name จาก competencies array
+        const competency = competencies.find((comp: any) => comp.competency_id === item.competency_id)
+        if (competency?.competency_name) {
+          map.set(competency.competency_name, Number(item.average_assessed_level))
+        }
+      }
+    })
+    
+    return map
+  }, [averageAssessedLevels, competencies])
+
+  // สร้าง competency score summary จาก average assessed levels เมื่อ isFinalized
+  const evaluatedCompetencyScoreSummary = React.useMemo(() => {
+    if (!isFinalized || !performanceSnapshot?.evaluations || averageAssessedLevelsMap.size === 0) {
+      return null
+    }
+
+    const evaluations = Array.isArray(performanceSnapshot.evaluations) ? performanceSnapshot.evaluations : []
+    const expectedLevelsMap: Record<number, number> = {}
+    expectedLevels.forEach((level: any) => {
+      if (level.competency_id && level.position_id === userPositionId) {
+        expectedLevelsMap[level.competency_id] = level.expected_level
+      }
+    })
+
+    const categories = [
+      {
+        id: 'gte',
+        multiplier: 3,
+        count: 0,
+        score: 0,
+      },
+      {
+        id: 'minus1',
+        multiplier: 2,
+        count: 0,
+        score: 0,
+      },
+      {
+        id: 'minus2',
+        multiplier: 1,
+        count: 0,
+        score: 0,
+      },
+      {
+        id: 'minus3',
+        multiplier: 0,
+        count: 0,
+        score: 0,
+      },
+    ] as Array<{ id: string; multiplier: number; count: number; score: number }>
+
+    evaluations.forEach((evaluation: any) => {
+      const competencyName = evaluation?.competency_name
+      if (!competencyName) return
+
+      // ใช้ average assessed level จากผู้ตรวจ
+      const avgAssessedLevel = averageAssessedLevelsMap.get(competencyName)
+      if (avgAssessedLevel == null) return
+
+      // ปัดเศษตามกฎที่กำหนด
+      const secondDecimal = Math.floor((avgAssessedLevel * 100) % 10)
+      const assessedLevel = secondDecimal >= 5 ? Math.ceil(avgAssessedLevel) : Math.floor(avgAssessedLevel)
+
+      // หา expected level
+      const competency = competencies.find((comp: any) => comp.competency_name === competencyName)
+      if (!competency?.competency_id) return
+
+      const expected = expectedLevelsMap[competency.competency_id] ?? evaluation?.expected_level
+      if (!Number.isFinite(expected)) return
+
+      const diff = assessedLevel - expected
+
+      let category = categories[3]
+      if (diff >= 0) {
+        category = categories[0]
+      } else if (diff === -1) {
+        category = categories[1]
+      } else if (diff === -2) {
+        category = categories[2]
+      }
+
+      category.count += 1
+    })
+
+    categories.forEach(category => {
+      category.score = category.count * category.multiplier
+    })
+
+    const totalScore = categories.reduce((sum, category) => sum + category.score, 0)
+    const totalCount = categories.reduce((sum, category) => sum + category.count, 0)
+
+    return { rows: categories, totalScore, totalCount }
+  }, [isFinalized, performanceSnapshot?.evaluations, averageAssessedLevelsMap, expectedLevels, userPositionId, competencies])
+
+  // ส่ง evaluatedCompetencyScoreSummary ไปยัง parent component
+  React.useEffect(() => {
+    if (onEvaluatedCompetencyScoreSummaryChange) {
+      onEvaluatedCompetencyScoreSummaryChange(evaluatedCompetencyScoreSummary)
+    }
+  }, [evaluatedCompetencyScoreSummary, onEvaluatedCompetencyScoreSummaryChange])
+
+  // ตารางซ้ายใช้ competencyScoreSummary เสมอ (นับจาก demonstrated_level)
+  // ตารางขวาใช้ evaluatedCompetencyScoreSummary เมื่อ isFinalized (นับจาก average assessed level)
+
   return (
     <div>
       <p className="text-md font-normal text-gray-800 dark:text-gray-200 mb-2">
@@ -201,7 +384,7 @@ const Section2: React.FC<Section2Props> = ({
                     </th>
                     <th
                       rowSpan={2}
-                      className="border border-gray-300 px-3 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300 w-2/3"
+                      className={`border border-gray-300 px-3 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300 ${isFinalized ? 'w-3/6' : 'w-2/3'}`}
                     >
                       สมรรถนะหลัก (ที่สภามหาวิทยาลัยกำหนด)
                     </th>
@@ -217,6 +400,14 @@ const Section2: React.FC<Section2Props> = ({
                     >
                       ระดับสมรรถนะที่แสดงออก
                     </th>
+                    {isFinalized && (
+                      <th
+                        rowSpan={2}
+                        className="border border-gray-300 px-1 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300 w-32"
+                      >
+                        ระดับสมรรถนะจากผู้ตรวจ
+                      </th>
+                    )}
                   </tr>
                   <tr>
                     <th className="border border-gray-300 px-1 py-1 text-center text-sm font-normal dark:bg-green-900/30 text-gray-700 dark:text-gray-300">
@@ -243,6 +434,18 @@ const Section2: React.FC<Section2Props> = ({
                           ? competency.demonstrated_level
                           : '-'}
                       </td>
+                      {isFinalized && (
+                        <td className="font-semibold border border-gray-300 px-4 py-2 text-center text-sm text-green-600 dark:text-green-400">
+                          {(() => {
+                            // ใช้ competency_name เป็น key ในการหา average assessed level
+                            const competencyName = competency.competency_name
+                            if (!competencyName) return '-'
+                            
+                            const avgLevel = averageAssessedLevelsMap.get(competencyName)
+                            return avgLevel != null ? formatAverageLevel(avgLevel) : '-'
+                          })()}
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -282,7 +485,13 @@ const Section2: React.FC<Section2Props> = ({
               </tbody>
             </table>
           </div>
+          <div className={`flex flex-col gap-4 ${isFinalized ? 'md:flex-row' : ''}`}>
           <div className="w-full overflow-x-auto md:w-1/2">
+            {isFinalized && (
+              <p className="text-sm font-normal text-gray-700 dark:text-gray-300 mb-2">
+                จากระดับสมรรถนะที่แสดงออก
+              </p>
+            )}
             <table className="w-full min-w-[480px] border-collapse border border-gray-300 dark:border-gray-600">
               <thead className="bg-gray-50 dark:bg-gray-800">
                 <tr>
@@ -335,6 +544,65 @@ const Section2: React.FC<Section2Props> = ({
               </tbody>
             </table>
           </div>
+          {isFinalized && evaluatedCompetencyScoreSummary && (
+            <div className="w-full overflow-x-auto md:w-1/2">
+              <p className="text-sm font-normal text-gray-700 dark:text-gray-300 mb-2">
+                จากระดับสมรรถนะจากผู้ตรวจ
+              </p>
+              <table className="w-full min-w-[480px] border-collapse border border-gray-300 dark:border-gray-600">
+                <thead className="bg-gray-50 dark:bg-gray-800">
+                  <tr>
+                    <th className="border border-gray-300 px-2 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300">
+                      จำนวนสมรรถนะ
+                    </th>
+                    <th className="border border-gray-300 px-2 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300">
+                      คูณ (X)
+                    </th>
+                    <th className="border border-gray-300 px-2 py-2 text-center text-sm font-normal text-gray-700 dark:text-gray-300">
+                      คะแนน
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-zinc-900">
+                  {evaluatedCompetencyScoreSummary.rows
+                    .filter((row) => row.count > 0)
+                    .map((row) => (
+                      <tr key={row.id}>
+                        <td className="border border-gray-300 px-2 py-2 text-center text-sm font-light text-green-500 dark:text-gray-200">
+                          {row.count}
+                        </td>
+                        <td className="border border-gray-300 px-2 py-2 text-center text-sm font-light text-red-500 dark:text-gray-200">
+                          {row.multiplier}
+                        </td>
+                        <td className="border border-gray-300 px-2 py-2 text-center text-sm font-normal text-green-500 dark:text-gray-200">
+                          {row.score}
+                        </td>
+                      </tr>
+                    ))}
+                  {evaluatedCompetencyScoreSummary.totalCount > 0 ? (
+                    <tr className="bg-gray-50 dark:bg-gray-800 font-normal text-gray-800 dark:text-gray-100">
+                      <td className="border border-gray-300 px-3 py-2 text-end text-sm" colSpan={2}>
+                        ผลรวมคะแนน
+                      </td>
+                      <td className="border border-gray-300 px-2 py-2 text-center text-sm font-bold text-green-500">
+                        {evaluatedCompetencyScoreSummary.totalScore}
+                      </td>
+                    </tr>
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan={3}
+                        className="border border-gray-300 px-3 py-4 text-center text-sm text-gray-500 dark:text-gray-300"
+                      >
+                        ยังไม่มีข้อมูลสมรรถนะจากผู้ตรวจ
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+          </div>
         </div>
 
         <div>
@@ -362,7 +630,7 @@ const Section2: React.FC<Section2Props> = ({
             </tbody>
           </table>
 
-          <div className="mt-4 flex flex-col gap-2 text-md font-light text-gray-500 md:flex-row md:items-center md:justify-between">
+          <div className="mt-4 flex flex-col gap-2 text-md font-light text-gray-500 md:flex-row items-start md:justify-between">
             <div className="flex flex-wrap items-center gap-2">
               <span className="">
                 สรุปคะแนนส่วนพฤติกรรมการปฏิบัติงาน (สมรรถนะ)
@@ -379,22 +647,46 @@ const Section2: React.FC<Section2Props> = ({
               </span>
 
             </div>
-            <p className="hidden md:block m-0 text-md font-semibold">
-              <span className="text-sm font-light text-gray-500">เท่ากับ</span>{' '}
-              <span className="text-blue-600"> {competencyScoreSummary.totalScore}</span> <span className="text-red-500">/ 30</span>
-            </p>
-            <div className="flex justify-between">
-              <p className="block md:hidden m-0 text-md font-semibold">
+            <div className="hidden md:block text-left">
+              <p className="m-0 text-md font-semibold">
                 <span className="text-sm font-light text-gray-500">เท่ากับ</span>{' '}
                 <span className="text-blue-600"> {competencyScoreSummary.totalScore}</span> <span className="text-red-500">/ 30</span>
               </p>
-              <div className="flex flex-col items-start text-blue-600 md:flex-row md:items-center md:gap-4">
-                <p className="m-0 text-md font-semibold"> 
-                <span className="text-md font-light text-gray-500">(8) คะแนนที่ได้ {" "}</span>
-                   {competencyTotalScoreCalc}{' '}
-                   <span className="text-md font-light text-gray-500">คะแนน</span>
-               
+              {isFinalized && evaluatedCompetencyScoreSummary && (
+                <p className="m-0 text-md font-semibold mt-1">
+                  <span className="text-sm font-light text-gray-500">ประเมิน</span>{' '}
+                  <span className="text-green-600"> {evaluatedCompetencyScoreSummary.totalScore}</span> <span className="text-red-500">/ 30</span>
                 </p>
+              )}
+            </div>
+            <div className="flex justify-between">
+              <div className="block md:hidden">
+                <p className="m-0 text-md font-semibold">
+                  <span className="text-sm font-light text-gray-500">เท่ากับ</span>{' '}
+                  <span className="text-blue-600"> {competencyScoreSummary.totalScore}</span> <span className="text-red-500">/ 30</span>
+                </p>
+                {isFinalized && evaluatedCompetencyScoreSummary && (
+                  <p className="m-0 text-md font-semibold mt-1">
+                    <span className="text-sm font-light text-gray-500">ประเมิน</span>{' '}
+                    <span className="text-green-600"> {evaluatedCompetencyScoreSummary.totalScore}</span> <span className="text-red-500">/ 30</span>
+                  </p>
+                )}
+              </div>
+              <div className="flex flex-col items-end text-blue-600 md:flex-row md:items-center md:gap-4">
+                <div className="text-right">
+                  <p className="m-0 text-md font-semibold"> 
+                    <span className="text-md font-light text-gray-500">(8) คะแนนที่ได้ {" "}</span>
+                    {competencyTotalScoreCalc.toFixed(2)}{' '}
+                    <span className="text-md font-light text-gray-500">คะแนน</span>
+                  </p>
+                  {isFinalized && evaluatedCompetencyScoreSummary && (
+                    <p className="m-0 text-md font-semibold mt-1">
+                      <span className="text-md font-light text-gray-500">(8) คะแนนที่ได้ (ประเมิน) {" "}</span>
+                      {(evaluatedCompetencyScoreSummary.totalScore / 30).toFixed(2)}{' '}
+                      <span className="text-md font-light text-gray-500">คะแนน</span>
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           </div>

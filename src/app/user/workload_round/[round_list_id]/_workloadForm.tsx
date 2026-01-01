@@ -211,13 +211,14 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
     if (!Number.isFinite(raw)) {
       return 0
     }
-    return (raw / 30)
+    return raw / 30
   }, [competencyScoreSummary?.totalScore])
 
   const memoizedHeaders = useMemo(() => headers, [headers.Authorization])
 
   // ตรวจสอบ status ของ formlist
   const [formlistStatus, setFormlistStatus] = useState<number | null>(null)
+  const [evaluatedCompetencyScoreSummary, setEvaluatedCompetencyScoreSummary] = useState<{ totalScore: number } | null>(null)
 
   // รวมผลสัมฤทธิ์ของงาน (นับเฉพาะ 5 งานแรก) และแปลงเป็นคะแนนเต็ม 70 (ค capped 70)
   // ใช้ quality * workload เสมอ (คะแนนที่คาดหวัง)
@@ -756,11 +757,8 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
             if (snapshotResponse.success && snapshotResponse.payload) {
               // ตรวจสอบว่า payload ไม่ใช่ array
               const payload = snapshotResponse.payload
-              console.log('Performance snapshot payload:', payload)
               if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
                 const snapshot = payload as PerformanceSnapshot
-                console.log('Setting performance snapshot:', snapshot)
-                console.log('Evaluations count:', snapshot.evaluations?.length || 0)
                 setPerformanceSnapshot(snapshot)
               } else {
                 console.log('Payload is not valid object, setting to null')
@@ -1048,11 +1046,22 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
             competencyScoreSummary={competencyScoreSummary}
             competencyTotalScoreCalc={competencyTotalScoreCalc}
             onOpenCompetencyModal={() => setIsCompetencyModalOpen(true)}
+            formlistStatus={formlistStatus}
+            userId={userId}
+            roundId={roundId}
+            onEvaluatedCompetencyScoreSummaryChange={(summary) => {
+              setEvaluatedCompetencyScoreSummary(summary)
+            }}
           />
 
           <Section3
             performanceScoreOutOf70={performanceScoreOutOf70}
             performanceScoreOutOf30={competencyScoreSummary.totalScore}
+            formlistStatus={formlistStatus}
+            performanceScoreOutOf70Evaluated={formlistStatus === 2 ? performanceScoreOutOf70Evaluated : null}
+            performanceScoreOutOf30Evaluated={formlistStatus === 2 && evaluatedCompetencyScoreSummary ? evaluatedCompetencyScoreSummary.totalScore : null}
+            userName={decodedUser ? `${decodedUser.prefix_name || ''} ${decodedUser.u_fname || ''} ${decodedUser.u_lname || ''}`.trim() || null : null}
+            evaluatorName={null}
           />
         </div>
       </div>

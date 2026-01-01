@@ -43,6 +43,12 @@ export interface SaveDraftRequest {
   }>
 }
 
+export interface AverageAssessedLevel {
+  competency_id: number
+  average_assessed_level: number
+  evaluator_count: number
+}
+
 const PerformanceEvaluationAssessmentService = {
   getEvaluationAssessment: (
     accessToken: string,
@@ -97,6 +103,27 @@ const PerformanceEvaluationAssessmentService = {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
       .then((res: any) => res.payload?.[0] ?? res.payload)
+  },
+
+  getAverageAssessedLevels: (
+    accessToken: string,
+    formlistId: number
+  ): Promise<AverageAssessedLevel[]> => {
+    return http
+      .get(`/performance_evaluation_assessment/average/${formlistId}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res: any) => {
+        const payload = res?.payload
+        if (!payload) {
+          return []
+        }
+        return Array.isArray(payload) ? payload : [payload]
+      })
+      .catch((error) => {
+        console.error('Error in getAverageAssessedLevels:', error)
+        return []
+      })
   },
 }
 
