@@ -301,7 +301,7 @@ function Section3({
                                 className={`flex items-center gap-3 text-sm ${isActive
                                         ? 'text-business1 font-semibold'
                                         : 'text-gray-700 dark:text-gray-200'
-                                    }`}
+                                }`}
                             >
                                 <input
                                     type="checkbox"

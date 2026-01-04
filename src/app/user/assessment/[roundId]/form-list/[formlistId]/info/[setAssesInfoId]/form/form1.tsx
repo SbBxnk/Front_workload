@@ -56,7 +56,6 @@ export default function Component1Content({
     const baseUrl = process.env.NEXT_PUBLIC_API?.replace('/api', '') || 'http://localhost:3333'
 
     const [isLoading, setIsLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
     const [snapshotRows, setSnapshotRows] = useState<SnapshotRow[]>([])
     const [evaluation, setEvaluation] = useState<EvaluationPayload | null>(null)
     const [items, setItems] = useState<ItemDraft[]>([])
@@ -126,7 +125,6 @@ export default function Component1Content({
         isFetchingRef.current = true
 
         setIsLoading(true)
-        setError(null)
 
         try {
             const data = await WorkloadEvaluationService.getEvaluation(
@@ -203,7 +201,6 @@ export default function Component1Content({
             }
             isFetchingRef.current = false
             console.error('Error loading evaluation:', err)
-            setError('ไม่สามารถโหลดข้อมูลการประเมินได้')
         } finally {
             setIsLoading(false)
             isFetchingRef.current = false
@@ -212,7 +209,6 @@ export default function Component1Content({
 
     useEffect(() => {
         if (!formlistIdParam || !setAssesInfoIdParam || !accessToken) {
-            setError('ไม่พบข้อมูลสำหรับการประเมิน')
             setIsLoading(false)
             return
         }
@@ -272,7 +268,6 @@ export default function Component1Content({
                 return true
             } catch (err) {
                 console.error('Error saving draft:', err)
-                setError('ไม่สามารถบันทึกแบบร่างได้')
                 return false
             } finally {
                 setIsSaving(false)
@@ -587,20 +582,80 @@ export default function Component1Content({
 
     if (isLoading) {
         return (
-            <div className="flex min-h-[400px] items-center justify-center">
-                <Loader2 className="h-10 w-10 animate-spin text-business1" />
+            <div className="z-10 rounded-md bg-white dark:bg-zinc-900 p-4 mb-28 dark:text-gray-400">
+                <div className="animate-pulse">
+                    <div className="mb-8">
+                        <div className="mb-2 h-7 w-full max-w-md mx-auto bg-gray-200 dark:bg-zinc-700 rounded"></div>
+                        <div className="mb-4 h-7 w-full max-w-md mx-auto bg-gray-200 dark:bg-zinc-700 rounded"></div>
+                        <div className="h-6 w-64 bg-gray-200 dark:bg-zinc-700 rounded"></div>
+                    </div>
+
+                    <div className="w-full">
+                        <table className="w-full border-collapse border border-gray-300 dark:border-gray-700">
+                            <thead className="bg-gray-50 dark:bg-zinc-900">
+                                <tr>
+                                    {[...Array(8)].map((_, index) => (
+                                        <th key={index} className="border border-gray-300 dark:border-gray-700 px-4 py-3">
+                                            <div className="h-4 bg-gray-200 dark:bg-zinc-700 rounded"></div>
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white dark:bg-zinc-900">
+                                <tr className="bg-business1">
+                                    <td colSpan={8} className="border border-gray-300 dark:border-gray-700 px-4 py-3">
+                                        <div className="h-5 w-64 bg-white/20 rounded"></div>
+                                    </td>
+                                </tr>
+                                
+                                <tr className="bg-gray-50 dark:bg-zinc-900">
+                                    <td colSpan={8} className="border border-gray-300 dark:border-gray-700 px-4 py-2">
+                                        <div className="ml-6 h-4 w-48 bg-gray-200 dark:bg-zinc-700 rounded"></div>
+                                    </td>
+                                </tr>
+                                
+                                {[...Array(3)].map((_, rowIndex) => (
+                                    <tr key={rowIndex}>
+                                        {[...Array(8)].map((_, colIndex) => (
+                                            <td key={colIndex} className="border border-gray-300 dark:border-gray-700 px-4 py-2">
+                                                {colIndex === 0 ? (
+                                                    <div className="ml-12 h-4 w-32 bg-gray-200 dark:bg-zinc-700 rounded"></div>
+                                                ) : colIndex === 1 ? (
+                                                    <div className="h-4 w-24 bg-gray-200 dark:bg-zinc-700 rounded"></div>
+                                                ) : colIndex === 6 ? (
+                                                    <div className="mx-auto h-8 w-20 bg-gray-200 dark:bg-zinc-700 rounded"></div>
+                                                ) : colIndex === 7 ? (
+                                                    <div className="h-16 w-full bg-gray-200 dark:bg-zinc-700 rounded"></div>
+                                                ) : (
+                                                    <div className="h-4 w-12 bg-gray-200 dark:bg-zinc-700 rounded mx-auto"></div>
+                                                )}
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))}
+                                
+                                <tr className="bg-gray-50 dark:bg-zinc-900">
+                                    <td colSpan={4} className="border border-gray-300 dark:border-gray-700 px-4 py-2">
+                                        <div className="h-4 w-24 bg-gray-200 dark:bg-zinc-700 rounded ml-auto"></div>
+                                    </td>
+                                    <td className="border border-gray-300 dark:border-gray-700 px-4 py-2">
+                                        <div className="h-4 w-16 bg-gray-200 dark:bg-zinc-700 rounded mx-auto"></div>
+                                    </td>
+                                    <td colSpan={3} className="border border-gray-300 dark:border-gray-700 px-4 py-2"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div className="mt-6 rounded-lg bg-white dark:bg-zinc-900">
+                        <div className="mb-3 h-5 w-32 bg-gray-200 dark:bg-zinc-700 rounded"></div>
+                        <div className="h-24 w-full bg-gray-200 dark:bg-zinc-700 rounded"></div>
+                    </div>
+                </div>
             </div>
         )
     }
 
-    if (error) {
-        return (
-            <div className="rounded-lg border border-red-300 bg-red-50 p-6 text-red-700">
-                <h2 className="text-xl font-semibold mb-2">เกิดข้อผิดพลาด</h2>
-                <p>{error}</p>
-            </div>
-        )
-    }
 
     if (!evaluation) {
         return null
@@ -613,53 +668,53 @@ export default function Component1Content({
         <div className={`z-10 rounded-md bg-white p-4 ${canEdit ? 'mb-28' : 'mb-0'} dark:bg-zinc-900 dark:text-gray-400`}>
                 <div>
                     <div className="">
-                        <p className="text-lg font-light text-center text-gray-800 dark:text-gray-200">
+                        <p className="text-lg font-light text-center text-gray-800 dark:text-white">
                             ข้อตกลงและแบบประเมินผลการปฏิบัติงานของบุคลากรสายวิชาการ
                         </p>
-                        <p className="text-lg font-light text-center text-gray-800 dark:text-gray-200 mb-8">
+                        <p className="text-lg font-light text-center text-gray-800 dark:text-white mb-8">
                             มหาวิทยาลัยเทคโนโลยีราชมงคลล้านนา
                         </p>
-                        <p className="text-md font-normal text-gray-800 dark:text-gray-200 mb-4">
+                        <p className="text-md font-normal text-gray-800 dark:text-white mb-4">
                             ส่วนที่ 1 องค์ประกอบที่ 1 ผลสัมฤทธิ์ของงาน
                         </p>
                     </div>
 
                     <div className="w-full">
-                        <table className="w-full border-collapse border border-gray-300">
-                            <thead className="bg-gray-50">
+                        <table className="w-full border-collapse border border-gray-300 dark:border-gray-700">
+                            <thead className="bg-gray-50 dark:bg-zinc-900">
                                 <tr>
-                                    <th className="border border-gray-300 px-4 py-3 text-center text-gray-700 font-normal truncate">
+                                    <th className="border border-gray-300 dark:border-gray-700 px-4 py-3 text-center text-gray-700 dark:text-white font-normal truncate">
                                         ภาระงาน/กิจกรรม/โครงการ/งาน
                                         <p>(1)</p>
                                     </th>
-                                    <th className="border border-gray-300 px-4 py-3 text-center text-gray-700 font-normal truncate">
+                                    <th className="border border-gray-300 dark:border-gray-700 px-4 py-3 text-center text-gray-700 dark:text-white font-normal truncate">
                                         หลักฐาน
                                         <p>(2)</p>
                                     </th>
-                                    <th className="border border-gray-300 px-4 py-3 text-center text-gray-700 font-normal truncate">
+                                    <th className="border border-gray-300 dark:border-gray-700 px-4 py-3 text-center text-gray-700 dark:text-white font-normal truncate">
                                         จำนวน
                                         <p>(3)</p>
                                     </th>
-                                    <th className="border border-gray-300 px-4 py-3 text-center text-gray-700 font-normal truncate">
+                                    <th className="border border-gray-300 dark:border-gray-700 px-4 py-3 text-center text-gray-700 dark:text-white font-normal truncate">
                                         ภาระงาน
                                         <p>(4)</p>
                                     </th>
-                                    <th className="border border-gray-300 px-4 py-3 text-center text-gray-700 font-normal truncate">
+                                    <th className="border border-gray-300 dark:border-gray-700 px-4 py-3 text-center text-gray-700 dark:text-white font-normal truncate">
                                         รวมภาระงาน
                                         <p>(3 x 4)</p>
                                     </th>
-                                    <th className="border border-gray-300 px-4 py-3 text-center text-gray-700 font-normal truncate">
+                                    <th className="border border-gray-300 dark:border-gray-700 px-4 py-3 text-center text-gray-700 dark:text-white font-normal truncate">
                                         หมายเหตุ
                                     </th>
-                                    <th className="border border-gray-300 px-4 py-3 text-center text-gray-700 font-normal break-words text-wrap">
+                                    <th className="border border-gray-300 dark:border-gray-700 px-4 py-3 text-center text-gray-700 dark:text-white font-normal break-words text-wrap">
                                         ประเมิน
                                     </th>
-                                    <th className="border border-gray-300 px-4 py-3 text-center text-gray-700 font-normal truncate">
+                                    <th className="border border-gray-300 dark:border-gray-700 px-4 py-3 text-center text-gray-700 dark:text-white font-normal truncate">
                                         ความเห็นผู้ประเมิน
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody className="bg-white">
+                            <tbody className="bg-white dark:bg-zinc-900">
                                 {structuredTasks.length > 0 ? (
                                     structuredTasks.map((task) => {
                                         const totalForTask = task.subtasks.reduce((taskSum, subtask) => {
@@ -677,14 +732,14 @@ export default function Component1Content({
 
                                         return (
                                             <React.Fragment key={task.task_id}>
-                                                <tr className="bg-business1 text-white">
-                                                    <td colSpan={8} className="border border-gray-300 px-4 py-3 font-normal">
+                                                <tr className="bg-business1 text-white dark:bg-business1 dark:text-white">
+                                                    <td colSpan={8} className="border border-gray-300 dark:border-gray-700 px-4 py-3 font-normal">
                                                         <div className="flex items-center justify-between">
                                                             <span>
                                                                 {task.task_id}. {task.task_name || 'Unknown Task'} (ภาระงานขั้นต่ำ)
                                                             </span>
                                                             {task.quantity_workload_hours && (
-                                                                <span className="text-sm bg-white text-business1 px-2 py-1 rounded">
+                                                                <span className="text-sm bg-white text-business1 dark:bg-blue-500 dark:text-white px-2 py-1 rounded">
                                                                     {task.quantity_workload_hours} ภาระงาน/สัปดาห์
                                                                 </span>
                                                             )}
@@ -694,8 +749,8 @@ export default function Component1Content({
 
                                                 {task.subtasks.map((subtask, subtaskIndex) => (
                                                     <React.Fragment key={subtask.subtask_id}>
-                                                        <tr className="bg-gray-50">
-                                                            <td colSpan={8} className="border border-gray-300 px-4 py-2 text-gray-700">
+                                                        <tr className="bg-gray-50 dark:bg-zinc-900">
+                                                            <td colSpan={8} className="border border-gray-300 dark:border-gray-700 px-4 py-2 text-gray-700 dark:text-white">
                                                                 <div className="ml-6 flex items-center gap-2">
                                                                     <span className="text-sm">
                                                                         {task.task_id}.{subtaskIndex + 1} {subtask.subtask_name || 'Unknown Subtask'}
@@ -708,16 +763,16 @@ export default function Component1Content({
                                                             if (!formInfo) {
                                                                 return (
                                                                     <tr key={`placeholder-${task.task_id}-${subtask.subtask_id}`}>
-                                                                        <td className="border border-gray-300 px-4 py-2 text-gray-500">
+                                                                        <td className="border border-gray-300 dark:border-gray-700 px-4 py-2 text-gray-500 dark:text-white text-sm">
                                                                             <div className="ml-12 text-sm">-</div>
                                                                         </td>
-                                                                        <td className="border border-gray-300 px-4 py-2 text-left text-gray-500 text-sm">-</td>
-                                                                        <td className="border border-gray-300 px-4 py-2 text-center text-gray-500 text-sm">-</td>
-                                                                        <td className="border border-gray-300 px-4 py-2 text-center text-gray-500 text-sm">-</td>
-                                                                        <td className="border border-gray-300 px-4 py-2 text-center text-gray-500 text-sm">-</td>
-                                                                        <td className="border border-gray-300 px-4 py-2 text-left text-gray-500 text-sm">-</td>
-                                                                        <td className="border border-gray-300 px-4 py-2 text-center text-gray-500 text-sm">-</td>
-                                                                        <td className="border border-gray-300 px-4 py-2 text-left text-gray-500 text-sm">-</td>
+                                                                        <td className="border border-gray-300 dark:border-gray-700 px-4 py-2 text-left text-gray-500 text-sm">-</td>
+                                                                        <td className="border border-gray-300 dark:border-gray-700 px-4 py-2 text-center text-gray-500 text-sm">-</td>
+                                                                        <td className="border border-gray-300 dark:border-gray-700 px-4 py-2 text-center text-gray-500 text-sm">-</td>
+                                                                        <td className="border border-gray-300 dark:border-gray-700 px-4 py-2 text-center text-gray-500 text-sm">-</td>
+                                                                        <td className="border border-gray-300 dark:border-gray-700 px-4 py-2 text-left text-gray-500 text-sm">-</td>
+                                                                        <td className="border border-gray-300 dark:border-gray-700 px-4 py-2 text-center text-gray-500 text-sm">-</td>
+                                                                        <td className="border border-gray-300 dark:border-gray-700 px-4 py-2 text-left text-gray-500 text-sm">-</td>
                                                                     </tr>
                                                                 )
                                                             }
@@ -728,14 +783,14 @@ export default function Component1Content({
 
                                                             return (
                                                                 <tr key={`${task.task_id}-${subtask.subtask_id}-${formInfo.snapshot_form_id}-${index}`}>
-                                                                    <td className="border border-gray-300 px-4 py-2 text-gray-800">
+                                                                    <td className="border border-gray-300 dark:border-gray-700 px-4 py-2 text-gray-800 dark:text-white">
                                                                         <div className="ml-12 flex flex-col gap-1">
-                                                                            <div className="font-light text-gray-500 text-sm max-w-[200px]">
+                                                                            <div className="font-light text-gray-500 dark:text-white text-sm max-w-[200px]">
                                                                                 {task.task_id}.{subtaskIndex + 1}.{index + 1} {formInfo.form_title || '-'}
                                                                             </div>
                                                                         </div>
                                                                     </td>
-                                                                    <td className="border border-gray-300 px-4 py-2 text-left text-blue-600 text-sm max-w-[200px]">
+                                                                    <td className="border border-gray-300 dark:border-gray-700 px-4 py-2 text-left text-blue-600 dark:text-white text-sm max-w-[200px]">
                                                                         <div className="space-y-1">
                                                                             {(() => {
                                                                                 const combined = [] as Array<
@@ -795,19 +850,19 @@ export default function Component1Content({
                                                                             })()}
                                                                         </div>
                                                                     </td>
-                                                                    <td className="border border-gray-300 px-4 py-2 text-center text-sm">
+                                                                    <td className="border border-gray-300 dark:border-gray-700 px-4 py-2 text-center text-sm">
                                                                         {Number.isFinite(formInfo.quality) ? formInfo.quality : '-'}
                                                                     </td>
-                                                                    <td className="border border-gray-300 px-4 py-2 text-center text-sm">
+                                                                    <td className="border border-gray-300 dark:border-gray-700 px-4 py-2 text-center text-sm">
                                                                         {Number.isFinite(formInfo.workload) ? formInfo.workload : '-'}
                                                                     </td>
-                                                                    <td className="border border-gray-300 px-4 py-2 text-center text-sm text-blue-600">
+                                                                    <td className="border border-gray-300 dark:border-gray-700 px-4 py-2 text-center text-sm text-blue-600">
                                                                         {quality && workload ? quality * workload : '-'}
                                                                     </td>
-                                                                    <td className="border border-gray-300 text-gray-500 font-light px-4 py-2 text-left text-sm break-words whitespace-normal max-w-[200px]">
+                                                                    <td className="border border-gray-300 dark:border-gray-700 text-gray-500 dark:text-white font-light px-4 py-2 text-left text-sm break-words whitespace-normal max-w-[200px]">
                                                                         {formInfo.description && formInfo.description !== '-' ? formInfo.description : '-'}
                                                                     </td>
-                                                                    <td className="border border-gray-300 px-4 py-2 text-center">
+                                                                    <td className="border border-gray-300 dark:border-gray-700 px-4 py-2 text-center">
                                                                         {(() => {
                                                                             // Calculate total workload for this task (quantity * workload)
                                                                             const totalWorkload = task.subtasks.reduce((taskSum, subtask) => {
@@ -850,19 +905,19 @@ export default function Component1Content({
                                                                                     onBlur={(event) => handleScoreBlur(formInfo.snapshot_form_id, event.target.value, task)}
                                                                                     onWheel={handleScoreWheel}
                                                                                     disabled={!canEdit}
-                                                                                    className="w-20 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-business1 focus:outline-none disabled:cursor-default disabled:bg-gray-50 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+                                                                                    className="w-20 rounded-md border bg-white dark:bg-zinc-900 dark:text-white border-gray-300 dark:border-gray-700 px-3 py-2 text-sm focus:border-business1 focus:outline-none disabled:cursor-default disabled:bg-gray-50 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
                                                                                     placeholder="0"
                                                                                 />
                                                                             )
                                                                         })()}
                                                                     </td>
-                                                                    <td className="border border-gray-300 px-4 py-2">
+                                                                    <td className="border border-gray-300 dark:border-gray-700 px-4 py-2">
                                                                         <textarea
                                                                             value={draft?.comment ?? ''}
                                                                             onChange={(event) => handleCommentChange(formInfo.snapshot_form_id, event.target.value)}
                                                                             disabled={!canEdit}
                                                                             rows={3}
-                                                                            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-business1 focus:outline-none disabled:cursor-default disabled:bg-gray-50"
+                                                                            className="w-full rounded-md border bg-white dark:bg-zinc-900 dark:text-white border-gray-300 dark:border-gray-700 px-3 py-2 text-sm focus:border-business1 focus:outline-none disabled:cursor-default disabled:bg-gray-50"
                                                                             placeholder="เพิ่มความคิดเห็น"
                                                                         />
                                                                     </td>
@@ -872,12 +927,12 @@ export default function Component1Content({
                                                     </React.Fragment>
                                                 ))}
 
-                                                <tr className="bg-gray-50">
-                                                    <td colSpan={4} className="border border-gray-300 px-4 py-2 text-right text-sm font-light">
+                                                <tr className="bg-gray-50 dark:bg-zinc-900">
+                                                    <td colSpan={4} className="border border-gray-300 dark:border-gray-700 dark:text-white px-4 py-2 text-right text-sm font-light">
                                                         รวมภาระงาน
                                                     </td>
                                                     <td
-                                                        className={`border border-gray-300 px-4 py-2 text-center text-sm font-semibold ${task.quantity_workload_hours &&
+                                                        className={`border border-gray-300 dark:border-gray-700 px-4 py-2 text-center text-sm font-semibold ${task.quantity_workload_hours &&
                                                             totalForTask < task.quantity_workload_hours
                                                             ? 'text-red-500'
                                                             : 'text-blue-600'
@@ -885,16 +940,16 @@ export default function Component1Content({
                                                     >
                                                         {hasAnyForm ? totalForTask : '-'}
                                                     </td>
-                                                    <td className="border border-gray-300 px-4 py-2" />
-                                                    <td className="border border-gray-300 px-4 py-2" />
-                                                    <td className="border border-gray-300 px-4 py-2" />
+                                                    <td className="border border-gray-300 dark:border-gray-700 px-4 py-2" />
+                                                    <td className="border border-gray-300 dark:border-gray-700 px-4 py-2" />
+                                                    <td className="border border-gray-300 dark:border-gray-700 px-4 py-2" />
                                                 </tr>
                                             </React.Fragment>
                                         )
                                     })
                                 ) : (
                                     <tr>
-                                        <td colSpan={8} className="border border-gray-300 px-4 py-8 text-center text-gray-500">
+                                        <td colSpan={8} className="border border-gray-300 dark:border-gray-700 px-4 py-8 text-center text-gray-500 dark:text-white">
                                             กำลังโหลดรายการ...
                                         </td>
                                     </tr>
@@ -904,11 +959,8 @@ export default function Component1Content({
                     </div>
                 </div>
 
-                <div className="mt-6 rounded-lg bg-white">
-                    <h3 className="text-md font-normal">สรุปความคิดเห็น</h3>
-                    <p className="mt-1 text-sm text-gray-500">
-                        ระบุความคิดเห็นโดยรวมสำหรับผู้รับการประเมิน
-                    </p>
+                <div className="mt-6 rounded-lg bg-white dark:bg-zinc-900">
+                    <h3 className="text-md font-normal text-gray-800 dark:text-white">สรุปความคิดเห็น</h3>
                     <textarea
                         value={generalComment}
                         onChange={(event) => {
@@ -918,7 +970,7 @@ export default function Component1Content({
                         }}
                         disabled={!canEdit}
                         rows={4}
-                        className="mt-3 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-business1 focus:outline-none disabled:cursor-default disabled:bg-gray-50"
+                        className="mt-3 w-full rounded-md border dark:bg-zinc-900 dark:text-white border-gray-300 dark:border-gray-700 px-3 py-2 text-sm focus:border-business1 focus:outline-none disabled:cursor-default disabled:bg-gray-50"
                         placeholder="ความคิดเห็นเพิ่มเติม"
                     />
                 </div>
@@ -929,7 +981,7 @@ export default function Component1Content({
                         secondaryText="บันทึกแบบร่าง"
                         onSecondary={handleManualSave}
                         secondaryDisabled={!canEdit || isSaving}
-                        submitText={isSubmitting ? 'กำลังส่ง...' : 'ส่งผลประเมิน'}
+                        submitText='ส่งผลประเมิน'
                         onSubmit={handleManualSubmit}
                         disabled={!canEdit || isSubmitting}
                     />

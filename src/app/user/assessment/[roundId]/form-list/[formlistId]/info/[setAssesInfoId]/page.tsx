@@ -80,7 +80,7 @@ export default function AssessmentComponentSelectionPage() {
 
         // Create unique key for this fetch request
         const currentFetchKey = `${formlistIdParam}-${setAssesInfoIdParam}-${session.accessToken}`
-        
+
         // Prevent duplicate API calls with same key or if already fetching
         if (fetchDataKeyRef.current === currentFetchKey || isFetchingDataRef.current) {
             return
@@ -178,10 +178,10 @@ export default function AssessmentComponentSelectionPage() {
 
         // Create unique key for this fetch request
         const currentFetchKey = `${formlistIdParam}-${setAssesInfoIdParam}-${session?.accessToken}`
-        
+
         // Only fetch if the key has changed (new params or remount)
         if (fetchDataKeyRef.current !== currentFetchKey) {
-        void fetchData()
+            void fetchData()
         }
     }, [status, assessorLoading, isAssessorInitialized, isAssessor, fetchData, router, formlistIdParam, setAssesInfoIdParam, session?.accessToken])
 
@@ -270,18 +270,18 @@ export default function AssessmentComponentSelectionPage() {
             </div>
 
             {selectedComponent === null ? (
-                <div className="rounded-md bg-white p-4 shadow flex flex-col gap-4">
+                <div className="rounded-md bg-white dark:bg-zinc-900 p-4 shadow flex flex-col gap-4">
                     <div className="flex flex-col gap-4">
                         {/* องค์ประกอบที่ 1 */}
                         <button
                             onClick={() => handleComponentClick(1)}
-                            className="flex w-full cursor-pointer items-center justify-start gap-4 text-nowrap rounded-md border border-gray-200 px-4 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800"
+                            className="flex w-full cursor-pointer items-center justify-start gap-4 text-nowrap rounded-md border border-gray-200 dark:border-zinc-700 px-4 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800"
                         >
                             <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-business1 text-white">
                                 <span className="flex h-full w-full items-center justify-center text-sm">
                                     1
-                                                                </span>
-                                                        </div>
+                                </span>
+                            </div>
                             <p className="overflow-hidden truncate text-nowrap font-light text-gray-600 dark:text-gray-300">
                                 องค์ประกอบที่ 1 ผลสัมฤทธิ์ของงาน
                             </p>
@@ -290,17 +290,17 @@ export default function AssessmentComponentSelectionPage() {
                         {/* องค์ประกอบที่ 2 */}
                         <button
                             onClick={() => handleComponentClick(2)}
-                            className="flex w-full cursor-pointer items-center justify-start gap-4 text-nowrap rounded-md border border-gray-200 px-4 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800"
+                            className="flex w-full cursor-pointer items-center justify-start gap-4 text-nowrap rounded-md border border-gray-200 dark:border-zinc-700 px-4 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800"
                         >
                             <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-business1 text-white">
                                 <span className="flex h-full w-full items-center justify-center text-sm">
                                     2
-                                                                    </span>
-                                                                </div>
+                                </span>
+                            </div>
                             <p className="overflow-hidden truncate text-nowrap font-light text-gray-600 dark:text-gray-300">
                                 องค์ประกอบที่ 2 พฤติกรรมการปฏิบัติงาน
                             </p>
-                                                                                        </button>
+                        </button>
                     </div>
                 </div>
             ) : (

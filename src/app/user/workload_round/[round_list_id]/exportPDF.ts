@@ -3,6 +3,7 @@ import autoTable from 'jspdf-autotable'
 import { jwtDecode } from 'jwt-decode'
 import SetAssessorServices from '@/services/setAssessorServices'
 import WorkloadGroupServices from '@/services/workloadGroupServices'
+import PerformanceService from '@/services/performanceService'
 import type { Terms } from '@/Types'
 import type { PerformanceSnapshot } from '@/services/performanceService'
 import type { Task } from './types'
@@ -2363,7 +2364,9 @@ export const handleExportPDFWithLinks = async (params: ExportPDFParams) => {
 
 
 
-      // ส่วนที่ 2 องค์ประกอบที่ 2 พฤติกรรมการปฏิบัติงาน (สมรรถนะ)
+
+      // ประกาศตัวแปรสำหรับเก็บตำแหน่ง Y ของระดับผลการประเมิน
+      let finalEvaluationLevelsY = 0
 
       if (params.performanceSnapshot && params.performanceSnapshot.evaluations && params.performanceSnapshot.evaluations.length > 0) {
 
@@ -2371,7 +2374,7 @@ export const handleExportPDFWithLinks = async (params: ExportPDFParams) => {
 
         doc.addPage()
 
-        let performanceStartY = 32
+        let performanceStartY = 30
 
 
 
@@ -2385,7 +2388,6 @@ export const handleExportPDFWithLinks = async (params: ExportPDFParams) => {
 
 
 
-        // จัดเรียง evaluations ตาม competency_order
 
         const sortedEvaluations = [...params.performanceSnapshot.evaluations].sort((a, b) => {
 
@@ -2399,59 +2401,110 @@ export const handleExportPDFWithLinks = async (params: ExportPDFParams) => {
 
 
 
-        // ดึง position_name และ position_short_name จาก snapshot
 
-        const snapshotPositionName = sortedEvaluations.length > 0
+        // ดึง expectedLevels จาก API
+        let expectedLevels: any[] = []
+        let userPositionId: number | null = null
+        
+        if (params.session?.accessToken) {
+          try {
+            const expectedLevelsRes = await PerformanceService.getAllExpectedLevels(params.session.accessToken)
+            if (expectedLevelsRes.success && expectedLevelsRes.payload) {
+              expectedLevels = Array.isArray(expectedLevelsRes.payload) ? expectedLevelsRes.payload : [expectedLevelsRes.payload]
+            }
+            
+            // หา userPositionId จาก token
+            const decodedUser = jwtDecode<any>(params.session.accessToken)
+            userPositionId = decodedUser?.position_id ?? null
+          } catch (error) {
+            console.error('Error fetching expected levels:', error)
+          }
+        }
 
-          ? sortedEvaluations[0]?.position_name || null
+        // ตำแหน่งที่ใช้ในระบบ
+        const POSITIONS = [
+          { position_id: 1, position_name: 'อาจารย์', short_name: 'อ.' },
+          { position_id: 2, position_name: 'ผู้ช่วยศาสตราจารย์', short_name: 'ผศ.' },
+          { position_id: 3, position_name: 'รองศาสตราจารย์', short_name: 'รศ.' },
+          { position_id: 4, position_name: 'ศาสตราจารย์', short_name: 'ศ.' },
+        ]
 
-          : null
+        // สร้าง map ของ expectedLevels ตาม competency_id และ position_id
+        const expectedLevelsMap: Record<number, Record<number, number>> = {}
+        expectedLevels.forEach((level: any) => {
+          const competencyId = Number(level?.competency_id ?? level?.competencyId)
+          const positionId = Number(level?.position_id ?? level?.positionId)
+          const expectedLevel = Number(level?.expected_level ?? level?.expectedLevel)
+          
+          if (Number.isFinite(competencyId) && Number.isFinite(positionId) && Number.isFinite(expectedLevel)) {
+            if (!expectedLevelsMap[competencyId]) {
+              expectedLevelsMap[competencyId] = {}
+            }
+            expectedLevelsMap[competencyId][positionId] = expectedLevel
+          }
+        })
 
-        const snapshotPositionShortName = sortedEvaluations.length > 0
+        // สร้าง header 2 แถว
+        const performanceHead = [
+          [
+            { content: 'ลำดับ', rowSpan: 2 },
+            { content: 'สมรรถนะหลัก (ที่สภามหาวิทยาลัยกำหนด)', rowSpan: 2 },
+            { content: 'ระดับสมรรถนะที่คาดหวัง', colSpan: 4 },
+            { content: 'ระดับสมรรถนะที่แสดงออก', rowSpan: 2 }
+          ],
+          [
+            ...POSITIONS.map((pos: { position_id: number; position_name: string; short_name: string }) => pos.short_name)
+          ]
+        ]
 
-          ? sortedEvaluations[0]?.position_short_name || null
+        // สร้าง map ของ competency_name -> competency_id จาก expectedLevels
+        const competencyNameToIdMap: Record<string, number> = {}
+        expectedLevels.forEach((level: any) => {
+          const competencyId = Number(level?.competency_id ?? level?.competencyId)
+          const competencyName = level?.competency_name
+          if (Number.isFinite(competencyId) && competencyName) {
+            competencyNameToIdMap[competencyName] = competencyId
+          }
+        })
 
-          : null
-
-
-
-        // สร้างข้อมูลตาราง performance evaluation
-
-        const performanceHead = [[
-
-          'ลำดับ',
-
-          'สมรรถนะหลัก (ที่สภามหาวิทยาลัยกำหนด)',
-
-          `ระดับสมรรถนะที่คาดหวัง\n(${snapshotPositionShortName || snapshotPositionName || 'ตำแหน่ง'})`,
-
-          'ระดับสมรรถนะที่แสดงออก'
-
-        ]]
-
-
-
-        const performanceBody: any[] = sortedEvaluations.map((evaluation, index) => [
-
-          (index + 1).toString(),
-
-          evaluation.competency_name || '-',
-
-          evaluation.expected_level !== null && evaluation.expected_level !== undefined
-
-            ? evaluation.expected_level.toString()
-
-            : '-',
-
-          evaluation.demonstrated_level !== null && evaluation.demonstrated_level !== undefined
-
-            ? evaluation.demonstrated_level.toString()
-
-            : '-'
-
-        ])
+        // สร้าง body โดยแสดง expected_level ตามตำแหน่งทั้งหมด
+        const performanceBody: any[] = sortedEvaluations.map((evaluation, index) => {
+          // หา competency_id จาก competency_name
+          const competencyName = evaluation.competency_name
+          const competencyId = competencyName ? competencyNameToIdMap[competencyName] : null
+          
+          const row = [
+            (index + 1).toString(),
+            competencyName || '-',
+            ...POSITIONS.map((pos: { position_id: number; position_name: string; short_name: string }) => {
+              if (competencyId && expectedLevelsMap[competencyId]) {
+                const expectedLevel = expectedLevelsMap[competencyId][pos.position_id]
+                return expectedLevel !== null && expectedLevel !== undefined
+                  ? expectedLevel.toString()
+                  : '-'
+              }
+              return '-'
+            }),
+            evaluation.demonstrated_level !== null && evaluation.demonstrated_level !== undefined
+              ? evaluation.demonstrated_level.toString()
+              : '-'
+          ]
+          return row
+        })
 
 
+
+        // คำนวณความกว้างคอลัมน์
+        const totalWidth = pageWidth - 20 // margin left 10 + right 10
+        const columnWidths = {
+          0: 20, // ลำดับ
+          1: 80, // สมรรถนะหลัก
+          2: (totalWidth - 20 - 80 - 40) / 4, // อ.
+          3: (totalWidth - 20 - 80 - 40) / 4, // ผศ.
+          4: (totalWidth - 20 - 80 - 40) / 4, // รศ.
+          5: (totalWidth - 20 - 80 - 40) / 4, // ศ.
+          6: 40  // ระดับสมรรถนะที่แสดงออก
+        }
 
         autoTable(doc, {
 
@@ -2471,7 +2524,7 @@ export const handleExportPDFWithLinks = async (params: ExportPDFParams) => {
 
             fontSize: 14,
 
-            cellPadding: 2,
+            cellPadding: 1.3,
 
             lineColor: [0, 0, 0],
 
@@ -2507,7 +2560,7 @@ export const handleExportPDFWithLinks = async (params: ExportPDFParams) => {
 
             0: {
 
-              cellWidth: 20,
+              cellWidth: columnWidths[0],
 
               halign: 'center',
 
@@ -2517,7 +2570,7 @@ export const handleExportPDFWithLinks = async (params: ExportPDFParams) => {
 
             1: {
 
-              cellWidth: 80,
+              cellWidth: columnWidths[1],
 
               font: 'THSarabunNew',
 
@@ -2527,7 +2580,7 @@ export const handleExportPDFWithLinks = async (params: ExportPDFParams) => {
 
             2: {
 
-              cellWidth: 50,
+              cellWidth: columnWidths[2],
 
               halign: 'center',
 
@@ -2535,29 +2588,1567 @@ export const handleExportPDFWithLinks = async (params: ExportPDFParams) => {
 
               textColor: [0, 0, 0],
 
-              fillColor: [255, 255, 255] // สีขาว (ไม่ highlight สีเขียวแล้ว)
+              fillColor: [255, 255, 255] // สีขาว
 
             },
 
             3: {
 
-              cellWidth: 40,
+              cellWidth: columnWidths[3],
 
               halign: 'center',
 
               font: 'THSarabunNew',
 
-              textColor: [0, 0, 255] // สีน้ำเงิน
+              textColor: [255, 0, 0], // สีแดง
+
+              fillColor: [200, 255, 200] // สีเขียวอ่อนๆ
+
+            },
+
+            4: {
+
+              cellWidth: columnWidths[4],
+
+              halign: 'center',
+
+              font: 'THSarabunNew',
+
+              textColor: [0, 0, 0],
+
+              fillColor: [255, 255, 255] // สีขาว
+
+            },
+
+            5: {
+
+              cellWidth: columnWidths[5],
+
+              halign: 'center',
+
+              font: 'THSarabunNew',
+
+              textColor: [0, 0, 0],
+
+              fillColor: [255, 255, 255] // สีขาว
+
+            },
+
+            6: {
+
+              cellWidth: columnWidths[6],
+
+              halign: 'center',
+
+              font: 'THSarabunNew',
+
+              textColor: [0, 0, 255], // สีน้ำเงิน
+
+              fillColor: [255, 255, 230] // สีเหลืองอ่อนๆ
 
             }
 
+          },
+
+          didParseCell: (data: any) => {
+            // กำหนดสีตามตำแหน่งที่ผู้ใช้อยู่ (เฉพาะแถวข้อมูล ไม่ใช่ header)
+            if (data.row.index >= 0 && !data.row.section || data.row.section === 'body') {
+              if (data.column.index >= 2 && data.column.index <= 5) {
+                const positionIndex = data.column.index - 2
+                const positionId = POSITIONS[positionIndex]?.position_id
+                
+                if (userPositionId && positionId === userPositionId) {
+                  // ตำแหน่งที่ผู้ใช้อยู่: สีเขียวอ่อน + ตัวเลขสีแดง
+                  data.cell.styles.fillColor = [242, 250, 237]
+                  data.cell.styles.textColor = [255, 0, 0]
+                } else {
+                  // ตำแหน่งอื่น: สีขาว + ตัวเลขสีดำ
+                  data.cell.styles.fillColor = [255, 255, 255]
+                  data.cell.styles.textColor = [0, 0, 0]
+                }
+              }
+            }
           }
 
         })
 
+        // อัปเดต currentY หลังจากตาราง performance
+        let section3StartY = (doc as any).lastAutoTable.finalY + 7
+
+        // ตรวจสอบว่าหน้าจะพอหรือไม่ ถ้าไม่พอให้ขึ้นหน้าใหม่
+        if (section3StartY > doc.internal.pageSize.getHeight() - 50) {
+          doc.addPage()
+          section3StartY = 30
+        }
+
+        // คำนวณ competencyScoreSummary จาก performanceSnapshot ก่อน (ต้องใช้ก่อนสร้างตาราง)
+        let competencyScoreSummary = {
+          rows: [
+            { id: 'gte', multiplier: 3, count: 0, score: 0 },
+            { id: 'minus1', multiplier: 2, count: 0, score: 0 },
+            { id: 'minus2', multiplier: 1, count: 0, score: 0 },
+            { id: 'minus3', multiplier: 0, count: 0, score: 0 }
+          ],
+          totalScore: 0,
+          totalCount: 0
+        }
+
+        if (params.performanceSnapshot && params.performanceSnapshot.evaluations) {
+          const evaluations = params.performanceSnapshot.evaluations
+          
+          evaluations.forEach((evaluation: any) => {
+            const demonstrated = Number(evaluation?.demonstrated_level ?? 0)
+            const expected = Number(evaluation?.expected_level ?? 0)
+            
+            if (Number.isFinite(demonstrated) && Number.isFinite(expected)) {
+              const diff = demonstrated - expected
+              
+              if (diff >= 0) {
+                competencyScoreSummary.rows[0].count += 1
+              } else if (diff === -1) {
+                competencyScoreSummary.rows[1].count += 1
+              } else if (diff === -2) {
+                competencyScoreSummary.rows[2].count += 1
+              } else {
+                competencyScoreSummary.rows[3].count += 1
+              }
+            }
+          })
+
+          competencyScoreSummary.rows.forEach(row => {
+            row.score = row.count * row.multiplier
+          })
+
+          competencyScoreSummary.totalScore = competencyScoreSummary.rows.reduce((sum, row) => sum + row.score, 0)
+          competencyScoreSummary.totalCount = competencyScoreSummary.rows.reduce((sum, row) => sum + row.count, 0)
+        }
+
+        const tableSpacing = 5
+        const availableWidth = pageWidth - 20 - tableSpacing // margin left 10 + right 10 + spacing
+        const tableWidth = availableWidth / 2
+
+        // เพิ่มข้อความด้านบนสองตาราง
+        doc.setFont('THSarabunNew', 'normal')
+        doc.setFontSize(14)
+        doc.text('(กรณีมีการประเมินสมรรถนะทางการบริหารให้ระบุชื่อตำแหน่งด้วย)', 14, section3StartY)
+        
+        // "ตำแหน่ง" พร้อมเส้นประ (ยาวขึ้น)
+        const positionLabel = 'ตำแหน่ง'
+        const positionLabelWidth = doc.getTextWidth(positionLabel)
+        // ย้าย "ตำแหน่ง" ไปทางซ้ายขึ้นเพื่อให้เส้นประยาวขึ้น
+        const positionLabelX = pageWidth - 80
+        doc.text(positionLabel, positionLabelX, section3StartY)
+        
+        // วาดเส้นประยาวสำหรับตำแหน่ง
+        const posDashLength = 1
+        const posGapLength = 1
+        let posX = positionLabelX + positionLabelWidth + 2
+        const posEndX = pageWidth - 10
+        while (posX < posEndX) {
+          doc.line(posX, section3StartY, Math.min(posX + posDashLength, posEndX), section3StartY)
+          posX += posDashLength + posGapLength
+        }
+
+        // อัปเดต startY สำหรับตาราง (ลดระยะห่าง)
+        section3StartY += 3
+
+        const managementCompetencies = [
+          'สภาวะผู้นำ',
+          'วิสัยทัศน์',
+          'การวางแผนกลยุทธ์ภาครัฐ',
+          'ศักยภาพเพื่อนำการปรับเปลี่ยน',
+          'การควบคุมตนเอง',
+          'การสอนงานและการมอบหมายงาน'
+        ]
+
+        const managementTableHead = [[
+          'สมรรถนะทางการบริหาร (ที่สภามหาวิทยาลัยกำหนด)',
+          'ระดับสมรรถนะที่คาดหวัง',
+          'ระดับสมรรถนะที่แสดงออก'
+        ]]
+
+        const managementTableBody = managementCompetencies.map(comp => [comp, '', ''])
+
+        autoTable(doc, {
+          startY: section3StartY,
+          margin: { left: 10, right: pageWidth - 10 - tableWidth, top: 30 },
+          tableWidth: tableWidth,
+          head: managementTableHead,
+          body: managementTableBody,
+          theme: 'grid',
+          styles: {
+            font: 'THSarabunNew',
+            fontSize: 12,
+            cellPadding: 1.5,
+            lineColor: [0, 0, 0],
+            lineWidth: 0.1,
+            textColor: [0, 0, 0],
+            fillColor: [255, 255, 255]
+          },
+          headStyles: {
+            fillColor: [255, 255, 255],
+            textColor: [0, 0, 0],
+            fontStyle: 'bold',
+            halign: 'center',
+            fontSize: 12,
+            font: 'THSarabunNew'
+          },
+          columnStyles: {
+            0: { cellWidth: tableWidth * 0.5, font: 'THSarabunNew', halign: 'left', fontSize: 12 },
+            1: { cellWidth: tableWidth * 0.2, halign: 'center', font: 'THSarabunNew', fontSize: 12 },
+            2: { cellWidth: tableWidth * 0.25, halign: 'center', font: 'THSarabunNew', fontSize: 12 }
+          }
+        })
+
+        const competencyCountY = section3StartY
+        const competencyCountTableHead = [[
+          'จำนวนสมรรถนะ',
+          'คูณ (X)',
+          'คะแนน'
+        ]]
+
+        const competencyCountTableBody: any[] = competencyScoreSummary.rows
+          .filter(row => row.count > 0)
+          .map(row => [
+            { content: row.count.toString(), styles: { textColor: [0, 0, 255] } },
+            { content: row.multiplier.toString(), styles: { textColor: [255, 0, 0] } },
+            { content: row.score.toString(), styles: { textColor: [0, 0, 255], fontStyle: 'bold' } }
+          ])
+
+        if (competencyScoreSummary.totalCount > 0) {
+          competencyCountTableBody.push([
+            { content: 'ผลรวมคะแนน', styles: { fontStyle: 'bold' as const, halign: 'right' }, colSpan: 2 },
+            { content: competencyScoreSummary.totalScore.toString(), styles: { fontStyle: 'bold' as const, textColor: [0, 0, 255] } }
+          ])
+        }
+
+        autoTable(doc, {
+          startY: competencyCountY,
+          margin: { left: 10 + tableWidth + tableSpacing, right: 10, top: 30 },
+          tableWidth: tableWidth,
+          head: competencyCountTableHead,
+          body: competencyCountTableBody.length > 0 ? competencyCountTableBody : [['', '', '']],
+          theme: 'grid',
+          styles: {
+            font: 'THSarabunNew',
+            fontSize: 14,
+            cellPadding: 1.2,
+            lineColor: [0, 0, 0],
+            lineWidth: 0.1,
+            textColor: [0, 0, 0],
+            fillColor: [255, 255, 255]
+          },
+          headStyles: {
+            fillColor: [255, 255, 255],
+            textColor: [0, 0, 0],
+            fontStyle: 'bold',
+            halign: 'center',
+            fontSize: 14,
+            font: 'THSarabunNew'
+          },
+          columnStyles: {
+            0: { cellWidth: 'auto', halign: 'center', font: 'THSarabunNew', fontSize: 14 },
+            1: { cellWidth: 'auto', halign: 'center', font: 'THSarabunNew', fontSize: 14 },
+            2: { cellWidth: 'auto', halign: 'center', font: 'THSarabunNew', fontSize: 14 }
+          }
+        })
+
+        let criteriaTableY = (doc as any).lastAutoTable.finalY + 23
+        
+        // ตรวจสอบว่าหน้าจะพอหรือไม่
+        if (criteriaTableY > doc.internal.pageSize.getHeight() - 40) {
+          doc.addPage()
+          criteriaTableY = 30
+        }
+
+        const criteriaTableHead = [[
+          'หลักเกณฑ์การประเมิน'
+        ]]
+
+        const criteriaTableBody = [
+          ['จำนวนสมรรถนะหลัก/สมรรถนะเฉพาะ/สมรรถนะทางการบริหาร ที่มีระดับสมรรถนะที่แสดงออก สูงกว่าหรือเท่ากับ ระดับสมรรถนะที่คาดหวัง x 3 คะแนน'],
+          ['จำนวนสมรรถนะหลัก/สมรรถนะเฉพาะ/สมรรถนะทางการบริหาร ที่มีระดับสมรรถนะที่แสดงออก ต่ำกว่า ระดับสมรรถนะที่คาดหวัง 1 ระดับ x 2 คะแนน'],
+          ['จำนวนสมรรถนะหลัก/สมรรถนะเฉพาะ/สมรรถนะทางการบริหาร ที่มีระดับสมรรถนะที่แสดงออก ต่ำกว่า ระดับสมรรถนะที่คาดหวัง 2 ระดับ x 1 คะแนน'],
+          ['จำนวนสมรรถนะหลัก/สมรรถนะเฉพาะ/สมรรถนะทางการบริหาร ที่มีระดับสมรรถนะที่แสดงออก ต่ำกว่า ระดับสมรรถนะที่คาดหวัง 3 ระดับ x 0 คะแนน']
+        ]
+
+        autoTable(doc, {
+          startY: criteriaTableY,
+          margin: { left: 10, right: 10, top: 30 },
+          head: criteriaTableHead,
+          body: criteriaTableBody,
+          theme: 'grid',
+          styles: {
+            font: 'THSarabunNew',
+            fontSize: 12,
+            cellPadding: 1,
+            lineColor: [0, 0, 0],
+            lineWidth: 0.1,
+            textColor: [0, 0, 0],
+            fillColor: [255, 255, 255]
+          },
+          headStyles: {
+            fillColor: [255, 255, 255],
+            textColor: [0, 0, 0],
+            fontStyle: 'bold',
+            halign: 'center',
+            fontSize: 12,
+            font: 'THSarabunNew'
+          },
+          columnStyles: {
+            0: { cellWidth: 'auto', font: 'THSarabunNew', halign: 'left', fontSize: 12 }
+          }
+        })
+
+        // แสดงวิธีคำนวณ
+        let calculationY = (doc as any).lastAutoTable.finalY + 10
+        
+        // ตรวจสอบว่าหน้าจะพอหรือไม่
+        if (calculationY > doc.internal.pageSize.getHeight() - 30) {
+          doc.addPage()
+          calculationY = 30
+        }
+        
+        doc.setFont('THSarabunNew', 'normal')
+        doc.setFontSize(14)
+        
+        // คำนวณค่าต่างๆ
+        const competencyTotalScore = competencyScoreSummary.totalScore
+        const totalCount = competencyScoreSummary.totalCount
+        const competencyTotalScoreCalc = competencyTotalScore / 30
+        
+        // กำหนดตำแหน่งซ้ายและขวา
+        const leftMargin = 14
+        const rightMargin = pageWidth - 14
+        
+        // "วิธีคำนวณ" ด้านซ้าย
+        doc.setTextColor(0, 0, 0)
+        const methodText = 'วิธีคำนวณ'
+        doc.text(methodText, leftMargin, calculationY)
+        
+        // วาดเส้นใต้ "วิธีคำนวณ"
+        const methodTextWidth = doc.getTextWidth(methodText)
+        doc.setLineWidth(0.2)
+        doc.setDrawColor(0, 0, 0)
+        doc.line(leftMargin, calculationY + 1, leftMargin + methodTextWidth, calculationY + 1)
+        
+        // คำนวณความกว้างของส่วนขวา (8) คะแนนที่ได้ + กล่อง
+        doc.setFontSize(14)
+        const scoreCalcText = `(8) คะแนนที่ได้`
+        const scoreCalcTextWidth = doc.getTextWidth(scoreCalcText)
+        const boxWidth = doc.getTextWidth(competencyTotalScoreCalc.toFixed(2)) + 4
+        const rightSectionWidth = scoreCalcTextWidth + 3 + boxWidth
+        
+        // คำนวณความกว้างของส่วนกลาง (สูตร + เท่ากับ + X/30)
+        doc.setFontSize(14)
+        const numeratorText = 'ผลรวมคะแนน'
+        const numeratorWidth = doc.getTextWidth(numeratorText)
+        const denominatorText = `จำนวนสมรรถนะที่ใช้ในการประเมิน x 3`
+        const denominatorWidth = doc.getTextWidth(denominatorText)
+        const formulaLineLength = Math.max(numeratorWidth, denominatorWidth)
+        
+        doc.setFontSize(14)
+        const equalsText = 'เท่ากับ'
+        const equalsTextWidth = doc.getTextWidth(equalsText)
+        const scoreText = competencyTotalScore.toString()
+        const scoreTextWidth = doc.getTextWidth(scoreText)
+        const slashText = ' / '
+        const slashTextWidth = doc.getTextWidth(slashText)
+        const maxScoreText = '30'
+        const maxScoreTextWidth = doc.getTextWidth(maxScoreText)
+        
+        const middleSectionWidth = formulaLineLength + 8 + equalsTextWidth + 3 + scoreTextWidth + slashTextWidth + maxScoreTextWidth
+        
+        // คำนวณตำแหน่งเริ่มต้นของส่วนกลาง (ให้อยู่ตรงกลางระหว่างซ้ายและขวา)
+        const calculationAvailableWidth = rightMargin - leftMargin - methodTextWidth - rightSectionWidth
+        const formulaStartX = leftMargin + methodTextWidth + (calculationAvailableWidth - middleSectionWidth) / 2
+        const formulaY = calculationY
+        
+        // วาดสูตร: ผลรวมคะแนน / (จำนวนสมรรถนะ x 3)
+        doc.setFontSize(12)
+        
+        // วาดเส้นแบ่ง (fraction line) ก่อน
+        doc.setLineWidth(0.2)
+        doc.setDrawColor(0, 0, 0)
+        doc.line(formulaStartX, formulaY, formulaStartX + formulaLineLength, formulaY)
+        
+        // คำนวณจุดกึ่งกลางของเส้นขีด
+        const lineCenterX = formulaStartX + formulaLineLength / 2
+        // ให้ตัวเศษอยู่ตรงกลางของเส้นขีด
+        const numeratorX = lineCenterX
+        doc.text(numeratorText, numeratorX - numeratorWidth / 2, formulaY - 3)
+        
+        // ตัวส่วน: "จำนวนสมรรถนะที่ใช้ในการประเมิน x 3"
+        const denominatorX = formulaStartX + (denominatorWidth / 2)
+        doc.text(denominatorText, denominatorX - denominatorWidth / 2, formulaY + 4)
+        
+        // "เท่ากับ" หลังสูตร
+        const equalsX = formulaStartX + formulaLineLength + 8
+        doc.setFontSize(14)
+        doc.text(equalsText, equalsX, formulaY)
+        
+        // แสดงผลลัพธ์: X / 30
+        const resultX = equalsX + equalsTextWidth + 3
+        doc.setTextColor(0, 0, 255) // สีน้ำเงิน
+        doc.text(scoreText, resultX, formulaY)
+        
+        // วาดเส้นประใต้ตัวเลข (ใช้วิธี manual)
+        doc.setLineWidth(0.1)
+        doc.setDrawColor(0, 0, 255)
+        const dashLength = 0.5
+        const gapLength = 0.5
+        let x = resultX
+        while (x < resultX + scoreTextWidth) {
+          doc.line(x, formulaY + 1, Math.min(x + dashLength, resultX + scoreTextWidth), formulaY + 1)
+          x += dashLength + gapLength
+        }
+        
+        doc.setTextColor(0, 0, 0) // สีดำ
+        doc.text(slashText, resultX + scoreTextWidth, formulaY)
+        
+        doc.setTextColor(255, 0, 0) // สีแดง
+        doc.text(maxScoreText, resultX + scoreTextWidth + slashTextWidth, formulaY)
+        
+        // วาดเส้นประใต้ "30"
+        doc.setLineWidth(0.1)
+        doc.setDrawColor(255, 0, 0)
+        const maxScoreStartX = resultX + scoreTextWidth + slashTextWidth
+        x = maxScoreStartX
+        while (x < maxScoreStartX + maxScoreTextWidth) {
+          doc.line(x, formulaY + 1, Math.min(x + dashLength, maxScoreStartX + maxScoreTextWidth), formulaY + 1)
+          x += dashLength + gapLength
+        }
+        
+        // "(8) คะแนนที่ได้" และผลลัพธ์ในกล่อง (ชิดขวา)
+        const scoreCalcX = rightMargin - rightSectionWidth
+        
+        doc.setTextColor(0, 0, 0) // สีดำ
+        doc.text(scoreCalcText, scoreCalcX, formulaY)
+        
+        // วาดกล่องสำหรับผลลัพธ์
+        const boxX = scoreCalcX + scoreCalcTextWidth + 3
+        const boxY = formulaY - 3
+        const boxHeight = 5
+        doc.setLineWidth(0.2)
+        doc.setDrawColor(0, 0, 0)
+        doc.rect(boxX, boxY, boxWidth, boxHeight)
+        
+        // ตัวเลขในกล่อง
+        doc.setTextColor(0, 0, 255) // สีน้ำเงิน
+        doc.text(competencyTotalScoreCalc.toFixed(2), boxX + 2, formulaY)
+
+        // อัปเดต currentY หลังจากตารางทั้งสอง (ใช้ค่าจาก autoTable)
+        const tableFinalY = calculationY + 8
+        
+        // ตรวจสอบว่าหน้าจะพอหรือไม่ ถ้าไม่พอให้ขึ้นหน้าใหม่
+        if (tableFinalY > doc.internal.pageSize.getHeight() - 50) {
+          doc.addPage()
+          section3StartY = 32
+        } else {
+          section3StartY = tableFinalY + 15 // เพิ่มระยะห่างจากตาราง
+        }
+
+        // ส่วนที่ 3: สรุปการประเมินผลการปฏิบัติราชการ
+        // Section 9: ลายมือชื่อ (ก่อนส่วนที่ 3) - ใช้ตาราง
+        const section9Y = section3StartY
+        
+        // เตรียมข้อมูลสำหรับตาราง
+        const section9Header = [[
+          {
+            content: '(9) ผู้ประเมินและผู้รับการประเมินได้ตกลงร่วมกันและเห็นพ้องกันแล้ว (ระบุข้อมูลใน (1) ให้ครบ) จึงลงลายมือชื่อไว้เป็นหลักฐาน (ลงนามเมื่อจัดทำข้อตกลง)',
+            colSpan: 2,
+            styles: {
+              font: 'THSarabunNew',
+              fontSize: 14,
+              halign: 'left' as const,
+              fillColor: [255, 255, 255] as [number, number, number],
+              textColor: [0, 0, 0] as [number, number, number]
+            }
+          }
+        ]]
+        
+        // เตรียม body สำหรับตาราง - ใช้ placeholder text แล้วจะวาดเส้นประและชื่อใน didDrawCell
+        const section9Body: any[] = [
+          ['', ''],
+          ['', ''],
+          ['', '']
+        ]
+        
+        // เก็บข้อมูลชื่อผู้ใช้สำหรับวาดใน didDrawCell
+        const userFullName = userInfo.u_fname && userInfo.u_lname
+          ? `${userInfo.prefix_name || ''} ${userInfo.u_fname || ''} ${userInfo.u_lname || ''}`.trim()
+          : null
+        
+        autoTable(doc, {
+          startY: section9Y,
+          margin: { left: 10, right: 10, top: 30 },
+          head: section9Header,
+          body: section9Body,
+          theme: 'grid',
+          styles: {
+            font: 'THSarabunNew',
+            fontSize: 14,
+            cellPadding: 2,
+            lineColor: [0, 0, 0],
+            lineWidth: 0.1,
+            textColor: [0, 0, 0],
+            fillColor: [255, 255, 255]
+          },
+          headStyles: {
+            fillColor: [255, 255, 255],
+            textColor: [0, 0, 0],
+            fontStyle: 'normal',
+            halign: 'left',
+            fontSize: 14,
+            font: 'THSarabunNew',
+            cellPadding: { top: 3, bottom: 3, left: 2, right: 2 }
+          },
+          columnStyles: {
+            0: { cellWidth: 'auto', font: 'THSarabunNew', halign: 'left' },
+            1: { cellWidth: 'auto', font: 'THSarabunNew', halign: 'left' }
+          },
+          didDrawCell: (data: any) => {
+            // วาดเส้นประและชื่อใน cell ที่เหมาะสม
+            if (data.cell.section === 'body') {
+              const cell = data.cell
+              const rowIndex = data.row.index
+              const colIndex = data.column.index
+              
+              // แถวแรก: วาดเส้นประสำหรับลายมือชื่อ
+              if (rowIndex === 0) {
+                doc.setFontSize(14)
+                doc.setFont('THSarabunNew', 'normal')
+                const label = 'ลายมือชื่อ'
+                const labelWidth = doc.getTextWidth(label)
+                
+                // วาดข้อความ "ลายมือชื่อ" (ขยับลงมาจากเส้นด้านบนมากขึ้น)
+                doc.text(label, cell.x + 2, cell.y + 8)
+                
+                // วาดเส้นประ
+                doc.setLineWidth(0.1)
+                doc.setDrawColor(0, 0, 0)
+                const dashLength = 1
+                const gapLength = 1
+                let x = cell.x + 2 + labelWidth + 2
+                const endX = cell.x + cell.width - 2
+                
+                while (x < endX) {
+                  doc.line(x, cell.y + 8, Math.min(x + dashLength, endX), cell.y + 8)
+                  x += dashLength + gapLength
+                }
+                
+                // วาดชื่อผู้ใช้ในคอลัมน์ขวา (ผู้รับการประเมิน)
+                if (colIndex === 1 && userFullName) {
+                  const cellCenterX = cell.x + cell.width / 2
+                  const nameWidth = doc.getTextWidth(userFullName)
+                  doc.text(userFullName, cellCenterX - nameWidth / 2, cell.y + 7)
+                }
+              }
+              
+              // แถวที่สอง: แสดง (ผู้ประเมิน) และ (ผู้รับการประเมิน) ตรงกลาง
+              // ลบเฉพาะเส้นตารางแนวนอนด้านบนและด้านล่าง (คงเส้นตารางแนวตั้งไว้)
+              if (rowIndex === 1) {
+                // ลบเส้นตารางแนวนอนด้านบนทั้งหมด
+                doc.setLineWidth(0.3)
+                doc.setDrawColor(255, 255, 255) // ใช้สีขาวเพื่อลบเส้น
+                doc.line(cell.x, cell.y, cell.x + cell.width, cell.y)
+                
+                // ลบเส้นตารางแนวนอนด้านล่างทั้งหมด
+                doc.line(cell.x, cell.y + cell.height, cell.x + cell.width, cell.y + cell.height)
+                
+                doc.setFontSize(14)
+                doc.setFont('THSarabunNew', 'normal')
+                const label = colIndex === 0 ? '(ผู้ประเมิน)' : '(ผู้รับการประเมิน)'
+                const labelWidth = doc.getTextWidth(label)
+                const cellCenterX = cell.x + cell.width / 2
+                doc.text(label, cellCenterX - labelWidth / 2, cell.y + 5)
+              }
+              
+              // แถวที่สาม: วาดเส้นประสำหรับวันที่ เดือน พ.ศ.
+              if (rowIndex === 2) {
+                doc.setFontSize(14)
+                doc.setFont('THSarabunNew', 'normal')
+                doc.setLineWidth(0.1)
+                doc.setDrawColor(0, 0, 0)
+                const dashLength = 1
+                const gapLength = 1
+                
+                const fieldWidth = (cell.width - 4) / 3
+                let currentX = cell.x + 2
+                
+                // วันที่
+                doc.text('วันที่', currentX, cell.y + 5)
+                let x = currentX + 12
+                const dateEndX = currentX + fieldWidth - 2
+                while (x < dateEndX) {
+                  doc.line(x, cell.y + 5, Math.min(x + dashLength, dateEndX), cell.y + 5)
+                  x += dashLength + gapLength
+                }
+                
+                // เดือน
+                currentX += fieldWidth
+                doc.text('เดือน', currentX, cell.y + 5)
+                x = currentX + 12
+                const monthEndX = currentX + fieldWidth - 2
+                while (x < monthEndX) {
+                  doc.line(x, cell.y + 5, Math.min(x + dashLength, monthEndX), cell.y + 5)
+                  x += dashLength + gapLength
+                }
+                
+                // พ.ศ.
+                currentX += fieldWidth
+                doc.text('พ.ศ.', currentX, cell.y + 5)
+                x = currentX + 12
+                const yearEndX = cell.x + cell.width - 2
+                while (x < yearEndX) {
+                  doc.line(x, cell.y + 5, Math.min(x + dashLength, yearEndX), cell.y + 5)
+                  x += dashLength + gapLength
+                }
+              }
+            }
+          }
+        })
+
+        // ส่วนที่ 3: สรุปการประเมินผลการปฏิบัติราชการ
+        let section3TableY = (doc as any).lastAutoTable.finalY + 8
+        
+        // ตรวจสอบว่าหน้าจะพอหรือไม่
+        if (section3TableY > doc.internal.pageSize.getHeight() - 40) {
+          doc.addPage()
+          section3TableY = 32
+        }
+
+        doc.setFont('THSarabunNew', 'bold')
+        doc.setFontSize(14)
+        doc.setTextColor(0, 0, 0)
+        doc.text('ส่วนที่ 3 สรุปการประเมินผลการปฏิบัติราชการ', 14, section3TableY)
+        section3TableY += 5
+
+        // ตารางสรุปคะแนน (ไม่แสดง evaluated column เพราะไม่ใช่ isFinalized)
+        const summaryTableHead = [[
+          'องค์ประกอบการประเมิน',
+          'คะแนนเต็ม',
+          'คะแนนที่ได้',
+          'หมายเหตุ'
+        ]]
+
+        // คำนวณคะแนนส่วนที่ 2 (สมรรถนะ)
+        let competencyScore = 0
+        if (params.performanceSnapshot && params.performanceSnapshot.evaluations) {
+          const evaluations = params.performanceSnapshot.evaluations
+          const categories = [
+            { multiplier: 3, count: 0 },
+            { multiplier: 2, count: 0 },
+            { multiplier: 1, count: 0 },
+            { multiplier: 0, count: 0 }
+          ]
+          
+          evaluations.forEach((evaluation: any) => {
+            const demonstrated = Number(evaluation?.demonstrated_level ?? 0)
+            const expected = Number(evaluation?.expected_level ?? 0)
+            if (Number.isFinite(demonstrated) && Number.isFinite(expected)) {
+              const diff = demonstrated - expected
+              if (diff >= 0) {
+                categories[0].count += 1
+              } else if (diff === -1) {
+                categories[1].count += 1
+              } else if (diff === -2) {
+                categories[2].count += 1
+              } else {
+                categories[3].count += 1
+              }
+            }
+          })
+          
+          competencyScore = categories.reduce((sum, cat) => sum + (cat.count * cat.multiplier), 0)
+        }
+
+        const totalScore = params.performanceScoreOutOf70 + competencyScore
+        const totalMaxScore = 70 + 30
+
+        const summaryTableBody: any[] = [
+          ['องค์ประกอบที่ 1 : ผลสัมฤทธิ์ของงาน (7)', '70.00', params.performanceScoreOutOf70.toFixed(2), ''],
+          ['องค์ประกอบที่ 2 : พฤติกรรมการปฏิบัติราชการ (สมรรถนะ) (8)', '30.00', competencyScore.toFixed(2), ''],
+          ['องค์ประกอบอื่น ๆ (ถ้ามี)', '', '', ''],
+          [{ content: 'รวม (7) + (8)', styles: { fontStyle: 'bold' as const, halign: 'right' } }, '100.00', { content: totalScore.toFixed(2), styles: { fontStyle: 'bold' as const, textColor: [0, 0, 255] } }, '']
+        ]
+
+        autoTable(doc, {
+          startY: section3TableY,
+          margin: { left: 10, right: 10, top: 30 },
+          head: summaryTableHead,
+          body: summaryTableBody,
+          theme: 'grid',
+          styles: {
+            font: 'THSarabunNew',
+            fontSize: 14,
+            cellPadding: 2,
+            lineColor: [0, 0, 0],
+            lineWidth: 0.1,
+            textColor: [0, 0, 0],
+            fillColor: [255, 255, 255]
+          },
+          headStyles: {
+            fillColor: [255, 255, 255],
+            textColor: [0, 0, 0],
+            fontStyle: 'bold',
+            halign: 'center',
+            fontSize: 14,
+            font: 'THSarabunNew'
+          },
+          columnStyles: {
+            0: { cellWidth: 100, font: 'THSarabunNew', halign: 'left' },
+            1: { cellWidth: 30, halign: 'center', font: 'THSarabunNew' },
+            2: { cellWidth: 30, halign: 'center', font: 'THSarabunNew', textColor: [0, 0, 255] },
+            3: { cellWidth: 30, font: 'THSarabunNew' }
+          }
+        })
+
+        // ระดับผลการประเมิน
+        let evaluationLevelsY = (doc as any).lastAutoTable.finalY + 10
+        finalEvaluationLevelsY = evaluationLevelsY
+        
+        if (evaluationLevelsY > doc.internal.pageSize.getHeight() - 30) {
+          doc.addPage()
+          evaluationLevelsY = 32
+        }
+
+        doc.setFont('THSarabunNew', 'bold')
+        doc.setFontSize(16)
+        doc.text('ระดับผลการประเมิน', 14, evaluationLevelsY)
+        evaluationLevelsY += 7
+
+        const percentage = (totalScore / totalMaxScore) * 100
+        const evaluationLevels = [
+          { label: 'ดีเด่น', description: '(90 - 100)', min: 90, max: 100 },
+          { label: 'ดีมาก', description: '(80 - 89.99)', min: 80, max: 89.99 },
+          { label: 'ดี', description: '(70 - 79.99)', min: 70, max: 79.99 },
+          { label: 'พอใช้', description: '(60 - 69.99)', min: 60, max: 69.99 },
+          { label: 'ต้องปรับปรุง', description: '(ต่ำกว่า 60)', min: -Infinity, max: 59.99 }
+        ]
+
+        evaluationLevels.forEach((level) => {
+          const checked = percentage >= level.min && percentage <= level.max
+          
+          // วาด checkbox
+          doc.setLineWidth(0.5)
+          doc.setDrawColor(0, 0, 0)
+          doc.rect(14, evaluationLevelsY - 2, 3, 3)
+          
+          if (checked) {
+            doc.setFillColor(46, 68, 151) // business1 color
+            doc.rect(14.5, evaluationLevelsY - 1.5, 2, 2, 'F')
+            // ไม่ต้องวาดเครื่องหมายถูก
+          }
+          
+          doc.setFont('THSarabunNew', checked ? 'bold' : 'normal')
+          doc.setFontSize(14)
+          doc.setTextColor(checked ? 46 : 0, checked ? 68 : 0, checked ? 151 : 0)
+          doc.text(`${level.label} ${level.description}`, 20, evaluationLevelsY)
+          doc.setTextColor(0, 0, 0)
+          
+          evaluationLevelsY += 6
+        })
+        finalEvaluationLevelsY = evaluationLevelsY
+      } else {
+        // ถ้าไม่มี performanceSnapshot ให้ใช้ตำแหน่งจากตารางสรุป
+        finalEvaluationLevelsY = (doc as any).lastAutoTable.finalY + 10
+      }
+      // ส่วนที่ 4: แผนพัฒนาการปฏิบัติราชการรายบุคคล
+      let section4Y = finalEvaluationLevelsY + 8
+      
+      // ตรวจสอบว่าหน้าจะพอหรือไม่
+      if (section4Y > doc.internal.pageSize.getHeight() - 60) {
+        doc.addPage()
+        section4Y = 32
       }
 
+      doc.setFont('THSarabunNew', 'bold')
+      doc.setFontSize(14)
+      doc.text('ส่วนที่ 4 : แผนพัฒนาการปฏิบัติราชการรายบุคคล', 14, section4Y)
+      section4Y += 7
 
+      // ตารางแผนพัฒนา
+      const developmentTableHead = [[
+        'ความรู้/ทักษะ/สมรรถนะที่ต้องได้รับการพัฒนา',
+        'วิธีการพัฒนา',
+        'ช่วงเวลาที่ต้องการพัฒนา'
+      ]]
+
+      const developmentTableBody = [
+        ['', '', '']
+      ]
+
+      // คำนวณความกว้างตารางให้เท่ากับตารางอื่นๆ
+      const tableTotalWidth = pageWidth - 20 // margin left 10 + right 10
+      const developmentColumnWidths = {
+        0: tableTotalWidth * 0.4, // ความรู้/ทักษะ/สมรรถนะ
+        1: tableTotalWidth * 0.35, // วิธีการพัฒนา
+        2: tableTotalWidth * 0.25 // ช่วงเวลาที่ต้องการพัฒนา
+      }
+
+      autoTable(doc, {
+        startY: section4Y,
+        margin: { left: 10, right: 10, top: 30 },
+        head: developmentTableHead,
+        body: developmentTableBody,
+        theme: 'grid',
+        styles: {
+          font: 'THSarabunNew',
+          fontSize: 14,
+          cellPadding: 2,
+          lineColor: [0, 0, 0],
+          lineWidth: 0.1,
+          textColor: [0, 0, 0],
+          fillColor: [255, 255, 255]
+        },
+        headStyles: {
+          fillColor: [255, 255, 255],
+          textColor: [0, 0, 0],
+          fontStyle: 'bold',
+          halign: 'center',
+          fontSize: 14,
+          font: 'THSarabunNew',
+          cellPadding: 2,
+          minCellHeight: 0
+        },
+        bodyStyles: {
+          minCellHeight: 50,
+          cellPadding: 2
+        },
+        columnStyles: {
+          0: { cellWidth: developmentColumnWidths[0], font: 'THSarabunNew' },
+          1: { cellWidth: developmentColumnWidths[1], font: 'THSarabunNew' },
+          2: { cellWidth: developmentColumnWidths[2], font: 'THSarabunNew' }
+        }
+      })
+
+      // Section 10: ความเห็นเพิ่มเติมของผู้ประเมิน
+      let section10Y = (doc as any).lastAutoTable.finalY + 10
+      
+      if (section10Y > doc.internal.pageSize.getHeight() - 40) {
+        doc.addPage()
+        section10Y = 32
+      }
+
+      // สร้างตารางข้อ 10 - ใช้ autoTable เฉพาะ header
+      const section10Header = [[
+        {
+          content: '(10) ความเห็นเพิ่มเติมของผู้ประเมิน (ระบุข้อมูลเมื่อสิ้นรอบการประเมิน)',
+          colSpan: 1,
+          styles: {
+            font: 'THSarabunNew',
+            fontSize: 14,
+            halign: 'left' as const,
+            fillColor: [255, 255, 255] as [number, number, number],
+            textColor: [0, 0, 0] as [number, number, number]
+          }
+        }
+      ]]
+      
+      // เก็บตำแหน่งเริ่มต้นสำหรับวาดกรอบ
+      const marginLeft = 10
+      const marginRight = 10
+      const contentWidth = doc.internal.pageSize.getWidth() - marginLeft - marginRight
+      let actualHeaderY = section10Y // เก็บตำแหน่ง header จริง
+      
+      autoTable(doc, {
+        startY: section10Y,
+        margin: { left: 10, right: 10, top: 0 },
+        head: section10Header,
+        body: [],
+        theme: 'plain',
+        styles: {
+          font: 'THSarabunNew',
+          fontSize: 14,
+          cellPadding: 2,
+          lineColor: [0, 0, 0],
+          lineWidth: 0.1,
+          textColor: [0, 0, 0],
+          fillColor: [255, 255, 255]
+        },
+        headStyles: {
+          fillColor: [255, 255, 255],
+          textColor: [0, 0, 0],
+          fontStyle: 'normal',
+          halign: 'left',
+          fontSize: 14,
+          font: 'THSarabunNew',
+          cellPadding: { top: 3, bottom: 3, left: 2, right: 2 }
+        },
+        didDrawCell: (data: any) => {
+          // เก็บตำแหน่ง Y จริงของ header cell
+          if (data.cell.section === 'head' && data.row.index === 0) {
+            actualHeaderY = data.cell.y
+          }
+        }
+      })
+      
+      // ใช้ตำแหน่ง header จริงสำหรับวาดกรอบ
+      const boxStartY = actualHeaderY
+      
+      // วาด body โดยตรง (ไม่มีตาราง)
+      let bodyY = (doc as any).lastAutoTable.finalY + 5
+      const lineHeight = 10 // ลดจาก 15 เป็น 10
+      
+      doc.setFont('THSarabunNew', 'normal')
+      doc.setFontSize(14)
+      doc.setTextColor(0, 0, 0)
+      
+      // ส่วนที่ 1: จุดเด่น และ/หรือ สิ่งที่ควรปรับปรุงแก้ไข
+      bodyY += 3 // เพิ่มระยะห่างก่อนข้อความ
+      doc.text('1) จุดเด่น และ/หรือ สิ่งที่ควรปรับปรุงแก้ไข', marginLeft + 2, bodyY)
+      bodyY += lineHeight + 2
+      
+      // วาดเส้นประ 3 แถว
+      for (let i = 0; i < 3; i++) {
+        doc.setLineWidth(0.1)
+        doc.setDrawColor(0, 0, 0)
+        const section10DashLength = 1
+        const section10GapLength = 1
+        let x = marginLeft + 2
+        const endX = marginLeft + contentWidth - 2
+        
+        while (x < endX) {
+          doc.line(x, bodyY, Math.min(x + section10DashLength, endX), bodyY)
+          x += section10DashLength + section10GapLength
+        }
+        bodyY += lineHeight
+      }
+      
+      // เส้นแบ่งระหว่างส่วน
+      bodyY += 2
+      doc.setLineWidth(0.1)
+      doc.setDrawColor(0, 0, 0)
+      doc.line(marginLeft, bodyY, marginLeft + contentWidth, bodyY)
+      bodyY += 3
+      
+      // ส่วนที่ 2: ข้อเสนอแนะเกี่ยวกับวิธีส่งเสริมและพัฒนา
+      bodyY += 3 // เพิ่มระยะห่างก่อนข้อความ
+      doc.text('2) ข้อเสนอแนะเกี่ยวกับวิธีส่งเสริมและพัฒนา', marginLeft + 2, bodyY)
+      bodyY += lineHeight + 2
+      
+      // วาดเส้นประ 3 แถว
+      for (let i = 0; i < 3; i++) {
+        doc.setLineWidth(0.1)
+        doc.setDrawColor(0, 0, 0)
+        const section10DashLength = 1
+        const section10GapLength = 1
+        let x = marginLeft + 2
+        const endX = marginLeft + contentWidth - 2
+        
+        while (x < endX) {
+          doc.line(x, bodyY, Math.min(x + section10DashLength, endX), bodyY)
+          x += section10DashLength + section10GapLength
+        }
+        bodyY += lineHeight
+      }
+      
+      // วาดกรอบรอบทั้งหมด (header + body)
+      const boxHeight = bodyY - boxStartY + 3
+      doc.setLineWidth(0.1)
+      doc.setDrawColor(0, 0, 0)
+      doc.rect(marginLeft, boxStartY, contentWidth, boxHeight)
+      
+      // อัพเดท lastAutoTable.finalY เพื่อให้ Section 11 รู้ตำแหน่งที่ถูกต้อง
+      ;(doc as any).lastAutoTable = { finalY: bodyY + 3 }
+
+      // Section 11: ลายมือชื่อ (ใช้ตารางเหมือน Section 9)
+      let section11Y = (doc as any).lastAutoTable.finalY + 10
+      
+      if (section11Y > doc.internal.pageSize.getHeight() - 30) {
+        doc.addPage()
+        section11Y = 32
+      }
+
+      // เตรียมข้อมูลสำหรับตาราง
+      const section11Header = [[
+        {
+          content: '(11) ผู้ประเมินและผู้รับการประเมินได้ตกลงร่วมกันและเห็นพ้องกันแล้ว (ระบุข้อมูล (1) - (10) ให้ครบ) จึงลงลายมือชื่อไว้เป็นหลักฐาน (ลงนามเมื่อสิ้นรอบการประเมิน)',
+          colSpan: 2,
+          styles: {
+            font: 'THSarabunNew',
+            fontSize: 14,
+            halign: 'left' as const,
+            fillColor: [255, 255, 255] as [number, number, number],
+            textColor: [0, 0, 0] as [number, number, number]
+          }
+        }
+      ]]
+      
+      // เตรียม body สำหรับตาราง - ใช้ placeholder text แล้วจะวาดเส้นประและชื่อใน didDrawCell
+      const section11Body: any[] = [
+        ['', ''],
+        ['', ''],
+        ['', '']
+      ]
+      
+      // เก็บข้อมูลชื่อผู้ใช้สำหรับวาดใน didDrawCell
+      const userFullName11 = userInfo.u_fname && userInfo.u_lname
+        ? `${userInfo.prefix_name || ''} ${userInfo.u_fname || ''} ${userInfo.u_lname || ''}`.trim()
+        : null
+      
+      autoTable(doc, {
+        startY: section11Y,
+        margin: { left: 10, right: 10, top: 30 },
+        head: section11Header,
+        body: section11Body,
+        theme: 'grid',
+        styles: {
+          font: 'THSarabunNew',
+          fontSize: 14,
+          cellPadding: 2,
+          lineColor: [0, 0, 0],
+          lineWidth: 0.1,
+          textColor: [0, 0, 0],
+          fillColor: [255, 255, 255]
+        },
+        headStyles: {
+          fillColor: [255, 255, 255],
+          textColor: [0, 0, 0],
+          fontStyle: 'normal',
+          halign: 'left',
+          fontSize: 14,
+          font: 'THSarabunNew',
+          cellPadding: { top: 3, bottom: 3, left: 2, right: 2 }
+        },
+        columnStyles: {
+          0: { cellWidth: 'auto', font: 'THSarabunNew', halign: 'left' },
+          1: { cellWidth: 'auto', font: 'THSarabunNew', halign: 'left' }
+        },
+        didDrawCell: (data: any) => {
+          // วาดเส้นประและชื่อใน cell ที่เหมาะสม
+          if (data.cell.section === 'body') {
+            const cell = data.cell
+            const rowIndex = data.row.index
+            const colIndex = data.column.index
+            
+            // แถวแรก: วาดเส้นประสำหรับลายมือชื่อ
+            if (rowIndex === 0) {
+              doc.setFontSize(14)
+              doc.setFont('THSarabunNew', 'normal')
+              const label = 'ลายมือชื่อ'
+              const labelWidth = doc.getTextWidth(label)
+              
+              // วาดข้อความ "ลายมือชื่อ" (ขยับลงมาจากเส้นด้านบนมากขึ้น)
+              doc.text(label, cell.x + 2, cell.y + 8)
+              
+              // วาดเส้นประ
+              doc.setLineWidth(0.1)
+              doc.setDrawColor(0, 0, 0)
+              const dashLength = 1
+              const gapLength = 1
+              let x = cell.x + 2 + labelWidth + 2
+              const endX = cell.x + cell.width - 2
+              
+              while (x < endX) {
+                doc.line(x, cell.y + 8, Math.min(x + dashLength, endX), cell.y + 8)
+                x += dashLength + gapLength
+              }
+              
+              // วาดชื่อผู้ใช้ในคอลัมน์ขวา (ผู้รับการประเมิน)
+              if (colIndex === 1 && userFullName11) {
+                const cellCenterX = cell.x + cell.width / 2
+                const nameWidth = doc.getTextWidth(userFullName11)
+                doc.text(userFullName11, cellCenterX - nameWidth / 2, cell.y + 7)
+              }
+            }
+            
+            // แถวที่สอง: แสดง (ผู้ประเมิน) และ (ผู้รับการประเมิน) ตรงกลาง
+            // ลบเฉพาะเส้นตารางแนวนอนด้านบนและด้านล่าง (คงเส้นตารางแนวตั้งไว้)
+            if (rowIndex === 1) {
+              // ลบเส้นตารางแนวนอนด้านบนทั้งหมด
+              doc.setLineWidth(0.3)
+              doc.setDrawColor(255, 255, 255) // ใช้สีขาวเพื่อลบเส้น
+              doc.line(cell.x, cell.y, cell.x + cell.width, cell.y)
+              
+              // ลบเส้นตารางแนวนอนด้านล่างทั้งหมด
+              doc.line(cell.x, cell.y + cell.height, cell.x + cell.width, cell.y + cell.height)
+              
+              doc.setFontSize(14)
+              doc.setFont('THSarabunNew', 'normal')
+              const label = colIndex === 0 ? '(ผู้ประเมิน)' : '(ผู้รับการประเมิน)'
+              const labelWidth = doc.getTextWidth(label)
+              const cellCenterX = cell.x + cell.width / 2
+              doc.text(label, cellCenterX - labelWidth / 2, cell.y + 5)
+            }
+            
+            // แถวที่สาม: วาดเส้นประสำหรับวันที่ เดือน พ.ศ.
+            if (rowIndex === 2) {
+              doc.setFontSize(14)
+              doc.setFont('THSarabunNew', 'normal')
+              doc.setLineWidth(0.1)
+              doc.setDrawColor(0, 0, 0)
+              const dashLength = 1
+              const gapLength = 1
+              
+              const fieldWidth = (cell.width - 4) / 3
+              let currentX = cell.x + 2
+              
+              // วันที่
+              doc.text('วันที่', currentX, cell.y + 5)
+              let x = currentX + 12
+              const dateEndX = currentX + fieldWidth - 2
+              while (x < dateEndX) {
+                doc.line(x, cell.y + 5, Math.min(x + dashLength, dateEndX), cell.y + 5)
+                x += dashLength + gapLength
+              }
+              
+              // เดือน
+              currentX += fieldWidth
+              doc.text('เดือน', currentX, cell.y + 5)
+              x = currentX + 12
+              const monthEndX = currentX + fieldWidth - 2
+              while (x < monthEndX) {
+                doc.line(x, cell.y + 5, Math.min(x + dashLength, monthEndX), cell.y + 5)
+                x += dashLength + gapLength
+              }
+              
+              // พ.ศ.
+              currentX += fieldWidth
+              doc.text('พ.ศ.', currentX, cell.y + 5)
+              x = currentX + 12
+              const yearEndX = cell.x + cell.width - 2
+              while (x < yearEndX) {
+                doc.line(x, cell.y + 5, Math.min(x + dashLength, yearEndX), cell.y + 5)
+                x += dashLength + gapLength
+              }
+            }
+          }
+        }
+      })
+
+      // ส่วนที่ 5: การรับทราบผลการประเมิน
+      let section5StartY = (doc as any).lastAutoTable.finalY + 10
+      if (section5StartY > doc.internal.pageSize.getHeight() - 120) {
+        doc.addPage()
+        section5StartY = 32
+      }
+
+      doc.setFont('THSarabunNew', 'bold')
+      doc.setFontSize(14)
+      doc.text('ส่วนที่ 5 : การรับทราบผลการประเมิน', 14, section5StartY)
+      const section5Y = section5StartY + 7
+
+      const section5MarginLeft = 14
+      const section5MarginRight = 14
+      const section5ContentWidth = pageWidth - section5MarginLeft - section5MarginRight
+      const section5DashLength = 1
+      const section5GapLength = 1
+      const section5LineSpacing = 8
+
+      doc.setFont('THSarabunNew', 'normal')
+      doc.setFontSize(14)
+      doc.setLineWidth(0.1)
+      doc.setDrawColor(0, 0, 0)
+
+      // วาดกรอบหลัก
+      const section5BoxY = section5Y
+      const section5BoxHeight = 75
+      doc.rect(section5MarginLeft, section5BoxY, section5ContentWidth, section5BoxHeight)
+
+      // เส้นแบ่งแนวตั้งระหว่างคอลัมน์ซ้ายและขวา
+      const section5VerticalLineX = section5MarginLeft + section5ContentWidth / 2
+      doc.line(section5VerticalLineX, section5BoxY, section5VerticalLineX, section5BoxY + section5BoxHeight)
+
+      // เส้นแบ่งระหว่างผู้รับการประเมินและผู้ประเมิน
+      doc.line(section5MarginLeft, section5BoxY + 37, section5MarginLeft + section5ContentWidth, section5BoxY + 37)
+
+      let section5CurrentY = section5BoxY + 8
+
+      // ส่วนที่ 1: ผู้รับการประเมิน
+      doc.setFont('THSarabunNew', 'bold')
+      doc.text('ผู้รับการประเมิน', section5MarginLeft + 2, section5CurrentY)
+      section5CurrentY += 6
+
+      doc.setFont('THSarabunNew', 'normal')
+      // Checkbox
+      doc.setLineWidth(0.5)
+      doc.rect(section5MarginLeft + 2, section5CurrentY - 2, 3, 3)
+      
+      // แบ่งข้อความเป็น 2 บรรทัด
+      const checkbox1Text1 = 'ได้รับทราบผลการประเมินและแผนพัฒนาการปฏิบัติราชการ'
+      const checkbox1Text2 = 'รายบุคคลแล้ว'
+      const checkbox1TextX = section5MarginLeft + 7
+      const checkbox1MaxX = section5VerticalLineX - 2
+      
+      // ตรวจสอบความกว้างของข้อความแรก
+      const checkbox1Text1Width = doc.getTextWidth(checkbox1Text1)
+      if (checkbox1TextX + checkbox1Text1Width > checkbox1MaxX) {
+        // ถ้าเกิน ให้ขึ้นบรรทัดใหม่
+        section5CurrentY += section5LineSpacing
+      }
+      doc.text(checkbox1Text1, checkbox1TextX, section5CurrentY)
+      
+      // ขึ้นบรรทัดใหม่สำหรับ "รายบุคคลแล้ว"
+      section5CurrentY += section5LineSpacing
+      doc.text(checkbox1Text2, checkbox1TextX, section5CurrentY)
+
+      // คอลัมน์ขวา: ลงชื่อ ตำแหน่ง วันที่
+      const section5RightColumnX = section5VerticalLineX + 2
+      let section5RightY = section5BoxY + 12
+
+      // ลงชื่อ
+      doc.text('ลงชื่อ', section5RightColumnX, section5RightY)
+      let section5X = section5RightColumnX + 18
+      while (section5X < section5MarginLeft + section5ContentWidth - 2) {
+        doc.setLineWidth(0.1)
+        doc.line(section5X, section5RightY, Math.min(section5X + section5DashLength, section5MarginLeft + section5ContentWidth - 2), section5RightY)
+        section5X += section5DashLength + section5GapLength
+      }
+      // TODO: ยังไม่ต้องใส่ชื่อผู้ใช้ตามบัญชี
+      // if (userInfo.u_fname && userInfo.u_lname) {
+      //   const fullName = `${userInfo.prefix_name || ''} ${userInfo.u_fname || ''} ${userInfo.u_lname || ''}`.trim()
+      //   doc.text(fullName, section5RightColumnX + 20, section5RightY)
+      // }
+
+      // ตำแหน่ง
+      section5RightY += section5LineSpacing
+      doc.text('ตำแหน่ง', section5RightColumnX, section5RightY)
+      section5X = section5RightColumnX + 20
+      while (section5X < section5MarginLeft + section5ContentWidth - 2) {
+        doc.setLineWidth(0.1)
+        doc.line(section5X, section5RightY, Math.min(section5X + section5DashLength, section5MarginLeft + section5ContentWidth - 2), section5RightY)
+        section5X += section5DashLength + section5GapLength
+      }
+      // TODO: ยังไม่ต้องใส่ตำแหน่งตามบัญชี
+      // if (userInfo.type_p_name) {
+      //   doc.text(userInfo.type_p_name, section5RightColumnX + 22, section5RightY)
+      // }
+
+      // วันที่
+      section5RightY += section5LineSpacing
+      doc.text('วันที่', section5RightColumnX, section5RightY)
+      section5X = section5RightColumnX + 18
+      while (section5X < section5MarginLeft + section5ContentWidth - 2) {
+        doc.setLineWidth(0.1)
+        doc.line(section5X, section5RightY, Math.min(section5X + section5DashLength, section5MarginLeft + section5ContentWidth - 2), section5RightY)
+        section5X += section5DashLength + section5GapLength
+      }
+
+      // ส่วนที่ 2: ผู้ประเมิน
+      section5CurrentY = section5BoxY + 42
+
+      doc.setFont('THSarabunNew', 'bold')
+      doc.text('ผู้ประเมิน', section5MarginLeft + 2, section5CurrentY)
+      section5CurrentY += 6
+
+      doc.setFont('THSarabunNew', 'normal')
+      // Checkbox 1
+      doc.setLineWidth(0.5)
+      doc.rect(section5MarginLeft + 2, section5CurrentY - 2, 3, 3)
+      doc.text('ได้แจ้งผลการประเมินและผู้รับการประเมิน ได้ลงนาม รับทราบ', section5MarginLeft + 7, section5CurrentY)
+
+      // คอลัมน์ขวา: ลงชื่อ ตำแหน่ง วันที่ (สำหรับ checkbox 1)
+      section5RightY = section5BoxY + 42 + 4 // เริ่มต้นที่ checkbox 1
+      doc.text('ลงชื่อ', section5RightColumnX, section5RightY)
+      section5X = section5RightColumnX + 18
+      while (section5X < section5MarginLeft + section5ContentWidth - 2) {
+        doc.setLineWidth(0.1)
+        doc.line(section5X, section5RightY, Math.min(section5X + section5DashLength, section5MarginLeft + section5ContentWidth - 2), section5RightY)
+        section5X += section5DashLength + section5GapLength
+      }
+
+      // ตำแหน่ง
+      section5RightY += section5LineSpacing
+      doc.text('ตำแหน่ง', section5RightColumnX, section5RightY)
+      section5X = section5RightColumnX + 20
+      while (section5X < section5MarginLeft + section5ContentWidth - 2) {
+        doc.setLineWidth(0.1)
+        doc.line(section5X, section5RightY, Math.min(section5X + section5DashLength, section5MarginLeft + section5ContentWidth - 2), section5RightY)
+        section5X += section5DashLength + section5GapLength
+      }
+
+      // วันที่
+      section5RightY += section5LineSpacing
+      doc.text('วันที่', section5RightColumnX, section5RightY)
+      section5X = section5RightColumnX + 18
+      while (section5X < section5MarginLeft + section5ContentWidth - 2) {
+        doc.setLineWidth(0.1)
+        doc.line(section5X, section5RightY, Math.min(section5X + section5DashLength, section5MarginLeft + section5ContentWidth - 2), section5RightY)
+        section5X += section5DashLength + section5GapLength
+      }
+
+      // Checkbox 2
+      section5CurrentY += section5LineSpacing + 2
+      doc.setLineWidth(0.5)
+      doc.rect(section5MarginLeft + 2, section5CurrentY - 2, 3, 3)
+      let section5TextX = section5MarginLeft + 7
+      const section5MaxX = section5VerticalLineX - 2 // จำกัดให้ไม่เกินเส้นแบ่งคอลัมน์
+      const section5AvailableWidth = section5MaxX - section5TextX // ความกว้างที่ใช้ได้
+      
+      // สร้างข้อความทั้งหมด
+      const checkbox2Text = 'ได้แจ้งผลการประเมินเมื่อวันที่'
+      const checkbox2Text2 = 'แต่ ผู้รับการประเมินไม่ลงนามรับทราบผลการประเมินโดย มี'
+      const checkbox2Text3 = 'เป็นพยาน'
+      
+      // ตรวจสอบความกว้างและตัดขึ้นบรรทัดใหม่ถ้าจำเป็น
+      let currentLineY = section5CurrentY
+      let currentLineX = section5TextX
+      
+      // บรรทัดที่ 1: "ได้แจ้งผลการประเมินเมื่อวันที่" + เส้นประ
+      const text1Width = doc.getTextWidth(checkbox2Text)
+      if (currentLineX + text1Width + 30 > section5MaxX) {
+        // ถ้าเกิน ให้ขึ้นบรรทัดใหม่
+        currentLineY += section5LineSpacing
+        currentLineX = section5MarginLeft + 7
+      }
+      doc.text(checkbox2Text, currentLineX, currentLineY)
+      currentLineX += text1Width + 2
+      
+      // เส้นประสำหรับวันที่ (จำกัดความยาวเท่ากับเส้นประพยาน)
+      const dateDashLength = Math.min(40, section5MaxX - currentLineX - 10)
+      const dateDashEndX = currentLineX + dateDashLength
+      let dateDashX = currentLineX
+      while (dateDashX < dateDashEndX) {
+        doc.setLineWidth(0.1)
+        doc.setDrawColor(0, 0, 0)
+        doc.line(dateDashX, currentLineY, Math.min(dateDashX + section5DashLength, dateDashEndX), currentLineY)
+        dateDashX += section5DashLength + section5GapLength
+      }
+      currentLineX = dateDashEndX
+      
+      // ตรวจสอบว่ามีพื้นที่พอสำหรับข้อความ "แต่ ผู้รับการประเมินไม่ลงนามรับทราบผลการประเมินโดย มี" หรือไม่
+      const text2Width = doc.getTextWidth(checkbox2Text2)
+      const availableWidthForText2 = section5MaxX - currentLineX
+      
+      if (text2Width > availableWidthForText2) {
+        // ถ้าเกิน ให้ขึ้นบรรทัดใหม่
+        currentLineY += section5LineSpacing
+        currentLineX = section5MarginLeft + 7
+      }
+      
+      // "แต่ ผู้รับการประเมินไม่ลงนามรับทราบผลการประเมินโดย มี"
+      doc.text(checkbox2Text2, currentLineX, currentLineY)
+      currentLineX += doc.getTextWidth(checkbox2Text2) + 2
+      
+      // ขึ้นบรรทัดใหม่สำหรับ "มี" (เส้นประ) และ "เป็นพยาน"
+      currentLineY += section5LineSpacing
+      currentLineX = section5MarginLeft + 7
+      
+      // "มี"
+      doc.text('มี', currentLineX, currentLineY)
+      currentLineX += doc.getTextWidth('มี') + 2
+      
+      // เส้นประสำหรับพยาน
+      const witnessTextWidth = doc.getTextWidth(checkbox2Text3)
+      const witnessDashLength = Math.min(40, section5MaxX - currentLineX - witnessTextWidth - 5)
+      const witnessDashEndX = currentLineX + witnessDashLength
+      
+      while (currentLineX < witnessDashEndX && currentLineX < section5MaxX - witnessTextWidth - 5) {
+        doc.setLineWidth(0.1)
+        doc.line(currentLineX, currentLineY, Math.min(currentLineX + section5DashLength, witnessDashEndX), currentLineY)
+        currentLineX += section5DashLength + section5GapLength
+      }
+      currentLineX = witnessDashEndX
+      
+      // "เป็นพยาน"
+      doc.text(checkbox2Text3, currentLineX + 2, currentLineY)
+
+      // เก็บตำแหน่งสุดท้าย
+      const section5FinalY = section5BoxY + section5BoxHeight
+
+      // ส่วนที่ 6: ความเห็นของผู้บังคับบัญชาเหนือขึ้นไป
+      let section6Y = section5FinalY + 10
+      
+      // ตรวจสอบว่าหน้าจะพอหรือไม่ ถ้าไม่พอให้ขึ้นหน้าใหม่
+      if (section6Y > doc.internal.pageSize.getHeight() - 100) {
+        doc.addPage()
+        section6Y = 32
+      }
+
+      doc.setFont('THSarabunNew', 'bold')
+      doc.setFontSize(14)
+      doc.text('ส่วนที่ 6 : ความเห็นของผู้บังคับบัญชาเหนือขึ้นไป', 14, section6Y)
+      section6Y += 7
+
+      // วาดกล่อง
+      const section6MarginLeft = 14
+      const section6MarginRight = 14
+      const section6ContentWidth = pageWidth - section6MarginLeft - section6MarginRight
+      const section6BoxY = section6Y
+      const section6BoxHeight = 70
+      doc.rect(section6MarginLeft, section6BoxY, section6ContentWidth, section6BoxHeight)
+
+      // เส้นแบ่งแนวตั้งระหว่างคอลัมน์ซ้ายและขวา
+      const section6VerticalLineX = section6MarginLeft + section6ContentWidth / 2
+      doc.line(section6VerticalLineX, section6BoxY, section6VerticalLineX, section6BoxY + section6BoxHeight)
+
+      // เส้นแบ่งระหว่างผู้บังคับบัญชาเหนือขึ้นไปและอีกชั้นหนึ่ง
+      doc.line(section6MarginLeft, section6BoxY + 37, section6MarginLeft + section6ContentWidth, section6BoxY + 37)
+
+      const section6DashLength = 1
+      const section6GapLength = 1
+      const section6LineSpacing = 8
+      const section6RightColumnX = section6VerticalLineX + 2
+      const section6MaxX = section6VerticalLineX - 2
+
+      doc.setFont('THSarabunNew', 'normal')
+      doc.setFontSize(14)
+      doc.setLineWidth(0.1)
+      doc.setDrawColor(0, 0, 0)
+
+      let section6CurrentY = section6BoxY + 8
+
+      // ส่วนที่ 1: ผู้บังคับบัญชาเหนือขึ้นไป
+      doc.setFont('THSarabunNew', 'bold')
+      doc.text('ผู้บังคับบัญชาเหนือขึ้นไป', section6MarginLeft + 2, section6CurrentY)
+      section6CurrentY += 6
+
+      doc.setFont('THSarabunNew', 'normal')
+      // Checkbox 1
+      doc.setLineWidth(0.5)
+      doc.rect(section6MarginLeft + 2, section6CurrentY - 2, 3, 3)
+      doc.text('เห็นด้วยกับผลการประเมิน', section6MarginLeft + 7, section6CurrentY)
+      section6CurrentY += section6LineSpacing
+
+      // Checkbox 2
+      doc.setLineWidth(0.5)
+      doc.rect(section6MarginLeft + 2, section6CurrentY - 2, 3, 3)
+      doc.text('มีความเห็นแตกต่าง ดังนี้', section6MarginLeft + 7, section6CurrentY)
+      let section6X = section6MarginLeft + 7 + doc.getTextWidth('มีความเห็นแตกต่าง ดังนี้') + 2
+      while (section6X < section6MaxX) {
+        doc.setLineWidth(0.1)
+        doc.line(section6X, section6CurrentY, Math.min(section6X + section6DashLength, section6MaxX), section6CurrentY)
+        section6X += section6DashLength + section6GapLength
+      }
+
+      // คอลัมน์ขวา: ลงชื่อ ตำแหน่ง วันที่
+      let section6RightY = section6BoxY + 12
+      doc.text('ลงชื่อ', section6RightColumnX, section6RightY)
+      section6X = section6RightColumnX + 18
+      while (section6X < section6MarginLeft + section6ContentWidth - 2) {
+        doc.setLineWidth(0.1)
+        doc.line(section6X, section6RightY, Math.min(section6X + section6DashLength, section6MarginLeft + section6ContentWidth - 2), section6RightY)
+        section6X += section6DashLength + section6GapLength
+      }
+
+      section6RightY += section6LineSpacing
+      doc.text('ตำแหน่ง', section6RightColumnX, section6RightY)
+      section6X = section6RightColumnX + 20
+      while (section6X < section6MarginLeft + section6ContentWidth - 2) {
+        doc.setLineWidth(0.1)
+        doc.line(section6X, section6RightY, Math.min(section6X + section6DashLength, section6MarginLeft + section6ContentWidth - 2), section6RightY)
+        section6X += section6DashLength + section6GapLength
+      }
+
+      section6RightY += section6LineSpacing
+      doc.text('วันที่', section6RightColumnX, section6RightY)
+      section6X = section6RightColumnX + 18
+      while (section6X < section6MarginLeft + section6ContentWidth - 2) {
+        doc.setLineWidth(0.1)
+        doc.line(section6X, section6RightY, Math.min(section6X + section6DashLength, section6MarginLeft + section6ContentWidth - 2), section6RightY)
+        section6X += section6DashLength + section6GapLength
+      }
+
+      // ส่วนที่ 2: ผู้บังคับบัญชาเหนือขึ้นไปอีกชั้นหนึ่ง
+      section6CurrentY = section6BoxY + 42
+
+      doc.setFont('THSarabunNew', 'bold')
+      doc.text('ผู้บังคับบัญชาเหนือขึ้นไปอีกชั้นหนึ่ง (ถ้ามี)', section6MarginLeft + 2, section6CurrentY)
+      section6CurrentY += 6
+
+      doc.setFont('THSarabunNew', 'normal')
+      // Checkbox 1
+      doc.setLineWidth(0.5)
+      doc.rect(section6MarginLeft + 2, section6CurrentY - 2, 3, 3)
+      doc.text('เห็นด้วยกับผลการประเมิน', section6MarginLeft + 7, section6CurrentY)
+      section6CurrentY += section6LineSpacing
+
+      // Checkbox 2
+      doc.setLineWidth(0.5)
+      doc.rect(section6MarginLeft + 2, section6CurrentY - 2, 3, 3)
+      doc.text('มีความเห็นแตกต่าง ดังนี้', section6MarginLeft + 7, section6CurrentY)
+      section6X = section6MarginLeft + 7 + doc.getTextWidth('มีความเห็นแตกต่าง ดังนี้') + 2
+      while (section6X < section6MaxX) {
+        doc.setLineWidth(0.1)
+        doc.line(section6X, section6CurrentY, Math.min(section6X + section6DashLength, section6MaxX), section6CurrentY)
+        section6X += section6DashLength + section6GapLength
+      }
+
+      // คอลัมน์ขวา: ลงชื่อ ตำแหน่ง วันที่
+      section6RightY = section6BoxY + 42 + 4
+      doc.text('ลงชื่อ', section6RightColumnX, section6RightY)
+      section6X = section6RightColumnX + 18
+      while (section6X < section6MarginLeft + section6ContentWidth - 2) {
+        doc.setLineWidth(0.1)
+        doc.line(section6X, section6RightY, Math.min(section6X + section6DashLength, section6MarginLeft + section6ContentWidth - 2), section6RightY)
+        section6X += section6DashLength + section6GapLength
+      }
+
+      section6RightY += section6LineSpacing
+      doc.text('ตำแหน่ง', section6RightColumnX, section6RightY)
+      section6X = section6RightColumnX + 20
+      while (section6X < section6MarginLeft + section6ContentWidth - 2) {
+        doc.setLineWidth(0.1)
+        doc.line(section6X, section6RightY, Math.min(section6X + section6DashLength, section6MarginLeft + section6ContentWidth - 2), section6RightY)
+        section6X += section6DashLength + section6GapLength
+      }
+
+      section6RightY += section6LineSpacing
+      doc.text('วันที่', section6RightColumnX, section6RightY)
+      section6X = section6RightColumnX + 18
+      while (section6X < section6MarginLeft + section6ContentWidth - 2) {
+        doc.setLineWidth(0.1)
+        doc.line(section6X, section6RightY, Math.min(section6X + section6DashLength, section6MarginLeft + section6ContentWidth - 2), section6RightY)
+        section6X += section6DashLength + section6GapLength
+      }
+
+      // คำจำกัดความ
+      // บังคับขึ้นหน้าใหม่
+      doc.addPage()
+      let definitionsY = 32
+
+      doc.setFont('THSarabunNew', 'bold')
+      doc.setFontSize(14)
+      doc.text('คำจำกัดความ', 14, definitionsY)
+      definitionsY += 7
+
+      const definitions = [
+        { title: 'ภาระงานหลัก', text: 'คือ งานที่ต้องรับผิดชอบตามตำแหน่งหน้าที่หรืองานที่ผู้บังคับบัญชาได้กำหนดให้เป็นภาระงาน' },
+        { title: 'ภาระงานบริหาร', text: 'คือ การปฏิบัติงานที่ครอบคลุมถึงการมอบหมาย วินิจฉัย สั่งการ ควบคุม ตรวจสอบ ให้คำปรึกษาแนะนำปรับปรุงแก้ไข ติดตาม ประเมินผลและแก้ปัญหาขัดข้องในหน่วยงานที่รับผิดชอบให้เกิดความถูกต้อง เรียบร้อย สมบูรณ์และทันเหตุการณ์ทั้งนี้รวมถึงงานวางแผนประจำ งานแผนกลยุทธ์ งานการประชุม' },
+        { title: 'ภาระงานเชิงพัฒนา/บริการวิชาการ', text: 'คือ การปฏิบัติงานโครงการ กิจกรรมที่มีการคิดค้น แก้ปัญหา ปรับปรุงและพัฒนาหรือสร้างนวัตกรรม ระบบงาน อาทิ การจัดทำคู่มือการปฏิบัติงานมาตรฐานการทำงานการลดขั้นตอนการทำงานรวมถึงการค้นคว้า วิเคราะห์ วิจัยเพื่อพัฒนางานใหม่' },
+        { title: 'ภาระงานที่ได้รับมอบหมาย', text: 'คือ การปฏิบัติงานตามที่ได้รับมอบหมายอื่น ๆ เช่นหน้าที่ที่ได้รับมอบหมายจากผู้บังคับบัญชานอกเหนือจากภาระงานหลัก การเป็นกรรมการหรือคณะทำงานเพื่อพัฒนางานส่วนรวมของหน่วยงานหรือมหาวิทยาลัย' }
+      ]
+
+      doc.setFontSize(12)
+      const definitionsAvailableWidth = pageWidth - 50 // margin left + right + padding
+      const definitionsStartX = 18
+
+      definitions.forEach((def) => {
+        // แสดง bullet point และ title
+        doc.setFont('THSarabunNew', 'normal')
+        doc.text('-', definitionsStartX - 4, definitionsY)
+        
+        doc.setFont('THSarabunNew', 'bold')
+        doc.text(def.title, definitionsStartX, definitionsY)
+        
+        const titleWidth = doc.getTextWidth(def.title)
+        const textStartX = definitionsStartX + titleWidth + 1
+        const textAvailableWidth = definitionsAvailableWidth - (textStartX - definitionsStartX)
+        
+        // แบ่งข้อความ (text) เป็นหลายบรรทัดโดยอัตโนมัติโดยใช้ splitTextToSize
+        doc.setFont('THSarabunNew', 'normal')
+        
+        // ใช้ splitTextToSize เพื่อแบ่งข้อความ
+        const splitLines = doc.splitTextToSize(def.text, textAvailableWidth)
+        
+        splitLines.forEach((line: string, index: number) => {
+          const lineY = definitionsY + (index * 8)
+          if (index === 0) {
+            // บรรทัดแรก เริ่มต่อจาก title
+            doc.text(line, textStartX, lineY)
+          } else {
+            // บรรทัดถัดไป เริ่มจาก definitionsStartX
+            doc.text(line, definitionsStartX, lineY)
+          }
+        })
+        
+        const lineY = definitionsY + (splitLines.length * 8)
+        
+        // เว้นระยะห่างระหว่างข้อ
+        definitionsY = lineY 
+      })
 
       const titleLine1 = 'ข้อตกลงและแบบประเมินผลการปฏิบัติงานของบุคลากรสายวิชาการ'
 

@@ -85,7 +85,7 @@ const StickyFooter: React.FC<StickyFooterProps> = ({
                   type="button"
                   onClick={onSecondary}
                   disabled={secondaryDisabled}
-                  className={`h-10 px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md transition-colors duration-200 ${
+                  className={`h-10 px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white rounded-md transition-colors duration-200 ${
                     secondaryDisabled ? 'cursor-not-allowed opacity-60' : 'hover:bg-gray-50'
                   }`}
                 >

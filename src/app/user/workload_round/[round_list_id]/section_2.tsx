@@ -661,7 +661,7 @@ const Section2: React.FC<Section2Props> = ({
             </div>
             <div className="flex justify-between">
               <div className="block md:hidden">
-                <p className="m-0 text-md font-semibold">
+                <p className="m-0 text-md font-semibold"> 
                   <span className="text-sm font-light text-gray-500">เท่ากับ</span>{' '}
                   <span className="text-blue-600"> {competencyScoreSummary.totalScore}</span> <span className="text-red-500">/ 30</span>
                 </p>
@@ -677,7 +677,7 @@ const Section2: React.FC<Section2Props> = ({
                   <p className="m-0 text-md font-semibold"> 
                     <span className="text-md font-light text-gray-500">(8) คะแนนที่ได้ {" "}</span>
                     {competencyTotalScoreCalc.toFixed(2)}{' '}
-                    <span className="text-md font-light text-gray-500">คะแนน</span>
+                   <span className="text-md font-light text-gray-500">คะแนน</span>
                   </p>
                   {isFinalized && evaluatedCompetencyScoreSummary && (
                     <p className="m-0 text-md font-semibold mt-1">

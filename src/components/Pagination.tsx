@@ -58,56 +58,22 @@ export default function Pagination({
       <div className="relative" ref={dropdownRef}>
         <button
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className="w-14 rounded border border-gray-300 bg-white px-3 py-1 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          style={{
-            backgroundColor: 'white',
-            color: '#374151',
-            border: '1px solid #d1d5db',
-            borderRadius: '4px',
-            padding: '4px 12px',
-            fontSize: '14px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '56px'
-          }}
+          className="flex w-14 items-center justify-center rounded border border-gray-300 bg-white px-3 py-1 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700"
         >
           {ITEMS_PER_PAGE}
         </button>
         
         {isDropdownOpen && (
-          <div 
-            className="absolute top-full left-0 z-10 mt-1 rounded border border-gray-300 bg-white shadow-lg"
-            style={{
-              backgroundColor: 'white',
-              border: '1px solid #d1d5db',
-              borderRadius: '4px',
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-              position: 'absolute',
-              top: '100%',
-              left: 0,
-              zIndex: 10,
-              marginTop: '4px',
-              minWidth: '100%'
-            }}
-          >
+          <div className="absolute top-full left-0 z-10 mt-1 min-w-full rounded border border-gray-300 bg-white shadow-lg dark:border-gray-700 dark:bg-zinc-800">
             {rowsPerPageOptions.map((option) => (
               <button
                 key={option}
                 onClick={() => handleOptionClick(option)}
-                className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 ${
-                  option === ITEMS_PER_PAGE ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
+                className={`w-full px-3 py-2 text-left text-sm ${
+                  option === ITEMS_PER_PAGE
+                    ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                    : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-zinc-700'
                 }`}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  textAlign: 'left',
-                  fontSize: '14px',
-                  backgroundColor: option === ITEMS_PER_PAGE ? '#eff6ff' : 'white',
-                  color: option === ITEMS_PER_PAGE ? '#2563eb' : '#374151',
-                  border: 'none',
-                  cursor: 'pointer'
-                }}
               >
                 {option}
               </button>
@@ -136,9 +102,9 @@ export default function Pagination({
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-4">
         {showRowsPerPageSelector && onRowsPerPageChange && (
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">แสดง</span>
+            <span className="text-sm text-gray-600 dark:text-white">แสดง</span>
             <CustomDropdown />
-            <span className="text-sm text-gray-600">รายการต่อหน้า</span>
+            <span className="text-sm text-gray-600 dark:text-white">รายการต่อหน้า</span>
           </div>
         )}
       </div>
@@ -171,7 +137,7 @@ export default function Pagination({
           <MdKeyboardArrowLeft size={24} />
         </button>
 
-        <span className="text-sm text-gray-600">
+        <span className="text-sm text-gray-600 dark:text-white">
           หน้า <span className="font-light">{page}</span> จาก{' '}
           <span className="font-light">{totalPages}</span>
         </span>
@@ -179,8 +145,8 @@ export default function Pagination({
         <button
           className={`rounded-full p-2 ${
             page >= totalPages
-              ? 'cursor-default text-gray-400'
-              : 'cursor-pointer text-gray-600 hover:bg-gray-200'
+              ? 'cursor-default text-gray-400 dark:text-white'
+              : 'cursor-pointer text-gray-600 hover:bg-gray-200 dark:text-white'
           }`}
           onClick={() => changePage(page + 1)}
           disabled={page >= totalPages}
@@ -191,8 +157,8 @@ export default function Pagination({
         <button
           className={`rounded-full p-2 ${
             page >= totalPages
-              ? 'cursor-default text-gray-400'
-              : 'cursor-pointer text-gray-600 hover:bg-gray-200'
+              ? 'cursor-default text-gray-400 dark:text-white'
+              : 'cursor-pointer text-gray-600 hover:bg-gray-200 dark:text-white'
           }`}
           onClick={() => changePage(totalPages)}
           disabled={page >= totalPages}
