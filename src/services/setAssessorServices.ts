@@ -90,7 +90,7 @@ export interface CreateSetAssessorInfoMultipleRequest {
 const SetAssessorServices = {
   // Round List APIs
   getAllRoundLists: (
-    accessToken: string, 
+    accessToken: string,
     params?: {
       search?: string
       page?: number
@@ -156,7 +156,7 @@ const SetAssessorServices = {
   },
 
   getSetAssessorListByRound: (
-    roundListId: number, 
+    roundListId: number,
     accessToken: string,
     params?: {
       search?: string
@@ -206,7 +206,7 @@ const SetAssessorServices = {
 
   // Set Assessor Info APIs
   getSetAssessorInfo: (
-    setAssesListId: number, 
+    setAssesListId: number,
     accessToken: string,
     params?: {
       search?: string
@@ -279,11 +279,11 @@ const SetAssessorServices = {
   },
 
   // ดึงข้อมูลผู้รับการประเมินจาก set_asses_list_id
-  getAssesseeBySetAssesListId: (setAssesListId: number, accessToken: string): Promise<ResponsePayload<any>> => {
-    return http.get(`/assessee/${setAssesListId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
-  },
+  // getAssesseeBySetAssesListId: (setAssesListId: number, accessToken: string): Promise<ResponsePayload<any>> => {
+  //   return http.get(`/assessee/${setAssesListId}`, {
+  //     headers: { Authorization: `Bearer ${accessToken}` },
+  //   })
+  // },
 
   // ดึงรายชื่อผู้ใช้ที่มีตำแหน่งบริหาร (สำหรับแต่งตั้งผู้ประเมิน)
   getAllExUsers: (setAssesListId: number, accessToken: string): Promise<ResponsePayload<any>> => {
@@ -309,7 +309,7 @@ const SetAssessorServices = {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
   },
-  
+
 }
 
 export default SetAssessorServices

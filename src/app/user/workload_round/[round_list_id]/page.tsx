@@ -8,7 +8,7 @@ import StickyFooter from '@/components/StickyFooter'
 import ConfirmSubmitFormModal from './_partial/confirmSubmitModal'
 import WorkloadFormServices from '@/services/workloadFormServices'
 import SnapshotService from '@/services/snapshotService'
-import _successForm from './_successForm'
+import SuccessForm from './_successForm'
 
 export default function ExpositionSelection() {
     const params = useParams()
@@ -22,7 +22,7 @@ export default function ExpositionSelection() {
     const [formStatus, setFormStatus] = useState<number | null>(null)
     const [workloadGroupInfo, setWorkloadGroupInfo] = useState<any>(null)
     const [loading, setLoading] = useState<boolean>(true)
-    
+
     // ตรวจสอบ query parameter success
     const isSuccess = searchParams.get('success') === 'true'
 
@@ -112,19 +112,19 @@ export default function ExpositionSelection() {
 
             const formlist_id = formlistResponse.payload[0].formlist_id
             const set_asses_list_id = formlistResponse.payload[0].set_asses_list_id
-            
+
             console.log('Formlist response:', formlistResponse)
             console.log('Formlist payload:', formlistResponse.payload)
             console.log('Formlist ID:', formlist_id)
             console.log('Set Assessor List ID:', set_asses_list_id)
             console.log('User ID:', user.id)
             console.log('Round ID:', round_list_id)
-            
+
             if (!formlist_id || !set_asses_list_id) {
                 alert('ไม่พบ formlist_id หรือ set_asses_list_id ใน response')
                 return
             }
-            
+
             const submitData = {
                 formlist_id: formlist_id,
                 as_u_id: user.id,
@@ -132,7 +132,7 @@ export default function ExpositionSelection() {
             }
 
             console.log('Submitting form with snapshot:', submitData)
-            
+
             // 1. อัปเดต status จาก 0 เป็น 1 (API เดิม)
             const updateStatusResponse = await WorkloadFormServices.updateWorkloadFormStatus(
                 set_asses_list_id, // ใช้ set_asses_list_id แทน formlist_id
@@ -207,7 +207,7 @@ export default function ExpositionSelection() {
                         </p>
                     </div>
                 )}
-                <_successForm 
+                <SuccessForm
                     selectedGroupName={workloadGroupInfo?.workload_group_name || undefined}
                     userId={user?.id || undefined}
                     roundId={parseInt(round_list_id) || undefined}

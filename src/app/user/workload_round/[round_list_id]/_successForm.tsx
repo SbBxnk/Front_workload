@@ -5,13 +5,13 @@ import WorkloadForm from './_workloadForm'
 import WorkloadFormServices from '@/services/workloadFormServices'
 import { useSession } from 'next-auth/react'
 
-interface _successFormProps {
+interface SuccessFormProps {
   selectedGroupName?: string
   userId?: number
   roundId?: number
 }
 
-export default function _successForm({ selectedGroupName, userId, roundId }: _successFormProps) {
+export default function SuccessForm({ selectedGroupName, userId, roundId }: SuccessFormProps) {
   const { data: session } = useSession()
   const [terms, setTerms] = useState<Terms[]>([])
   const [loading, setLoading] = useState(true)
@@ -33,17 +33,17 @@ export default function _successForm({ selectedGroupName, userId, roundId }: _su
     fetchTerms()
   }, [session?.accessToken])
 
- 
+
   const uniqueTasks = Array.isArray(terms)
     ? [...new Set(terms.map((term) => term.task_name))].reverse()
     : []
 
   // แสดงเฉพาะกลุ่มงานที่เลือก
-  const uniqueGroups = selectedGroupName 
+  const uniqueGroups = selectedGroupName
     ? [selectedGroupName]
     : Array.isArray(terms)
-    ? [...new Set(terms.map((term) => term.workload_group_name))]
-    : []
+      ? [...new Set(terms.map((term) => term.workload_group_name))]
+      : []
 
   // ฟังก์ชันหาจำนวนชั่วโมงตามภาระงานและกลุ่มงาน
   const getWorkloadHours = (taskName: string, groupName: string) => {
@@ -73,7 +73,7 @@ export default function _successForm({ selectedGroupName, userId, roundId }: _su
       {Array.isArray(terms) && terms.length > 0 && (
         <div className="rounded-md bg-white px-4 pt-4 pb-1 shadow transition-all duration-300 ease-in-out dark:bg-zinc-900 dark:text-gray-400">
           <h2 className="text-lg font-medium text-gray-700">
-            {selectedGroupName 
+            {selectedGroupName
               ? `เกณฑ์การประเมินภาระงานของกลุ่มภาระงาน: ${selectedGroupName}`
               : 'เกณฑ์การประเมินภาระงานของแต่ละด้านภาระงาน'
             }
@@ -135,7 +135,7 @@ export default function _successForm({ selectedGroupName, userId, roundId }: _su
       )}
 
       {/* ฟอร์มภาระงานใหม่ */}
-      <WorkloadForm 
+      <WorkloadForm
         selectedGroupName={selectedGroupName}
         terms={terms}
         userId={userId}

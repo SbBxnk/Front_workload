@@ -29,6 +29,13 @@ const Section1: React.FC<Section1Props> = ({
   const isFinalized = formlistStatus === 2
   const baseUrl = process.env.NEXT_PUBLIC_API?.replace('/api', '') || 'http://localhost:3333'
 
+  // ฟังก์ชันสำหรับ format ตัวเลข: แสดงจำนวนเต็มถ้าไม่มีทศนิยม, แสดงทศนิยมถ้ามี
+  const formatNumber = (num: number): string => {
+    if (!Number.isFinite(num)) return '-'
+    const rounded = Number(num.toFixed(2))
+    return Number.isInteger(rounded) ? rounded.toString() : num.toFixed(2)
+  }
+
   return (
     <div className="space-y-8">
       <div className="space-y-4">
@@ -201,7 +208,7 @@ const Section1: React.FC<Section1Props> = ({
                               {isFinalized && (
                                 <td className="border border-gray-300 dark:border-gray-700 px-4 py-2 text-center text-green-600 font-semibold  text-sm">
                                   {(formInfo as any).evaluation_score != null 
-                                    ? Number((formInfo as any).evaluation_score).toFixed(2)
+                                    ? formatNumber(Number((formInfo as any).evaluation_score))
                                     : '-'}
                                 </td>
                               )}
@@ -256,7 +263,7 @@ const Section1: React.FC<Section1Props> = ({
                                 }, 0),
                               0
                             )
-                            return hasAny ? total.toFixed(2) : '-'
+                            return hasAny ? formatNumber(total) : '-'
                           })()}
                         </td>
                       )}
@@ -368,7 +375,7 @@ const Section1: React.FC<Section1Props> = ({
                                     }, 0),
                                   0
                                 )
-                                return hasAny ? evalTotal.toFixed(2) : '-'
+                                return hasAny ? formatNumber(evalTotal) : '-'
                               })()}
                             </td>
                           )}
@@ -449,7 +456,7 @@ const Section1: React.FC<Section1Props> = ({
                               }, 0), 0
                             ), 0
                           )
-                          return hasAny ? total.toFixed(2) : '-'
+                          return hasAny ? formatNumber(total) : '-'
                         })()}
                       </span>
                     </td>
@@ -470,17 +477,17 @@ const Section1: React.FC<Section1Props> = ({
                 <div className="flex flex-col items-end gap-1">
                   <p className="text-md font-semibold text-blue-600 m-0">
                     <span className="text-md font-light text-gray-500">(7) คะแนนที่คาดหวัง {" "}</span> 
-                    {performanceScoreOutOf70.toFixed(2)} <span className="text-sm font-light text-gray-500 m-0">คะแนน</span>
+                    {formatNumber(performanceScoreOutOf70)} <span className="text-sm font-light text-gray-500 m-0">คะแนน</span>
                   </p>
                   <p className="text-md font-semibold text-green-600 m-0">
                     <span className="text-md font-light text-gray-500">(7) คะแนนที่ได้ {" "}</span> 
-                    {performanceScoreOutOf70Evaluated.toFixed(2)} <span className="text-sm font-light text-gray-500 m-0">คะแนน</span>
+                    {formatNumber(performanceScoreOutOf70Evaluated)} <span className="text-sm font-light text-gray-500 m-0">คะแนน</span>
                   </p>
                 </div>
               ) : (
                 <p className="text-md font-semibold text-blue-600 m-0">
                   <span className="text-md font-light text-gray-500">(7) คะแนนที่คาดหวัง {" "}</span> 
-                  {performanceScoreOutOf70.toFixed(2)} <span className="text-sm font-light text-gray-500 m-0">คะแนน</span>
+                  {formatNumber(performanceScoreOutOf70)} <span className="text-sm font-light text-gray-500 m-0">คะแนน</span>
                 </p>
               )}
             </div>

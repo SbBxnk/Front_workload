@@ -61,15 +61,15 @@ export default function Login() {
       })
 
       if (result?.ok) {
-        Swal.fire({
-          icon: 'success',
-          title: 'เข้าสู่ระบบสำเร็จ!',
-          showConfirmButton: false,
-          timer: 1000,
-        }).then(async () => {
-          await new Promise((resolve) => setTimeout(resolve, 500))
+        // Swal.fire({
+        //   icon: 'success',
+        //   title: 'เข้าสู่ระบบสำเร็จ!',
+        //   showConfirmButton: false,
+        //   timer: 1000,
+        // }).then(async () => {
+        //   await new Promise((resolve) => setTimeout(resolve, 500))
           router.push('/auth/redirect')
-        })
+        // })
       } else {
         Swal.fire({
           icon: 'error',

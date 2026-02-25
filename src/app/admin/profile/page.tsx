@@ -46,16 +46,16 @@ const convertToThaiDate = (dateString: string) => {
   try {
     const date = new Date(dateString)
     if (isNaN(date.getTime())) return dateString
-    
+
     const thaiMonths = [
       'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
       'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
     ]
-    
+
     const day = date.getDate()
     const month = thaiMonths[date.getMonth()]
     const year = date.getFullYear() + 543 // แปลงเป็น พ.ศ.
-    
+
     return `${day} ${month} ${year}`
   } catch (error) {
     return dateString
@@ -101,9 +101,7 @@ export default function EditProfile() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('Form submitted - Full edit mode (all fields except password)')
-    console.log('User data:', user)
-    
+
     if (formRef.current && user) {
       const formData = new FormData()
 
@@ -136,60 +134,59 @@ export default function EditProfile() {
         console.log('Using existing profile image:', user.u_img)
       }
 
-      console.log('FormData contents:')
       for (const [key, value] of formData.entries()) {
         console.log(key, value)
       }
 
-        try {
-          
-          const response = await AuthService.UpdateProfile(session?.accessToken as string, formData)
-          
-          if (response.success) {
-            console.log('Profile updated successfully:', response.payload)
-            setIsEditing(false)
-            
-            // รีเซ็ต preview image หลังจากอัปเดตสำเร็จ
-            if (previewImage && previewImage.startsWith('blob:')) {
-              URL.revokeObjectURL(previewImage)
-              setPreviewImage(null)
-            }
+      try {
 
-            
-            // แสดง SweetAlert สำเร็จ
-            Swal.fire({
-              title: 'สำเร็จ!',
-              text: 'บันทึกข้อมูลส่วนตัวเรียบร้อยแล้ว กรุณาเข้าสู่ระบบอีกครั้ง',
-              icon: 'success',
-              confirmButtonText: 'ตกลง',
-              confirmButtonColor: '#10b981'
-            }).then(() => {
-              signOut({ callbackUrl: '/login' })
-            })
-          } else {
-            console.error('Failed to update profile:', response.message)
-            
-            // แสดง SweetAlert error จาก message
-            Swal.fire({
-              title: 'เกิดข้อผิดพลาด!',
-              text: response.message || 'ไม่สามารถบันทึกข้อมูลได้',
-              icon: 'error',
-              confirmButtonText: 'ตกลง',
-              confirmButtonColor: '#ef4444'
-            })
+        const response = await AuthService.UpdateProfile(session?.accessToken as string, formData)
+
+        if (response.success) {
+          console.log('Profile updated successfully:', response.payload)
+          setIsEditing(false)
+
+          // รีเซ็ต preview image หลังจากอัปเดตสำเร็จ
+          if (previewImage && previewImage.startsWith('blob:')) {
+            URL.revokeObjectURL(previewImage)
+            setPreviewImage(null)
           }
-        } catch (error: any) {
-          console.error('Error updating profile:', error)
-          
-          // แสดง SweetAlert error จาก catch
+
+
+          // แสดง SweetAlert สำเร็จ
+          Swal.fire({
+            title: 'สำเร็จ!',
+            text: 'บันทึกข้อมูลส่วนตัวเรียบร้อยแล้ว กรุณาเข้าสู่ระบบอีกครั้ง',
+            icon: 'success',
+            confirmButtonText: 'ตกลง',
+            confirmButtonColor: '#10b981'
+          }).then(() => {
+            signOut({ callbackUrl: '/login' })
+          })
+        } else {
+          console.error('Failed to update profile:', response.message)
+
+          // แสดง SweetAlert error จาก message
           Swal.fire({
             title: 'เกิดข้อผิดพลาด!',
-            text: error?.response?.data?.message || error?.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ',
+            text: response.message || 'ไม่สามารถบันทึกข้อมูลได้',
             icon: 'error',
             confirmButtonText: 'ตกลง',
             confirmButtonColor: '#ef4444'
           })
         }
+      } catch (error: any) {
+        console.error('Error updating profile:', error)
+
+        // แสดง SweetAlert error จาก catch
+        Swal.fire({
+          title: 'เกิดข้อผิดพลาด!',
+          text: error?.response?.data?.message || error?.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ',
+          icon: 'error',
+          confirmButtonText: 'ตกลง',
+          confirmButtonColor: '#ef4444'
+        })
+      }
     } else {
       console.log('Form reference is null or user data is not available')
     }
@@ -235,7 +232,7 @@ export default function EditProfile() {
     <div className={isEditing ? 'pb-24' : 'pb-0'}>
       <form onSubmit={handleSubmit} ref={formRef}>
         <div className="flex flex-col gap-4 h-auto w-full ">
-          
+
           <div className="bg-white rounded-md text-base-content shadow transition-all duration-300 ease-in-out dark:bg-zinc-900 flex flex-col p-4 lg:flex-row">
             <div className="h-full w-full">
               <div className="space-y-2">
@@ -253,11 +250,10 @@ export default function EditProfile() {
                   <div className="flex flex-row items-center justify-center">
                     <div
                       {...(isEditing ? getRootProps() : {})}
-                      className={`relative h-36 w-36 overflow-hidden rounded-md border-2 border-dashed transition-colors duration-300 ease-in-out md:h-48 md:w-48 ${
-                        isEditing
-                          ? 'cursor-pointer border-amber-500 bg-gray-100 hover:border-amber-600 dark:border-amber-500 dark:bg-zinc-700 dark:hover:border-amber-600'
-                          : 'cursor-not-allowed border-gray-200 bg-gray-50 dark:border-gray-600 dark:bg-zinc-800'
-                      }`}
+                      className={`relative h-36 w-36 overflow-hidden rounded-md border-2 border-dashed transition-colors duration-300 ease-in-out md:h-48 md:w-48 ${isEditing
+                        ? 'cursor-pointer border-amber-500 bg-gray-100 hover:border-amber-600 dark:border-amber-500 dark:bg-zinc-700 dark:hover:border-amber-600'
+                        : 'cursor-not-allowed border-gray-200 bg-gray-50 dark:border-gray-600 dark:bg-zinc-800'
+                        }`}
                     >
                       <input {...getInputProps()} name="u_img" />
                       <div className="relative h-full w-full">

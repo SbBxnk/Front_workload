@@ -26,7 +26,7 @@ import Section5 from './section_5'
 import Section6 from './section_6'
 import Section2CalModal from './_partial/section2CalModal'
 import { handleExportPDFWithLinks } from './exportPDF'
-import { handleExportPDFWithLinks as handleExportPDFEvaluatedWithLinks } from './exportPDFEvaluated'
+import { handleExportPDFEvaluatedWithLinks } from './exportPDFEvaluated'
 
 interface WorkloadFormProps {
   selectedGroupName?: string
@@ -465,16 +465,12 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
       )
 
       if (!formlistResponse.success || !formlistResponse.payload) {
-        console.log('No formlist found, using regular API')
-        // ถ้าไม่มี formlist ให้ใช้ API ปกติ
         const response = await axios.get(
           `${process.env.NEXT_PUBLIC_API}/workload_form/items/${userId}/${roundId}`,
           { headers: memoizedHeaders }
         )
 
         if (response.data.success && response.data.payload) {
-          console.log('API Response:', response.data.payload)
-          console.log('Number of tasks:', response.data.payload.length)
           setWorkloadData(response.data.payload)
         }
         return
@@ -496,8 +492,6 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
           )
 
           if (snapshotResponse.success && snapshotResponse.payload) {
-            console.log('Snapshot Response:', snapshotResponse.payload)
-            console.log('Formlist Status:', status)
             // ตรวจสอบ evaluation_score ในข้อมูล
             if (status === 2) {
               const hasEvaluationScores = snapshotResponse.payload.some((item: any) => item.evaluation_score != null)
@@ -628,8 +622,6 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
           }
         }
       } else {
-        // ถ้า status = 0 (ยังไม่ส่ง) ให้ใช้ API ปกติ
-        console.log('Form not submitted, fetching from regular API')
         try {
           const response = await axios.get(
             `${process.env.NEXT_PUBLIC_API}/workload_form/items/${userId}/${roundId}`,
@@ -643,7 +635,6 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
           }
         } catch (regularApiError) {
           console.error('Error fetching regular API:', regularApiError)
-          // ใช้ mock data เป็น fallback
           const mockData: Task[] = [
             {
               task_id: 1,
@@ -977,6 +968,8 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
     return Math.min(70, score)
   }, [totalPerformanceWorkloadEvaluated])
 
+  const isFinalized = formlistStatus === 2
+
   const handleExportPDFEvaluatedWrapper = async () => {
     await handleExportPDFEvaluatedWithLinks({
       onExportStart: () => setExporting(true),
@@ -991,11 +984,10 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
       terms,
       performanceSnapshot,
       performanceScoreOutOf70: performanceScoreOutOf70Evaluated,
-      userId
+      userId,
+      isFinalized
     })
   }
-
-  const isFinalized = formlistStatus === 2
 
   return (
     <>

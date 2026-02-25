@@ -78,7 +78,7 @@ const WorkloadEvaluationService = {
       .get(`/workload_evaluation/${formlistId}/${setAssesInfoId}`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
-      .then((res) => {
+      .then((res: any) => {
         const payload = res?.payload
         if (Array.isArray(payload)) {
           return payload[0] as EvaluationResponse
@@ -111,7 +111,7 @@ const WorkloadEvaluationService = {
       .post(`/workload_evaluation/${evaluationId}/submit`, {}, {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
-      .then((res) => res.payload?.[0] ?? res.payload)
+      .then((res: any) => res.payload?.[0] ?? res.payload)
   },
 }
 
