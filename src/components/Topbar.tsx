@@ -81,7 +81,7 @@ export default function Topbar({
             },
           }
         )
-        
+
         if (response.status === 200 && response.data?.payload?.task_name) {
           setTaskName(response.data.payload)
         } else if (response.status === 200 && response.data?.data?.task_name) {
@@ -90,8 +90,6 @@ export default function Topbar({
           setTaskName({ task_id: 0, task_name: 'ไม่พบข้อมูล' })
         }
       } catch (error: any) {
-        console.error('❌ Error fetching task name:', error)
-        console.error('❌ Error details:', error.response?.data)
         setTaskName({ task_id: 0, task_name: 'ไม่สามารถโหลดข้อมูลได้' })
       } finally {
         setIsLoading(false)
@@ -144,18 +142,17 @@ export default function Topbar({
             <BreadcrumbNav />
           </div>
           <div className="flex items-center space-x-4">
-            <button
+            {/* <button
               onClick={toggleTheme}
-              className={`rounded-full bg-gray-200 p-2 text-gray-800 transition-all duration-300 dark:bg-gray-600 dark:text-yellow-500 ${
-                isDarkMode ? '' : '-rotate-180'
-              }`}
+              className={`rounded-full bg-gray-200 p-2 text-gray-800 transition-all duration-300 dark:bg-gray-600 dark:text-yellow-500 ${isDarkMode ? '' : '-rotate-180'
+                }`}
             >
               {isDarkMode ? (
                 <Moon width={16} height={16} />
               ) : (
                 <SunMedium width={16} height={16} />
               )}
-            </button>
+            </button> */}
             <div className="flex items-center">
               {isLoading ? (
                 <div className="flex items-center space-x-2">
@@ -168,7 +165,7 @@ export default function Topbar({
               ) : (
                 <>
                   <div className="relative">
-                    <div 
+                    <div
                       className="relative mx-auto mr-2 h-10 w-10 overflow-hidden rounded-full border-2 border-gray-100 cursor-pointer hover:border-gray-300 transition-colors duration-200"
                       onClick={() => setIsProfileDialogOpen(!isProfileDialogOpen)}
                     >
@@ -184,7 +181,7 @@ export default function Topbar({
                         sizes="96px"
                       />
                     </div>
-                    
+
                     {/* User Profile Dialog */}
                     <UserProfileDialog
                       isOpen={isProfileDialogOpen}
@@ -197,7 +194,7 @@ export default function Topbar({
                       }}
                     />
                   </div>
-                  
+
                   {/* <div className="hidden flex-row leading-6 md:block">
                     <h4 className="font-regular truncate text-start text-gray-600 dark:text-gray-400">
                       {user?.u_fname} {user?.u_lname}

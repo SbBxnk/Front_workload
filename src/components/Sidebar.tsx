@@ -87,20 +87,6 @@ const adminMenuItems = [
       },
     ],
   },
- 
-  {
-    title: 'ข้อมูลมาสเตอร์',
-    items: [
-      { id: 1, label: 'คำนำหน้า', icon: CircleHelp, href: '/admin/prefix' },
-      { id: 2, label: 'ตำแหน่งวิชาการ', icon: Armchair, href: '/admin/position' },
-      { id: 3, label: 'ตำแหน่งบริหาร', icon: Sofa, href: '/admin/ex-position' },
-      { id: 4, label: 'สาขา', icon: GraduationCap, href: '/admin/branch' },
-      { id: 5, label: 'หลักสูตร', icon: LibraryBigIcon, href: '/admin/course' },
-      { id: 6, label: 'ประเภทบุคลากร', icon: UserPen, href: '/admin/personal-type' },
-      // { id: 7, label: 'ระดับผู้ใช้งาน', icon: CircleUser, href: '/admin/user-level' },
-      // { id: 8, label: 'รอบการประเมิน', icon: Calendar, href: '/admin/round' },
-    ],
-  },
   {
     title: 'ข้อมูลรอบการประเมินภาระงาน',
     items: [
@@ -122,6 +108,19 @@ const adminMenuItems = [
       { id: 4, label: 'รายการสมรรถนะ', icon: BicepsFlexed, href: '/admin/competency' },
       { id: 5, label: 'เกณฑ์จำนวนภาระงาน', icon: NotepadText, href: '/admin/workload-quantity' },
       { id: 6, label: 'เกณฑ์สมรรถนะ', icon: Sheet, href: '/admin/performance-term' },
+    ],
+  },
+  {
+    title: 'ข้อมูลมาสเตอร์',
+    items: [
+      { id: 1, label: 'คำนำหน้า', icon: CircleHelp, href: '/admin/prefix' },
+      { id: 2, label: 'ตำแหน่งวิชาการ', icon: Armchair, href: '/admin/position' },
+      { id: 3, label: 'ตำแหน่งบริหาร', icon: Sofa, href: '/admin/ex-position' },
+      { id: 4, label: 'สาขา', icon: GraduationCap, href: '/admin/branch' },
+      { id: 5, label: 'หลักสูตร', icon: LibraryBigIcon, href: '/admin/course' },
+      { id: 6, label: 'ประเภทบุคลากร', icon: UserPen, href: '/admin/personal-type' },
+      // { id: 7, label: 'ระดับผู้ใช้งาน', icon: CircleUser, href: '/admin/user-level' },
+      // { id: 8, label: 'รอบการประเมิน', icon: Calendar, href: '/admin/round' },
     ],
   },
   {
@@ -169,7 +168,7 @@ export default function Sidebar({ OpenSidebar, setOpenSidebar }: SidebarProps) {
   const [menuItems, setMenuItems] = useState(adminMenuItems)
   const router = useRouter()
   const [loading, setLoading] = useState(true)
-  
+
   // ใช้ hook สำหรับจัดการ assessor data
   const { isAssessor, loading: assessorLoading } = useAssessor()
 
@@ -178,8 +177,8 @@ export default function Sidebar({ OpenSidebar, setOpenSidebar }: SidebarProps) {
     if (token) {
       try {
         const decoded: DecodedToken = jwtDecode(token)
-        
-      
+
+
 
         // ใช้ข้อมูลจาก useAssessor hook แทนการเรียก API
         if (decoded.level_name === 'ผู้ดูแลระบบ') {
@@ -193,7 +192,7 @@ export default function Sidebar({ OpenSidebar, setOpenSidebar }: SidebarProps) {
         } else {
           setMenuItems(baseUserMenuItems)
         }
-        
+
         setLoading(false)
       } catch (error) {
         setLoading(false)
@@ -254,93 +253,91 @@ export default function Sidebar({ OpenSidebar, setOpenSidebar }: SidebarProps) {
         <ul className="no-scrollbar flex-1 space-y-2 overflow-y-auto overflow-x-hidden px-4 py-2">
           {loading
             ? // Skeleton loading UI
-              Array(5)
-                .fill(0)
-                .map((_, index) => (
-                  <li key={`skeleton-${index}`}>
-                    <div className={`${OpenSidebar ? '' : ''}`}>
-                      {OpenSidebar ? (
-                        <div className="translate-x-0 transform py-1 opacity-100 transition-all duration-300 ease-in-out">
-                          <div className="h-4 w-24 animate-pulse rounded bg-gray-200 dark:bg-zinc-700"></div>
-                        </div>
-                      ) : (
-                        <div className="-translate-x-4 transform px-2 py-1 opacity-0 transition-all duration-300 ease-in-out md:translate-x-0 md:opacity-100">
-                          <div className="mx-auto my-1.5 h-2 w-full max-w-[6rem] animate-pulse rounded-full bg-gray-200 dark:bg-zinc-700"></div>
-                        </div>
-                      )}
-                    </div>
-
-                    <ul>
-                      {Array(3)
-                        .fill(0)
-                        .map((_, itemIndex) => (
-                          <li key={`skeleton-item-${itemIndex}`}>
-                            <div className="my-2 flex items-center overflow-hidden rounded-md border-2 border-transparent py-1 pl-3 pr-4 text-sm">
-                              <div className="my-1 h-5 w-5 min-w-[20px] animate-pulse rounded bg-gray-200 dark:bg-zinc-700"></div>
-                              {OpenSidebar && (
-                                <div className="ml-3 h-4 w-24 animate-pulse rounded bg-gray-200 dark:bg-zinc-700"></div>
-                              )}
-                            </div>
-                          </li>
-                        ))}
-                    </ul>
-                  </li>
-                ))
-            : // Actual menu items
-              menuItems.map((item, index) => (
-                <li key={index}>
+            Array(5)
+              .fill(0)
+              .map((_, index) => (
+                <li key={`skeleton-${index}`}>
                   <div className={`${OpenSidebar ? '' : ''}`}>
                     {OpenSidebar ? (
                       <div className="translate-x-0 transform py-1 opacity-100 transition-all duration-300 ease-in-out">
-                        <h2 className="truncate text-nowrap text-sm font-semibold text-gray-500">
-                          {item.title}
-                        </h2>
+                        <div className="h-4 w-24 animate-pulse rounded bg-gray-200 dark:bg-zinc-700"></div>
                       </div>
                     ) : (
                       <div className="-translate-x-4 transform px-2 py-1 opacity-0 transition-all duration-300 ease-in-out md:translate-x-0 md:opacity-100">
-                        <div className="mx-auto my-1.5 h-2 w-full max-w-[6rem] rounded-full bg-zinc-500"></div>
+                        <div className="mx-auto my-1.5 h-2 w-full max-w-[6rem] animate-pulse rounded-full bg-gray-200 dark:bg-zinc-700"></div>
                       </div>
                     )}
                   </div>
 
                   <ul>
-                    {item.items.map((item) => (
-                      <li key={item.id}>
-                        <Link
-                          href={item.href}
-                          onClick={() =>
-                            window.innerWidth < 768 && setOpenSidebar(false)
-                          }
-                          className={`ransition-colors my-2 flex cursor-pointer items-center overflow-hidden rounded-md border-2 py-1 pl-3 pr-4 text-sm font-light ${
-                            pathname === item.href ||
+                    {Array(3)
+                      .fill(0)
+                      .map((_, itemIndex) => (
+                        <li key={`skeleton-item-${itemIndex}`}>
+                          <div className="my-2 flex items-center overflow-hidden rounded-md border-2 border-transparent py-1 pl-3 pr-4 text-sm">
+                            <div className="my-1 h-5 w-5 min-w-[20px] animate-pulse rounded bg-gray-200 dark:bg-zinc-700"></div>
+                            {OpenSidebar && (
+                              <div className="ml-3 h-4 w-24 animate-pulse rounded bg-gray-200 dark:bg-zinc-700"></div>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                  </ul>
+                </li>
+              ))
+            : // Actual menu items
+            menuItems.map((item, index) => (
+              <li key={index}>
+                <div className={`${OpenSidebar ? '' : ''}`}>
+                  {OpenSidebar ? (
+                    <div className="translate-x-0 transform py-1 opacity-100 transition-all duration-300 ease-in-out">
+                      <h2 className="truncate text-nowrap text-sm font-semibold text-gray-500">
+                        {item.title}
+                      </h2>
+                    </div>
+                  ) : (
+                    <div className="-translate-x-4 transform px-2 py-1 opacity-0 transition-all duration-300 ease-in-out md:translate-x-0 md:opacity-100">
+                      <div className="mx-auto my-1.5 h-2 w-full max-w-[6rem] rounded-full bg-zinc-500"></div>
+                    </div>
+                  )}
+                </div>
+
+                <ul>
+                  {item.items.map((item) => (
+                    <li key={item.id}>
+                      <Link
+                        href={item.href}
+                        onClick={() =>
+                          window.innerWidth < 768 && setOpenSidebar(false)
+                        }
+                        className={`ransition-colors my-2 flex cursor-pointer items-center overflow-hidden rounded-md border-2 py-1 pl-3 pr-4 text-sm font-light ${pathname === item.href ||
                             (item.href !== '/admin' &&
                               item.href !== '/user' &&
                               pathname.startsWith(`${item.href}/`))
-                              ? 'bg-business1 text-white dark:border-white dark:text-white'
-                              : 'border-transparent text-gray-400 hover:text-business1 dark:hover:text-white'
+                            ? 'bg-business1 text-white dark:border-white dark:text-white'
+                            : 'border-transparent text-gray-400 hover:text-business1 dark:hover:text-white'
                           }`}
-                        >
-                          <item.icon
-                            className={`my-1 h-5 w-5 min-w-[20px] ${
-                              pathname === item.href ||
+                      >
+                        <item.icon
+                          className={`my-1 h-5 w-5 min-w-[20px] ${pathname === item.href ||
                               (item.href !== '/admin' &&
                                 item.href !== '/user' &&
                                 pathname.startsWith(`${item.href}/`))
-                                ? 'text-white dark:text-white'
-                                : ''
+                              ? 'text-white dark:text-white'
+                              : ''
                             }`}
-                          />
-                          <span
-                            className={`ml-3 truncate whitespace-nowrap ${OpenSidebar ? 'w-40 opacity-100' : 'w-0 opacity-0'}`}
-                          >
-                            {item.label}
-                          </span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </li>
-              ))}
+                        />
+                        <span
+                          className={`ml-3 truncate whitespace-nowrap ${OpenSidebar ? 'w-40 opacity-100' : 'w-0 opacity-0'}`}
+                        >
+                          {item.label}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
         </ul>
 
         {/* <div className="my-2 overflow-x-hidden border-t px-4">

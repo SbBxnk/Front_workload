@@ -113,6 +113,24 @@ const WorkloadEvaluationService = {
       })
       .then((res: any) => res.payload?.[0] ?? res.payload)
   },
+
+  getAssignedWorkloadGroup: (
+    accessToken: string,
+    asUserId: number,
+    roundListId: number
+  ): Promise<{ workload_group_id: number; workload_group_name: string } | null> => {
+    return http
+      .get(`/workload_evaluation/assigned_group/${asUserId}/${roundListId}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res: any) => {
+        const payload = res?.payload
+        if (Array.isArray(payload)) {
+          return (payload[0] as { workload_group_id: number; workload_group_name: string }) || null
+        }
+        return (payload as { workload_group_id: number; workload_group_name: string }) || null
+      })
+  },
 }
 
 export default WorkloadEvaluationService

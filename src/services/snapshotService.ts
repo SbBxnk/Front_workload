@@ -39,21 +39,21 @@ export interface SnapshotFormData {
   evaluation_score?: number | null
   snapshot_form_id?: number
   files?:
-    | string
-    | Array<{
-        fileinfo_id?: number
-        file_name: string
-        file_path?: string
-        file_size?: number
-        file_type?: string
-      }>
+  | string
+  | Array<{
+    fileinfo_id?: number
+    file_name: string
+    file_path?: string
+    file_size?: number
+    file_type?: string
+  }>
   links?:
-    | string
-    | Array<{
-        link_id?: number
-        link_name: string
-        link_path: string
-      }>
+  | string
+  | Array<{
+    link_id?: number
+    link_name: string
+    link_path: string
+  }>
 }
 
 export interface SubmitFormRequest {
@@ -92,11 +92,11 @@ const SnapshotService = {
     round_list_id: number
   ): Promise<SingleResponsePayload<SnapshotFormData[]>> => {
     return http.get(`/workload_form/form_info_with_snapshot/${formlist_id}/${subtask_id}`, {
-        params: {
-          as_u_id,
-          round_list_id
-        }
-      });
+      params: {
+        as_u_id,
+        round_list_id
+      }
+    });
   },
 
   // ดึงข้อมูลภาระงานทั้งหมด (ใช้ API เดิมแต่ปรับปรุงให้รองรับ snapshot)

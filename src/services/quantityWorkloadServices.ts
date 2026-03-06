@@ -14,7 +14,7 @@ export interface UpdateQuantityWorkloadRequest {
 }
 
 const QuantityWorkloadServices = {
-  getAllQuantityWorkloads: ( accessToken: string, param?: QuantityWorkloadSearchParams ): Promise<ResponsePayload<QuantityWorkload>> => {
+  getAllQuantityWorkloads: (accessToken: string, param?: QuantityWorkloadSearchParams): Promise<ResponsePayload<QuantityWorkload>> => {
     return http.get('/quantity-workload', {
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -56,6 +56,12 @@ const QuantityWorkloadServices = {
 
   getQuantityWorkloadById: (quantityWorkloadId: number, accessToken: string): Promise<QuantityWorkload> => {
     return http.get(`/quantity-workload/${quantityWorkloadId}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+  },
+
+  getQuantityWorkloadByGroupId: (workloadGroupId: number, accessToken: string): Promise<ResponsePayload<QuantityWorkload>> => {
+    return http.get(`/quantity-workload/group/${workloadGroupId}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
   },

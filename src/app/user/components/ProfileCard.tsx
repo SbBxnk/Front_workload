@@ -40,7 +40,7 @@ function ProfileCard() {
   return (
     <Link
       href="../user/profile"
-      className="h-full w-full rounded-md bg-white p-4 shadow transition-all duration-300 ease-in-out dark:bg-zinc-900 lg:sticky lg:top-[8.6rem] lg:w-1/3"
+      className="h-full w-full rounded-md bg-white p-4 shadow transition-all duration-300 ease-in-out dark:bg-zinc-900 lg:sticky lg:top-[4.7rem] lg:w-1/3"
     >
       <div className="mb-2 border-b border-gray-400 pb-2 dark:border-zinc-400">
         <h2 className="font-regular text-center text-lg text-gray-600 dark:text-gray-400 md:text-2xl pb-2">
@@ -95,7 +95,7 @@ function ProfileCard() {
         <div className="font-light text-gray-400">
           {user?.u_email || '-'}
         </div>
-      
+
       </div>
     </Link>
   )

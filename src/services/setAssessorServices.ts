@@ -293,7 +293,7 @@ const SetAssessorServices = {
   },
 
   // ดึงข้อมูลรอบการประเมินทั้งหมด
-  getAllRounds: (accessToken: string): Promise<ResponsePayload<RoundList[]>> => {
+  getAllRounds: (accessToken: string): Promise<ResponsePayload<RoundList>> => {
     return http.get('/set_assessor_round', {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
