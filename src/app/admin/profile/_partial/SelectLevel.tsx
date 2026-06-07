@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import type React from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { ChevronDown } from 'lucide-react'
-import { useSession } from 'next-auth/react'
 import DropdownService from '@/services/dropdownServices'
-import type { DropdownUserLevel } from '@/Types/dropdown'
+import type { DropdownUserLevel } from '@/Types'
 
 interface SelectLevelProps {
   openDropdown: string | null
@@ -23,40 +23,20 @@ function SelectLevel({
   initialLevelName,
   disabled = false,
 }: SelectLevelProps) {
-  const [levels, setLevels] = useState<DropdownUserLevel[]>([])
-  const [loading, setLoading] = useState<boolean>(true)
-  const [error, setError] = useState<string | null>(null)
-  const { data: session } = useSession()
+  const {
+    data: levels = [],
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ['dropdown', 'userLevels'],
+    queryFn: async () => {
+      const response = await DropdownService.getUserLevels()
+      if (response.success && response.payload) return response.payload
+      throw new Error('Failed to fetch levels')
+    },
+  })
 
-  useEffect(() => {
-    const fetchLevels = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        
-        if (!session?.accessToken) {
-          throw new Error('No access token available')
-        }
-
-        const response = await DropdownService.getUserLevels()
-        
-        if (response.success && response.payload) {
-          setLevels(response.payload)
-        } else {
-          throw new Error('Failed to fetch levels')
-        }
-      } catch (err) {
-        console.error('Error fetching levels:', err)
-        setError('Error fetching levels')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchLevels()
-  }, [session?.accessToken])
-
-  const handleSelectLevel = (level_id: number, level_name: string) => {
+  const handleSelectLevel = (level_id: number) => {
     setSelectLevel(level_id)
     handleOnChangeLevel(level_id)
     setOpenDropdown(null)
@@ -64,7 +44,7 @@ function SelectLevel({
 
   const displayLevel = initialLevelName || 'เลือกระดับ'
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="space-y-2">
         <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
@@ -77,14 +57,14 @@ function SelectLevel({
     )
   }
 
-  if (error) {
+  if (isError) {
     return (
       <div className="space-y-2">
         <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
           ระดับ
         </label>
         <div className="flex h-10 w-full items-center justify-center rounded-md border-2 border-red-300 bg-red-50 dark:border-red-600 dark:bg-red-900/20">
-          <span className="text-sm text-red-500">{error}</span>
+          <span className="text-sm text-red-500">Error fetching levels</span>
         </div>
       </div>
     )
@@ -114,13 +94,11 @@ function SelectLevel({
         </button>
         {openDropdown === 'level' && !disabled && (
           <div className="absolute z-10 mt-2 max-h-36 w-full overflow-y-auto rounded-md border-2 border-gray-300 bg-white shadow-lg dark:border-zinc-600 dark:bg-zinc-900">
-            {levels.map((level) => (
+            {levels.map((level: DropdownUserLevel) => (
               <div
                 key={level.level_id}
                 className="cursor-pointer px-4 py-2 text-sm font-light text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-zinc-800"
-                onClick={() =>
-                  handleSelectLevel(level.level_id, level.level_name)
-                }
+                onClick={() => handleSelectLevel(level.level_id)}
               >
                 {level.level_name}
               </div>

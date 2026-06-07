@@ -1,11 +1,11 @@
 import type React from 'react'
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { ChevronDown } from 'lucide-react'
 import DropdownService from '@/services/dropdownServices'
-import type { DropdownPosition } from '@/Types/dropdown'
-import { useSession } from 'next-auth/react'
+import type { DropdownPosition } from '@/Types'
 
-interface SelectPosition {
+interface SelectPositionProps {
   openDropdown: string | null
   setOpenDropdown: React.Dispatch<React.SetStateAction<string | null>>
   positionDropdownRef: React.RefObject<HTMLDivElement>
@@ -15,7 +15,7 @@ interface SelectPosition {
   disabled?: boolean
 }
 
-function SelectPrefix({
+function SelectPosition({
   openDropdown,
   setOpenDropdown,
   positionDropdownRef,
@@ -23,47 +23,30 @@ function SelectPrefix({
   handleOnChangePosition,
   initialPositionName,
   disabled = false,
-}: SelectPosition) {
-  const [positions, setPositions] = useState<DropdownPosition[]>([])
-  const [error, setError] = useState<string | null>(null)
-  const [displayPosition, setDisplayPosition] = useState<string>('เลือกตำแหน่งวิชาการ')
-  const { data: session } = useSession()
+}: SelectPositionProps) {
+  const [displayPosition, setDisplayPosition] = useState<string>(
+    'เลือกตำแหน่งวิชาการ'
+  )
+
+  const { data: positions = [], isError } = useQuery({
+    queryKey: ['dropdown', 'positions'],
+    queryFn: async () => {
+      const response = await DropdownService.getPositions()
+      if (response.status && response.data) return response.data
+      throw new Error('No data found')
+    },
+  })
 
   useEffect(() => {
-    const fetchPosition = async () => {
-      setError(null)
-      try {
-        const token = session?.accessToken
-        if (!token) {
-          throw new Error('No token found. Please log in.')
-        }
-        
-        const response = await DropdownService.getPositions()
-
-        if (response.status && response.data) {
-          setPositions(response.data)
-
-          const matchingPosition = response.data.find(
-            (position: DropdownPosition) =>
-              position.position_name === initialPositionName
-          )
-          if (matchingPosition) {
-            setSelectPosition(matchingPosition.position_id)
-            setDisplayPosition(matchingPosition.position_name)
-          }
-        } else {
-          throw new Error('No data found')
-        }
-      } catch (error) {
-        setError('Error fetching positions')
-        console.error('Error fetching positions:', error)
-      }
+    const matchingPosition = positions.find(
+      (position: DropdownPosition) =>
+        position.position_name === initialPositionName
+    )
+    if (matchingPosition) {
+      setSelectPosition(matchingPosition.position_id)
+      setDisplayPosition(matchingPosition.position_name)
     }
-
-    if (session?.accessToken) {
-      fetchPosition()
-    }
-  }, [initialPositionName, setSelectPosition, session?.accessToken])
+  }, [positions, initialPositionName, setSelectPosition])
 
   const handleSelectPosition = (position_id: number, position_name: string) => {
     setSelectPosition(position_id)
@@ -113,9 +96,9 @@ function SelectPrefix({
           </div>
         )}
       </div>
-      {error && <div className="mt-2 text-red-500">{error}</div>}
+      {isError && <div className="mt-2 text-red-500">Error fetching positions</div>}
     </div>
   )
 }
 
-export default SelectPrefix
+export default SelectPosition

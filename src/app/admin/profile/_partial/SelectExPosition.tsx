@@ -1,11 +1,11 @@
 import type React from 'react'
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { ChevronDown } from 'lucide-react'
 import DropdownService from '@/services/dropdownServices'
-import type { DropdownExPosition } from '@/Types/dropdown'
-import { useSession } from 'next-auth/react'
+import type { DropdownExPosition } from '@/Types'
 
-interface SelectExPosition {
+interface SelectExPositionProps {
   openDropdown: string | null
   setOpenDropdown: React.Dispatch<React.SetStateAction<string | null>>
   expositionDropdownRef: React.RefObject<HTMLDivElement>
@@ -15,7 +15,7 @@ interface SelectExPosition {
   disabled?: boolean
 }
 
-function SelectPrefix({
+function SelectExPosition({
   openDropdown,
   setOpenDropdown,
   expositionDropdownRef,
@@ -23,47 +23,30 @@ function SelectPrefix({
   handleOnChangeExPosition,
   initialExPositionName,
   disabled = false,
-}: SelectExPosition) {
-  const [expositions, setExPositions] = useState<DropdownExPosition[]>([])
-  const [error, setError] = useState<string | null>(null)
-  const [displayPosition, setDisplayExPosition] = useState<string>('เลือกตำแหน่งบริหาร')
-  const { data: session } = useSession()
+}: SelectExPositionProps) {
+  const [displayPosition, setDisplayExPosition] = useState<string>(
+    'เลือกตำแหน่งบริหาร'
+  )
+
+  const { data: expositions = [], isError } = useQuery({
+    queryKey: ['dropdown', 'exPositions'],
+    queryFn: async () => {
+      const response = await DropdownService.getExPositions()
+      if (response.status && response.data) return response.data
+      throw new Error('No data found')
+    },
+  })
 
   useEffect(() => {
-    const fetchExPosition = async () => {
-      setError(null)
-      try {
-        const token = session?.accessToken
-        if (!token) {
-          throw new Error('No token found. Please log in.')
-        }
-        
-        const response = await DropdownService.getExPositions()
-
-        if (response.status && response.data) {
-          setExPositions(response.data)
-
-          const matchingExPosition = response.data.find(
-            (ex_position: DropdownExPosition) =>
-              ex_position.ex_position_name === initialExPositionName
-          )
-          if (matchingExPosition) {
-            setSelectExPosition(matchingExPosition.ex_position_id)
-            setDisplayExPosition(matchingExPosition.ex_position_name)
-          }
-        } else {
-          throw new Error('No data found')
-        }
-      } catch (error) {
-        setError('Error fetching ex-positions')
-        console.error('Error fetching ex-positions:', error)
-      }
+    const matchingExPosition = expositions.find(
+      (ex_position: DropdownExPosition) =>
+        ex_position.ex_position_name === initialExPositionName
+    )
+    if (matchingExPosition) {
+      setSelectExPosition(matchingExPosition.ex_position_id)
+      setDisplayExPosition(matchingExPosition.ex_position_name)
     }
-
-    if (session?.accessToken) {
-      fetchExPosition()
-    }
-  }, [initialExPositionName, setSelectExPosition, session?.accessToken])
+  }, [expositions, initialExPositionName, setSelectExPosition])
 
   const handleSelectExPosition = (
     ex_position_id: number,
@@ -118,9 +101,11 @@ function SelectPrefix({
           </div>
         )}
       </div>
-      {error && <div className="mt-2 text-red-500">{error}</div>}
+      {isError && (
+        <div className="mt-2 text-red-500">Error fetching ex-positions</div>
+      )}
     </div>
   )
 }
 
-export default SelectPrefix
+export default SelectExPosition

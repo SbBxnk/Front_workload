@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import type React from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { ChevronDown } from 'lucide-react'
-import { useSession } from 'next-auth/react'
 import DropdownService from '@/services/dropdownServices'
-import type { DropdownPersonalType } from '@/Types/dropdown'
+import type { DropdownPersonalType } from '@/Types'
 
 interface SelectPersonalTypeProps {
   openDropdown: string | null
@@ -23,40 +23,20 @@ function SelectPersonalType({
   initialPersonalTypeName,
   disabled = false,
 }: SelectPersonalTypeProps) {
-  const [personalTypes, setPersonalTypes] = useState<DropdownPersonalType[]>([])
-  const [loading, setLoading] = useState<boolean>(true)
-  const [error, setError] = useState<string | null>(null)
-  const { data: session } = useSession()
+  const {
+    data: personalTypes = [],
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ['dropdown', 'personalTypes'],
+    queryFn: async () => {
+      const response = await DropdownService.getPersonalTypes()
+      if (response.success && response.payload) return response.payload
+      throw new Error('Failed to fetch personal types')
+    },
+  })
 
-  useEffect(() => {
-    const fetchPersonalTypes = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        
-        if (!session?.accessToken) {
-          throw new Error('No access token available')
-        }
-
-        const response = await DropdownService.getPersonalTypes()
-        
-        if (response.success && response.payload) {
-          setPersonalTypes(response.payload)
-        } else {
-          throw new Error('Failed to fetch personal types')
-        }
-      } catch (err) {
-        console.error('Error fetching personal types:', err)
-        setError('Error fetching personal types')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchPersonalTypes()
-  }, [session?.accessToken])
-
-  const handleSelectPersonalType = (type_p_id: number, type_p_name: string) => {
+  const handleSelectPersonalType = (type_p_id: number) => {
     setSelectPersonalType(type_p_id)
     handleOnChangePersonalType(type_p_id)
     setOpenDropdown(null)
@@ -64,7 +44,7 @@ function SelectPersonalType({
 
   const displayPersonalType = initialPersonalTypeName || 'เลือกประเภทบุคลากร'
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="space-y-2">
         <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
@@ -77,14 +57,16 @@ function SelectPersonalType({
     )
   }
 
-  if (error) {
+  if (isError) {
     return (
       <div className="space-y-2">
         <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
           ประเภทบุคลากร
         </label>
         <div className="flex h-10 w-full items-center justify-center rounded-md border-2 border-red-300 bg-red-50 dark:border-red-600 dark:bg-red-900/20">
-          <span className="text-sm text-red-500">{error}</span>
+          <span className="text-sm text-red-500">
+            Error fetching personal types
+          </span>
         </div>
       </div>
     )
@@ -114,12 +96,12 @@ function SelectPersonalType({
         </button>
         {openDropdown === 'personalType' && !disabled && (
           <div className="absolute z-10 mt-2 max-h-36 w-full overflow-y-auto rounded-md border-2 border-gray-300 bg-white shadow-lg dark:border-zinc-600 dark:bg-zinc-900">
-            {personalTypes.map((personalType) => (
+            {personalTypes.map((personalType: DropdownPersonalType) => (
               <div
                 key={personalType.type_p_id}
                 className="cursor-pointer px-4 py-2 text-sm font-light text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-zinc-800"
                 onClick={() =>
-                  handleSelectPersonalType(personalType.type_p_id, personalType.type_p_name)
+                  handleSelectPersonalType(personalType.type_p_id)
                 }
               >
                 {personalType.type_p_name}

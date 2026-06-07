@@ -1,9 +1,9 @@
 import type React from 'react'
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { ChevronDown } from 'lucide-react'
 import DropdownService from '@/services/dropdownServices'
-import type { DropdownPrefix } from '@/Types/dropdown'
-import { useSession } from 'next-auth/react'
+import type { DropdownPrefix } from '@/Types'
 
 interface SelectPrefixProps {
   openDropdown: string | null
@@ -24,45 +24,26 @@ function SelectPrefix({
   initialPrefixName,
   disabled = false,
 }: SelectPrefixProps) {
-  const [prefixes, setPrefixes] = useState<DropdownPrefix[]>([])
-  const [error, setError] = useState<string | null>(null)
   const [displayPrefix, setDisplayPrefix] = useState<string>('เลือกคำนำหน้า')
-  const { data: session } = useSession()
+
+  const { data: prefixes = [], isError } = useQuery({
+    queryKey: ['dropdown', 'prefixes'],
+    queryFn: async () => {
+      const response = await DropdownService.getPrefixes()
+      if (response.success && response.payload) return response.payload
+      throw new Error('No data found')
+    },
+  })
 
   useEffect(() => {
-    const fetchPrefix = async () => {
-      setError(null)
-      try {
-        const token = session?.accessToken
-        if (!token) {
-          throw new Error('No token found. Please log in.')
-        }
-        
-        const response = await DropdownService.getPrefixes()
-
-        if (response.success && response.payload) {
-          setPrefixes(response.payload)
-
-          const matchingPrefix = response.payload.find(
-            (prefix: DropdownPrefix) => prefix.prefix_name === initialPrefixName
-          )
-          if (matchingPrefix) {
-            setSelectPrefix(matchingPrefix.prefix_id)
-            setDisplayPrefix(matchingPrefix.prefix_name)
-          }
-        } else {
-          throw new Error('No data found')
-        }
-      } catch (error) {
-        setError('Error fetching prefixes')
-        console.error('Error fetching prefixes:', error)
-      }
+    const matchingPrefix = prefixes.find(
+      (prefix: DropdownPrefix) => prefix.prefix_name === initialPrefixName
+    )
+    if (matchingPrefix) {
+      setSelectPrefix(matchingPrefix.prefix_id)
+      setDisplayPrefix(matchingPrefix.prefix_name)
     }
-
-    if (session?.accessToken) {
-      fetchPrefix()
-    }
-  }, [initialPrefixName, setSelectPrefix, session?.accessToken])
+  }, [prefixes, initialPrefixName, setSelectPrefix])
 
   const handleSelectPrefix = (prefix_id: number, prefix_name: string) => {
     setSelectPrefix(prefix_id)
@@ -109,7 +90,7 @@ function SelectPrefix({
           </div>
         )}
       </div>
-      {error && <div className="mt-2 text-red-500">{error}</div>}
+      {isError && <div className="mt-2 text-red-500">Error fetching prefixes</div>}
     </div>
   )
 }

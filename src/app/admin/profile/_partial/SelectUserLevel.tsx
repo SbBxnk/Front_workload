@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react'
+import type React from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { ChevronDown } from 'lucide-react'
-import { useSession } from 'next-auth/react'
 import DropdownService from '@/services/dropdownServices'
+import type { DropdownUserLevel } from '@/Types'
+
 interface SelectedUserLevelProps {
   level_id: number
   level_name: string
@@ -21,39 +23,14 @@ function SelectedUserLevel({
   setSelectedLevel,
   selectLevel,
 }: SelectedUserLevelProps) {
-  const [userLevels, setUserLevels] = useState<
-    { level_id: number; level_name: string }[]
-  >([])
-  const [, setLoading] = useState<boolean>(true)
-  const [error, setError] = useState<string | null>(null)
-  const { data: session } = useSession()
-
-  useEffect(() => {
-    const fetchUserLevels = async () => {
-      try {
-        if (!session?.accessToken) {
-          throw new Error('No token found. Please log in.')
-        }
-
-        const response = await DropdownService.getUserLevels()
-
-        if (response.success && response.payload) {
-          setUserLevels(response.payload)
-        } else {
-          throw new Error('No data found')
-        }
-      } catch (error) {
-        setError('Error fetching levels')
-        console.error('Error fetching levels:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    if (session?.accessToken) {
-      fetchUserLevels()
-    }
-  }, [session?.accessToken])
+  const { data: userLevels = [], isError } = useQuery({
+    queryKey: ['dropdown', 'userLevels'],
+    queryFn: async () => {
+      const response = await DropdownService.getUserLevels()
+      if (response.success && response.payload) return response.payload
+      throw new Error('No data found')
+    },
+  })
 
   const handleSelectLevel = (level_id: number, level_name: string) => {
     setSelectedLevel(level_name)
@@ -76,15 +53,16 @@ function SelectedUserLevel({
         >
           {selectLevel === null
             ? 'เลือกระดับ'
-            : userLevels.find((level) => level.level_name === selectLevel)
-                ?.level_name}
+            : userLevels.find(
+                (level: DropdownUserLevel) => level.level_name === selectLevel
+              )?.level_name}
           <ChevronDown
             className={`h-4 w-4 text-gray-600 transition-transform duration-200 dark:text-zinc-600 ${openDropdown === 'level' ? 'rotate-180' : ''}`}
           />
         </button>
         {openDropdown === 'level' && (
           <div className="absolute z-10 mt-2 h-36 w-full overflow-y-auto rounded-md border-2 border-gray-300 bg-white shadow-lg dark:border-zinc-600 dark:bg-zinc-900">
-            {userLevels.map((level) => (
+            {userLevels.map((level: DropdownUserLevel) => (
               <div
                 key={level.level_id}
                 className="cursor-pointer px-4 py-2 text-sm font-light text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-zinc-800"
@@ -98,7 +76,7 @@ function SelectedUserLevel({
           </div>
         )}
       </div>
-      {error && <div className="mt-2 text-red-500">{error}</div>}
+      {isError && <div className="mt-2 text-red-500">Error fetching levels</div>}
     </div>
   )
 }

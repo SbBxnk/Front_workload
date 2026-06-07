@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import type React from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { ChevronDown } from 'lucide-react'
-import { useSession } from 'next-auth/react'
 import DropdownService from '@/services/dropdownServices'
-import type { DropdownBranch } from '@/Types/dropdown'
+import type { DropdownBranch } from '@/Types'
 
 interface SelectBranchProps {
   openDropdown: string | null
@@ -23,40 +23,20 @@ function SelectBranch({
   initialBranchName,
   disabled = false,
 }: SelectBranchProps) {
-  const [branches, setBranches] = useState<DropdownBranch[]>([])
-  const [loading, setLoading] = useState<boolean>(true)
-  const [error, setError] = useState<string | null>(null)
-  const { data: session } = useSession()
+  const {
+    data: branches = [],
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ['dropdown', 'branches'],
+    queryFn: async () => {
+      const response = await DropdownService.getBranches()
+      if (response.success && response.payload) return response.payload
+      throw new Error('Failed to fetch branches')
+    },
+  })
 
-  useEffect(() => {
-    const fetchBranches = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        
-        if (!session?.accessToken) {
-          throw new Error('No access token available')
-        }
-
-        const response = await DropdownService.getBranches()
-        
-        if (response.success && response.payload) {
-          setBranches(response.payload)
-        } else {
-          throw new Error('Failed to fetch branches')
-        }
-      } catch (err) {
-        console.error('Error fetching branches:', err)
-        setError('Error fetching branches')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchBranches()
-  }, [session?.accessToken])
-
-  const handleSelectBranch = (branch_id: number, branch_name: string) => {
+  const handleSelectBranch = (branch_id: number) => {
     setSelectBranch(branch_id)
     handleOnChangeBranch(branch_id)
     setOpenDropdown(null)
@@ -64,7 +44,7 @@ function SelectBranch({
 
   const displayBranch = initialBranchName || 'เลือกสาขา'
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="space-y-2">
         <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
@@ -77,14 +57,14 @@ function SelectBranch({
     )
   }
 
-  if (error) {
+  if (isError) {
     return (
       <div className="space-y-2">
         <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
           สาขา
         </label>
         <div className="flex h-10 w-full items-center justify-center rounded-md border-2 border-red-300 bg-red-50 dark:border-red-600 dark:bg-red-900/20">
-          <span className="text-sm text-red-500">{error}</span>
+          <span className="text-sm text-red-500">Error fetching branches</span>
         </div>
       </div>
     )
@@ -114,13 +94,11 @@ function SelectBranch({
         </button>
         {openDropdown === 'branch' && !disabled && (
           <div className="absolute z-10 mt-2 max-h-36 w-full overflow-y-auto rounded-md border-2 border-gray-300 bg-white shadow-lg dark:border-zinc-600 dark:bg-zinc-900">
-            {branches.map((branch) => (
+            {branches.map((branch: DropdownBranch) => (
               <div
                 key={branch.branch_id}
                 className="cursor-pointer px-4 py-2 text-sm font-light text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-zinc-800"
-                onClick={() =>
-                  handleSelectBranch(branch.branch_id, branch.branch_name)
-                }
+                onClick={() => handleSelectBranch(branch.branch_id)}
               >
                 {branch.branch_name}
               </div>

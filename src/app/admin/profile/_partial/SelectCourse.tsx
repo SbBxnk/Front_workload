@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import type React from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { ChevronDown } from 'lucide-react'
-import { useSession } from 'next-auth/react'
 import DropdownService from '@/services/dropdownServices'
-import type { DropdownCourse } from '@/Types/dropdown'
+import type { DropdownCourse } from '@/Types'
 
 interface SelectCourseProps {
   openDropdown: string | null
@@ -23,40 +23,20 @@ function SelectCourse({
   initialCourseName,
   disabled = false,
 }: SelectCourseProps) {
-  const [courses, setCourses] = useState<DropdownCourse[]>([])
-  const [loading, setLoading] = useState<boolean>(true)
-  const [error, setError] = useState<string | null>(null)
-  const { data: session } = useSession()
+  const {
+    data: courses = [],
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ['dropdown', 'courses'],
+    queryFn: async () => {
+      const response = await DropdownService.getCourses()
+      if (response.success && response.payload) return response.payload
+      throw new Error('Failed to fetch courses')
+    },
+  })
 
-  useEffect(() => {
-    const fetchCourses = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        
-        if (!session?.accessToken) {
-          throw new Error('No access token available')
-        }
-
-        const response = await DropdownService.getCourses()
-        
-        if (response.success && response.payload) {
-          setCourses(response.payload)
-        } else {
-          throw new Error('Failed to fetch courses')
-        }
-      } catch (err) {
-        console.error('Error fetching courses:', err)
-        setError('Error fetching courses')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchCourses()
-  }, [session?.accessToken])
-
-  const handleSelectCourse = (course_id: number, course_name: string) => {
+  const handleSelectCourse = (course_id: number) => {
     setSelectCourse(course_id)
     handleOnChangeCourse(course_id)
     setOpenDropdown(null)
@@ -64,7 +44,7 @@ function SelectCourse({
 
   const displayCourse = initialCourseName || 'เลือกหลักสูตร'
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="space-y-2">
         <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
@@ -77,14 +57,14 @@ function SelectCourse({
     )
   }
 
-  if (error) {
+  if (isError) {
     return (
       <div className="space-y-2">
         <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
           หลักสูตร
         </label>
         <div className="flex h-10 w-full items-center justify-center rounded-md border-2 border-red-300 bg-red-50 dark:border-red-600 dark:bg-red-900/20">
-          <span className="text-sm text-red-500">{error}</span>
+          <span className="text-sm text-red-500">Error fetching courses</span>
         </div>
       </div>
     )
@@ -114,13 +94,11 @@ function SelectCourse({
         </button>
         {openDropdown === 'course' && !disabled && (
           <div className="absolute z-10 mt-2 max-h-36 w-full overflow-y-auto rounded-md border-2 border-gray-300 bg-white shadow-lg dark:border-zinc-600 dark:bg-zinc-900">
-            {courses.map((course) => (
+            {courses.map((course: DropdownCourse) => (
               <div
                 key={course.course_id}
                 className="cursor-pointer px-4 py-2 text-sm font-light text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-zinc-800"
-                onClick={() =>
-                  handleSelectCourse(course.course_id, course.course_name)
-                }
+                onClick={() => handleSelectCourse(course.course_id)}
               >
                 {course.course_name}
               </div>
