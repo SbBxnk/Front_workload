@@ -3,7 +3,6 @@
 import type React from 'react'
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
-import axios from 'axios'
 import { Loader, Trash2, Plus, Eye } from 'lucide-react'
 import { FiX } from 'react-icons/fi'
 import SearchFilter from '@/components/SearchFilter'
@@ -595,9 +594,10 @@ export default function AsDetailsPage() {
     e.preventDefault()
     setLoading(true)
     try {
-      await axios.delete(
-        `${process.env.NEXT_PUBLIC_API}/set_assessor_info/delete/${set_asses_info_id}`,
-        { headers }
+      const accessToken = headers.Authorization?.replace('Bearer ', '') || ''
+      await SetAssessorServices.deleteSetAssessorInfo(
+        set_asses_info_id,
+        accessToken
       )
       
       // Refresh data

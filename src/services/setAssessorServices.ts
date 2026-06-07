@@ -263,6 +263,26 @@ const SetAssessorServices = {
     })
   },
 
+  // รายชื่อผู้ใช้ที่เลือกเป็นผู้รับการประเมินได้ในรอบนี้ (backend ตอบ { status, data })
+  getAssessUsers: (
+    roundListId: number,
+    accessToken: string
+  ): Promise<{ status: boolean; data: any[] }> => {
+    return http.get(`/as_user/${roundListId}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+  },
+
+  // เพิ่ม workload form แบบ bulk หลังกำหนดผู้รับการประเมิน
+  addBulkWorkloadForm: (
+    data: { set_asses_list_id: number; status_id: number }[],
+    accessToken: string
+  ): Promise<any> => {
+    return http.post('/workload_form/add_bulk', data, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+  },
+
   // Other APIs
   getAssessorOfCurrentYear: (roundListId: number, accessToken: string): Promise<ResponsePayload<any>> => {
     return http.get(`/set_assessor/${roundListId}`, {

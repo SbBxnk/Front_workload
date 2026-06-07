@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { ChevronDown } from 'lucide-react'
-import axios from 'axios'
 import { useSession } from 'next-auth/react'
+import DropdownService from '@/services/dropdownServices'
 interface SelectedUserLevelProps {
   level_id: number
   level_name: string
@@ -21,7 +21,9 @@ function SelectedUserLevel({
   setSelectedLevel,
   selectLevel,
 }: SelectedUserLevelProps) {
-  const [userLevels, setUserLevels] = useState<SelectedUserLevelProps[]>([])
+  const [userLevels, setUserLevels] = useState<
+    { level_id: number; level_name: string }[]
+  >([])
   const [, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
   const { data: session } = useSession()
@@ -33,33 +35,16 @@ function SelectedUserLevel({
           throw new Error('No token found. Please log in.')
         }
 
-        const response = await axios.get(
-          process.env.NEXT_PUBLIC_API + 'level',
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${session.accessToken}`,
-            },
-          }
-        )
+        const response = await DropdownService.getUserLevels(session.accessToken)
 
-        if (response.status === 200) {
-          if (response.data.status) {
-            setUserLevels(response.data.data) // Set user levels from API
-          } else {
-            throw new Error('No data found')
-          }
+        if (response.success && response.payload) {
+          setUserLevels(response.payload)
         } else {
-          throw new Error('Failed to fetch data')
+          throw new Error('No data found')
         }
       } catch (error) {
-        if (axios.isAxiosError(error)) {
-          setError(error.response?.data?.message || 'Error fetching levels')
-          console.error('Axios error:', error.response || error.message)
-        } else {
-          setError('An unknown error occurred')
-          console.error('Unknown error:', error)
-        }
+        setError('Error fetching levels')
+        console.error('Error fetching levels:', error)
       } finally {
         setLoading(false)
       }

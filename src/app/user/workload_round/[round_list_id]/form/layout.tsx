@@ -1,11 +1,9 @@
 
 
 'use client'
-import axios from 'axios'
 import type React from 'react'
 import { useEffect, useState, useRef } from 'react'
 import type { Terms, WorkloadGroup } from '@/Types'
-import useAuthHeaders from '@/hooks/Header'
 import { jwtDecode } from 'jwt-decode'
 import { useSession } from 'next-auth/react'
 import { useAssessor } from '@/hooks/useAssessor'
@@ -92,7 +90,6 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const { isAssessor: isUserAssessor } = useAssessor()
   const [workloadGroupInfo, setWorkloadGroupInfo] = useState<CheckWorkloadGroupResponse | null>(null)
   const [userId, setUserId] = useState<number | null>(null)
-  const headers = useAuthHeaders()
   const [selectedWorkloadGroup, setSelectedWorkloadGroup] =
     useState<WorkloadGroup | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -128,17 +125,19 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
       if (userId && roundId) {
         try {
           
-          const response = await axios.get(
-            `${process.env.NEXT_PUBLIC_API}/workload_form/check_workload_group/${userId}/${roundId}`,
-            { headers }
+          const response = await WorkloadFormServices.checkWorkloadGroup(
+            Number(userId),
+            Number(roundId),
+            session?.accessToken ?? ''
           )
-          
-          
-          const workloadGroupData = response.data.data[0] || null
+
+          const workloadGroupData = response.data[0] || null
           setWorkloadGroupInfo(workloadGroupData)
-          
         } catch (error: unknown) {
-          if (axios.isAxiosError(error) && error.response?.status === 404) {
+          if (
+            (error as { response?: { status?: number } })?.response?.status ===
+            404
+          ) {
             setWorkloadGroupInfo(null)
           } else {
             console.error('❌ Error checking workload group:', error)
@@ -240,15 +239,18 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
       } catch (error) {
         console.error('❌ Error fetching data:', error)
         
-        if (axios.isAxiosError(error)) {
-          console.error('❌ Axios Error Details:', {
-            message: error.message,
-            status: error.response?.status,
-            statusText: error.response?.statusText,
-            data: error.response?.data,
-            url: error.config?.url
-          })
+        const axiosError = error as {
+          message?: string
+          response?: { status?: number; statusText?: string; data?: unknown }
+          config?: { url?: string }
         }
+        console.error('❌ Error Details:', {
+          message: axiosError.message,
+          status: axiosError.response?.status,
+          statusText: axiosError.response?.statusText,
+          data: axiosError.response?.data,
+          url: axiosError.config?.url,
+        })
         
         setWorkloadGroups([])
         setWorkloadGroups([])

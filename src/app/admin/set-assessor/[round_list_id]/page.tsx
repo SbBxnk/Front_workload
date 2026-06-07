@@ -4,7 +4,6 @@ import type React from 'react'
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import axios from 'axios'
 import { Loader, Trash2, Eye, Plus, Check, FileCheck, Lock, Unlock, FileX } from 'lucide-react'
 import { FiX } from 'react-icons/fi'
 import Pagination from '@/components/Pagination'
@@ -13,7 +12,6 @@ import Table, { TableColumn, SortState } from '@/components/Table'
 import CreateModal from './createModal'
 import DeleteModal from './deleteModal'
 import ConfirmSubmitFormModal from './confirmModal'
-import useAuthHeaders from '@/hooks/Header'
 import type { ExPosition, User } from '@/Types'
 import Swal from 'sweetalert2'
 import Image from 'next/image'
@@ -87,7 +85,6 @@ const isDateInRange = (startDate: string, endDate: string): boolean => {
 export default function ExDetailsPage() {
   const { data: session } = useSession()
   const { setBreadcrumbs } = useUtility()
-  const headers = useAuthHeaders()
   const routeParams = useParams()
   const router = useRouter()
   const round_list_id = routeParams.round_list_id
@@ -181,16 +178,11 @@ export default function ExDetailsPage() {
 
       setFormData((prev) => ({ ...prev, round_list_id: Number(Array.isArray(round_list_id) ? round_list_id[0] : round_list_id) }))
 
-      // Create headers inside the function to avoid stale closure
-      const requestHeaders = {
-        Authorization: `Bearer ${session.accessToken}`,
-      }
-
       // Fetch all data in parallel
       const [resExposition, resRoundTitle, resUsers, resAssessors] = await Promise.all([
         ExpositionServices.getAllExpositions(session.accessToken),
         SetAssessorServices.getRoundListById(Number(Array.isArray(round_list_id) ? round_list_id[0] : round_list_id), session.accessToken),
-        axios.get(`${process.env.NEXT_PUBLIC_API}/as_user/${Array.isArray(round_list_id) ? round_list_id[0] : round_list_id}`, { headers: requestHeaders }),
+        SetAssessorServices.getAssessUsers(Number(Array.isArray(round_list_id) ? round_list_id[0] : round_list_id), session.accessToken),
         SetAssessorServices.getSetAssessorListByRound(
           Number(Array.isArray(round_list_id) ? round_list_id[0] : round_list_id),
           session.accessToken,
@@ -218,8 +210,8 @@ export default function ExDetailsPage() {
       }
 
       // Set users data
-      if (resUsers.data.data) {
-        const processedUsers = resUsers.data.data
+      if (resUsers.data) {
+        const processedUsers = resUsers.data
         setUsers(processedUsers)
       }
 
@@ -979,10 +971,9 @@ export default function ExDetailsPage() {
 
             // ส่งข้อมูลแบบ bulk
             try {
-              await axios.post(
-                `${process.env.NEXT_PUBLIC_API}/workload_form/add_bulk`,
+              await SetAssessorServices.addBulkWorkloadForm(
                 workloadFormDataArray,
-                { headers }
+                session.accessToken
               )
             } catch (error) {
               console.error('❌ Workload form bulk insert failed:', error)
@@ -998,12 +989,12 @@ export default function ExDetailsPage() {
 
       // อัปเดตรายชื่อผู้ใช้ที่สามารถเลือกได้
       try {
-        const resUsers = await axios.get(
-          `${process.env.NEXT_PUBLIC_API}/as_user/${round_list_id}`,
-          { headers }
+        const resUsers = await SetAssessorServices.getAssessUsers(
+          Number(round_list_id),
+          session.accessToken
         )
-        if (resUsers.data.status) {
-          const processedUsers = resUsers.data.data || []
+        if (resUsers.status) {
+          const processedUsers = resUsers.data || []
           setUsers(processedUsers)
         }
       } catch (error) {
@@ -1037,26 +1028,26 @@ export default function ExDetailsPage() {
     } catch (error) {
       setLoading(false)
 
-      if (axios.isAxiosError(error)) {
-        if (error.response?.status === 401) {
-          Swal.fire({
-            position: 'center',
-            icon: 'warning',
-            title: 'ผู้รับการประเมินนี้ถูกเพิ่มแล้ว!',
-            text: 'ผู้รับการประเมินนี้ถูกเพิ่มในรอบการประเมินแล้ว',
-            showConfirmButton: false,
-            timer: 1500,
-          })
-        } else {
-          Swal.fire({
-            position: 'center',
-            icon: 'error',
-            title: 'เกิดข้อผิดพลาด!',
-            text: 'เกิดข้อผิดพลาดในการเพิ่มผู้รับการประเมิน',
-            showConfirmButton: false,
-            timer: 1500,
-          })
-        }
+      const status = (error as { response?: { status?: number } })?.response
+        ?.status
+      if (status === 401) {
+        Swal.fire({
+          position: 'center',
+          icon: 'warning',
+          title: 'ผู้รับการประเมินนี้ถูกเพิ่มแล้ว!',
+          text: 'ผู้รับการประเมินนี้ถูกเพิ่มในรอบการประเมินแล้ว',
+          showConfirmButton: false,
+          timer: 1500,
+        })
+      } else {
+        Swal.fire({
+          position: 'center',
+          icon: 'error',
+          title: 'เกิดข้อผิดพลาด!',
+          text: 'เกิดข้อผิดพลาดในการเพิ่มผู้รับการประเมิน',
+          showConfirmButton: false,
+          timer: 1500,
+        })
       }
     }
   }

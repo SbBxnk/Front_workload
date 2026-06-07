@@ -163,7 +163,7 @@ function CourseTable() {
   const getBranches = async () => {
     try {
       if (!session?.accessToken) return
-      const response = await BranchServices.getAllBranches(session.accessToken, {
+      const response = await BranchServices.getAllBranches({
         search: '',
         page: 1,
         limit: 100,

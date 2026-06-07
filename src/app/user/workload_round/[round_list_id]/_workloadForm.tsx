@@ -1,9 +1,7 @@
 'use client'
 import React, { useEffect, useState, useMemo } from 'react'
 import type { Terms } from '@/Types'
-import useAuthHeaders from '@/hooks/Header'
 import { FileDown } from 'lucide-react'
-import axios from 'axios'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { jwtDecode } from 'jwt-decode'
@@ -12,6 +10,7 @@ import SetAssessorServices from '@/services/setAssessorServices'
 import SnapshotService from '@/services/snapshotService'
 import MainTaskServices from '@/services/mainTaskServices'
 import SubTaskServices from '@/services/subTaskServices'
+import WorkloadFormServices from '@/services/workloadFormServices'
 import WorkloadGroupServices from '@/services/workloadGroupServices'
 import PerformanceService, { type PerformanceSnapshot } from '@/services/performanceService'
 import type {
@@ -58,7 +57,6 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
   const [competencies, setCompetencies] = useState<any[]>([])
   const [performanceEvaluations, setPerformanceEvaluations] = useState<any[]>([]) // สำหรับ preview
   const [isCompetencyModalOpen, setIsCompetencyModalOpen] = useState(false)
-  const headers = useAuthHeaders()
   const { data: session } = useSession()
 
   // ตำแหน่งที่ใช้ในระบบ
@@ -217,7 +215,6 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
     return raw / 30
   }, [competencyScoreSummary?.totalScore])
 
-  const memoizedHeaders = useMemo(() => headers, [headers.Authorization])
 
   // ตรวจสอบ status ของ formlist
   const [formlistStatus, setFormlistStatus] = useState<number | null>(null)
@@ -435,16 +432,17 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
 
             // ถ้า snapshot error ให้ใช้ API ปกติ
             try {
-              const response = await axios.get(
-                `${process.env.NEXT_PUBLIC_API}/workload_form/items/${userId}/${roundId}`,
-                { headers: memoizedHeaders }
+              const response = await WorkloadFormServices.getWorkloadItems(
+                Number(userId),
+                Number(roundId),
+                session?.accessToken ?? ''
               )
 
-              if (response.data.success && response.data.payload) {
-                setWorkloadData(response.data.payload)
+              if (response.success && response.payload) {
+                setWorkloadData(response.payload)
                 return
               } else {
-                console.error('Regular API response is not successful:', response.data)
+                console.error('Regular API response is not successful:', response)
                 // ให้ fall through ไปใช้ logic ถัดไป
               }
             } catch (fallbackError) {
@@ -465,13 +463,14 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
       )
 
       if (!formlistResponse.success || !formlistResponse.payload) {
-        const response = await axios.get(
-          `${process.env.NEXT_PUBLIC_API}/workload_form/items/${userId}/${roundId}`,
-          { headers: memoizedHeaders }
+        const response = await WorkloadFormServices.getWorkloadItems(
+          Number(userId),
+          Number(roundId),
+          session?.accessToken ?? ''
         )
 
-        if (response.data.success && response.data.payload) {
-          setWorkloadData(response.data.payload)
+        if (response.success && response.payload) {
+          setWorkloadData(response.payload)
         }
         return
       }
@@ -583,14 +582,15 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
           console.error('Error fetching snapshot data:', snapshotError)
           // ถ้า snapshot error ให้ใช้ API ปกติ
           try {
-            const response = await axios.get(
-              `${process.env.NEXT_PUBLIC_API}/workload_form/items/${userId}/${roundId}`,
-              { headers: memoizedHeaders }
+            const response = await WorkloadFormServices.getWorkloadItems(
+              Number(userId),
+              Number(roundId),
+              session?.accessToken ?? ''
             )
 
-            if (response.data.success && response.data.payload) {
-              console.log('Fallback to regular API:', response.data.payload)
-              setWorkloadData(response.data.payload)
+            if (response.success && response.payload) {
+              console.log('Fallback to regular API:', response.payload)
+              setWorkloadData(response.payload)
             }
           } catch (fallbackError) {
             console.error('Fallback API also failed:', fallbackError)
@@ -623,15 +623,16 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
         }
       } else {
         try {
-          const response = await axios.get(
-            `${process.env.NEXT_PUBLIC_API}/workload_form/items/${userId}/${roundId}`,
-            { headers: memoizedHeaders }
+          const response = await WorkloadFormServices.getWorkloadItems(
+            Number(userId),
+            Number(roundId),
+            session?.accessToken ?? ''
           )
 
-          if (response.data.success && response.data.payload) {
-            console.log('API Response:', response.data.payload)
-            console.log('Number of tasks:', response.data.payload.length)
-            setWorkloadData(response.data.payload)
+          if (response.success && response.payload) {
+            console.log('API Response:', response.payload)
+            console.log('Number of tasks:', response.payload.length)
+            setWorkloadData(response.payload)
           }
         } catch (regularApiError) {
           console.error('Error fetching regular API:', regularApiError)
@@ -696,7 +697,7 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
 
   useEffect(() => {
     fetchWorkloadData()
-  }, [userId, roundId, memoizedHeaders])
+  }, [userId, roundId, session?.accessToken])
 
   // ดึงข้อมูล snapshot ของ performance evaluation
   useEffect(() => {

@@ -6,7 +6,6 @@ import { jwtDecode } from 'jwt-decode'
 import useUtility from '@/hooks/useUtility'
 import WorkloadForm from '../_workloadForm'
 import type { Terms } from '@/Types'
-import axios from 'axios'
 import WorkloadFormServices from '@/services/workloadFormServices'
 
 export default function PreviewPage() {

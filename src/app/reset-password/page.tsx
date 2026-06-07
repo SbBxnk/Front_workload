@@ -5,6 +5,7 @@ import { ArrowLeft, Lock, Eye, EyeOff, Mail , KeyRound} from 'lucide-react'
 import Swal from 'sweetalert2'
 import Image from 'next/image'
 import RMUTL_logo1 from '../../../public/web/rmutl_1_logo.png'
+import AuthService from '@/services/authService'
 
 export default function ResetPassword() {
   const [password, setPassword] = useState('')
@@ -41,16 +42,8 @@ export default function ResetPassword() {
 
   const validateToken = async (token: string) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/validate-reset-token`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json' 
-        },
-        body: JSON.stringify({ token })
-      })
-      
-      const data = await response.json()
-      
+      const data = await AuthService.ValidateResetToken(token)
+
       if (!data.status) {
         setIsValidating(false)
         setIsTokenValid(false)
@@ -111,16 +104,8 @@ export default function ResetPassword() {
     setLoading(true)
     
     try {
-      const response = await fetch(`http://localhost:3333/api/reset-password`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json' 
-        },
-        body: JSON.stringify({ token, newPassword: password })
-      })
-      
-      const data = await response.json()
-      
+      const data = await AuthService.ResetPassword(token, password)
+
       if (data.status) {
         Swal.fire({
           icon: 'success',

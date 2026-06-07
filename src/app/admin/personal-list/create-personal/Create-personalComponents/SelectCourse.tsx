@@ -2,8 +2,8 @@ import type React from 'react'
 import { ChevronDown } from 'lucide-react'
 import type { Course } from '@/Types'
 import { useEffect, useState } from 'react'
-import axios from 'axios'
 import { useSession } from 'next-auth/react'
+import CourseServices from '@/services/courseServices'
 
 interface SelectCourseProps {
   openDropdown: string | null
@@ -36,26 +36,21 @@ function SelectCourse({
         setIsLoading(true)
         setError(null)
 
-        const response = await axios.get(
-          `${process.env.NEXT_PUBLIC_API}/course/branch/${branch_id}`,
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${session?.accessToken}`,
-            },
-          }
+        const response = await CourseServices.getCoursesByBranch(
+          branch_id,
+          session?.accessToken ?? ''
         )
 
-        if (response.status === 200 && response.data.status) {
-          setIsLoading(false)
-          setCourses(response.data.data || [])
+        if (response.success) {
+          setCourses(response.payload || [])
         } else {
           throw new Error('No data found')
         }
       } catch (error) {
-        setIsLoading(false)
-        console.error('Axios error:', error)
+        console.error('Error fetching courses:', error)
         setError('เกิดข้อผิดพลาดในการเชื่อมต่อข้อมูล')
+      } finally {
+        setIsLoading(false)
       }
     }
 

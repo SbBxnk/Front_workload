@@ -159,7 +159,7 @@ export default function CreatePersonal() {
       }
 
       // Load branches
-      const branchResponse = await BranchServices.getAllBranches(session.accessToken, {
+      const branchResponse = await BranchServices.getAllBranches({
         search: '',
         page: 1,
         limit: 100,

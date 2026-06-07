@@ -2,10 +2,10 @@
 import { useParams } from 'next/navigation'
 import type React from 'react'
 import { useEffect, useState, useRef } from 'react'
-import axios from 'axios'
 import useAuthHeaders from '@/hooks/Header'
 import { useRouter } from 'next/navigation'
 import useUtility from '@/hooks/useUtility'
+import SubTaskServices from '@/services/subTaskServices'
 
 interface SubTaskDetail {
   subtask_id: number
@@ -44,20 +44,20 @@ export default function WorkloadSubtask() {
 
     const fetchTaskAndSubtasks = async () => {
       try {
-        const subtaskResponse = await axios.get(
-          `${process.env.NEXT_PUBLIC_API}/subtask/task/${task_id}`,
-          { 
-            headers,
-            params: {
-              sort: 'subtask_id',  // เรียงตาม subtask_id
-              order: 'asc',        // เรียงจากน้อยไปมาก
-              limit: 100           // เพิ่ม limit เพื่อให้ได้ข้อมูลทั้งหมด
-            }
-          }
+        const accessToken = headers.Authorization?.replace('Bearer ', '') || ''
+        const subtaskResponse: any = await SubTaskServices.getSubTasksByTask(
+          Number(task_id),
+          accessToken,
+          { sort: 'subtask_id', order: 'asc', limit: 100 }
         )
-        
-        
-        const subtaskData = subtaskResponse.data.data || subtaskResponse.data.payload || []
+
+        const subtaskData = Array.isArray(subtaskResponse?.payload)
+          ? subtaskResponse.payload
+          : Array.isArray(subtaskResponse?.data)
+            ? subtaskResponse.data
+            : Array.isArray(subtaskResponse)
+              ? subtaskResponse
+              : []
         
         const fetchedSubtasks = Array.isArray(subtaskData) ? subtaskData.map(
           (subtask: SubTaskDetail) => ({

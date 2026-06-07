@@ -1,12 +1,11 @@
 'use client'
-import axios from 'axios'
 import { useEffect, useState, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { jwtDecode } from 'jwt-decode'
-import useAuthHeaders from '@/hooks/Header'
 import useUtility from '@/hooks/useUtility'
 import WorkloadFormServices from '@/services/workloadFormServices'
+import MainTaskServices from '@/services/mainTaskServices'
 
 interface Workload {
   task_id: number
@@ -40,7 +39,6 @@ export default function WorkLoadForm() {
   const [error, setError] = useState<string | null>(null)
   const [user, setUser] = useState<UserLoginData | null>(null)
   const router = useRouter()
-  const headers = useAuthHeaders()
   const hasFetched = useRef(false)
 
   useEffect(() => {
@@ -70,20 +68,12 @@ export default function WorkLoadForm() {
 
     const fetchWorkloads = async () => {
       try {
-        const response = await axios.get(
-          `${process.env.NEXT_PUBLIC_API}/maintask`,
-          { 
-            headers,
-            params: {
-              sort: 'task_id',  // เรียงตาม task_id
-              order: 'asc',     // เรียงจากน้อยไปมาก
-              limit: 100        // เพิ่ม limit เพื่อให้ได้ข้อมูลทั้งหมด
-            }
-          }
+        const response = await MainTaskServices.getAllMainTasks(
+          session?.accessToken ?? '',
+          { sort: 'task_id', order: 'asc', limit: 100 }
         )
-        
-        
-        const workloadData = response.data.payload || []
+
+        const workloadData = response.payload || []
         
         // เรียงลำดับใน frontend เป็น fallback
         const sortedWorkloadData = workloadData.sort((a: Workload, b: Workload) => a.task_id - b.task_id)

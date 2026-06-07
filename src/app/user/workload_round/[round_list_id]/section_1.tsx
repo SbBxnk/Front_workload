@@ -4,6 +4,7 @@ import React from 'react'
 import { AlertCircle, FileText, ImageIcon, LinkIcon } from 'lucide-react'
 import type { Terms } from '@/Types'
 import type { Task } from './types'
+import { BASE_URL_FILE } from '@/provider/config'
 
 interface Section1Props {
   mergedTasks: Task[]
@@ -27,7 +28,7 @@ const Section1: React.FC<Section1Props> = ({
   formlistStatus = null,
 }) => {
   const isFinalized = formlistStatus === 2
-  const baseUrl = process.env.NEXT_PUBLIC_API?.replace('/api', '') || 'http://localhost:3333'
+  const baseUrl = BASE_URL_FILE
 
   // ฟังก์ชันสำหรับ format ตัวเลข: แสดงจำนวนเต็มถ้าไม่มีทศนิยม, แสดงทศนิยมถ้ามี
   const formatNumber = (num: number): string => {

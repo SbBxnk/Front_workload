@@ -9,6 +9,7 @@ import { IoIosMail } from 'react-icons/io'
 import { Formik, Form, Field, ErrorMessage } from 'formik'
 import * as Yup from 'yup'
 import Swal from 'sweetalert2'
+import AuthService from '@/services/authService'
 
 interface UserRegister {
   fname: string
@@ -74,14 +75,7 @@ export default function register() {
                 }}
                 validationSchema={userSchema}
                 onSubmit={(values, { setSubmitting, resetForm }) => {
-                  fetch(process.env.NEXT_PUBLIC_API + 'register', {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(values),
-                  })
-                    .then((response) => response.json())
+                  AuthService.Register(values)
                     .then((data) => {
                       if (data.status === 'ok') {
                         Swal.fire({

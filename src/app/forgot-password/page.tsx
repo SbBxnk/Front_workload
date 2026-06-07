@@ -6,6 +6,7 @@ import Swal from 'sweetalert2'
 import Image from 'next/image'
 import RMUTL_logo1 from '../../../public/web/rmutl_1_logo.png'
 import Link from 'next/link'
+import AuthService from '@/services/authService'
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('')
@@ -17,15 +18,7 @@ export default function ForgotPassword() {
     setLoading(true)
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/forgot-password`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json' 
-        },
-        body: JSON.stringify({ u_email: email })
-      })
-      
-      const data = await response.json()
+      const data = await AuthService.ForgotPassword(email)
 
       if (data.status) {
         Swal.fire({

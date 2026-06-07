@@ -16,7 +16,7 @@ import PersonaltypeServices from '@/services/personaltypeServices'
 import BranchServices from '@/services/branchServices'
 import CourseServices from '@/services/courseServices'
 import UserLevelServices from '@/services/userLevelServices'
-import axios from 'axios'
+import UserServices from '@/services/userServices'
 import { useDropzone } from 'react-dropzone'
 
 const FormDataPersonal: User = {
@@ -129,7 +129,7 @@ export default function CreatePersonal() {
       }
 
       // Load branches
-      const branchResponse = await BranchServices.getAllBranches(session.accessToken, {
+      const branchResponse = await BranchServices.getAllBranches({
         search: '',
         page: 1,
         limit: 100,
@@ -318,17 +318,11 @@ export default function CreatePersonal() {
         }
       })
 
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API}/user/add`,
+      const response = await UserServices.createUser(
         formDataToSend,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-            Authorization: `Bearer ${session?.accessToken}`,
-          },
-        }
+        session?.accessToken ?? ''
       )
-      console.log(response.data)
+      console.log(response)
       Swal.fire({
         position: 'center',
         icon: 'success',
@@ -339,18 +333,20 @@ export default function CreatePersonal() {
       })
       router.push('/admin/personal-list')
     } catch (error: unknown) {
-      if (axios.isAxiosError(error)) {
-        console.log(error.response?.data || error)
-        Swal.fire({
-          position: 'center',
-          icon: 'error',
-          title: 'เกิดข้อผิดพลาด!',
-          text:
-            error.response?.data?.message || 'เกิดข้อผิดพลาดในการเพิ่มบุคลากร',
-          showConfirmButton: false,
-          timer: 1500,
-        })
+      const axiosError = error as {
+        response?: { data?: { message?: string } }
       }
+      console.log(axiosError.response?.data || error)
+      Swal.fire({
+        position: 'center',
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด!',
+        text:
+          axiosError.response?.data?.message ||
+          'เกิดข้อผิดพลาดในการเพิ่มบุคลากร',
+        showConfirmButton: false,
+        timer: 1500,
+      })
     }
   }
 

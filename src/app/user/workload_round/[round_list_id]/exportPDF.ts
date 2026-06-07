@@ -4,6 +4,7 @@ import { jwtDecode } from 'jwt-decode'
 import SetAssessorServices from '@/services/setAssessorServices'
 import WorkloadGroupServices from '@/services/workloadGroupServices'
 import PerformanceService from '@/services/performanceService'
+import { BASE_URL_FILE } from '@/provider/config'
 import type { Terms } from '@/Types'
 import type { PerformanceSnapshot } from '@/services/performanceService'
 import type { Task } from './types'
@@ -76,7 +77,7 @@ export const handleExportPDFWithLinks = async (params: ExportPDFParams) => {
 
 
 
-    const baseUrl = process.env.NEXT_PUBLIC_API?.replace('/api', '') || 'http://localhost:3333'
+    const baseUrl = BASE_URL_FILE
 
 
 

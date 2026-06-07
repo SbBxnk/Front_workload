@@ -74,7 +74,7 @@ const UserServices = {
   },
 
   createUser: (
-    data: CreateUserRequest,
+    data: CreateUserRequest | FormData,
     accessToken: string
   ): Promise<ResponsePayload<Personal>> => {
     return http.post('/user/add', data, {

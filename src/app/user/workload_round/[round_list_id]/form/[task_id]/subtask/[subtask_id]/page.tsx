@@ -14,7 +14,6 @@ import {
   PenSquare,
   ImageIcon,
 } from 'lucide-react'
-import axios from 'axios'
 import { jwtDecode } from 'jwt-decode'
 import Swal from 'sweetalert2'
 import { useSession } from 'next-auth/react'
@@ -22,10 +21,12 @@ import CreateModal from './createModal'
 import DeleteModal from './deleteModal'
 import EditModal from './editModal'
 import useUtility from '@/hooks/useUtility'
-import WorkloadFormServices, { 
-  type WorkloadFormData, 
-  type WorkloadFormDetail 
+import WorkloadFormServices, {
+  type WorkloadFormData,
+  type WorkloadFormDetail
 } from '@/services/workloadFormServices'
+import SubTaskServices from '@/services/subTaskServices'
+import { BASE_URL_FILE } from '@/provider/config'
 
 interface ApiFormData extends WorkloadFormData {
   subtask_name: string
@@ -99,10 +100,6 @@ const isImageFile = (fileName: string | null | undefined): boolean => {
 function WorkloadSubtaskInfo() {
   const { subtask_id, task_id, round_list_id } = useParams()
   const { data: session } = useSession()
-  const headers = {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${session?.accessToken}`,
-  }
   const [subtask, setSubtask] = useState<Subtask | null>(null)
   const [subtaskIndex, setSubtaskIndex] = useState<string>('')
   const [loading, setLoading] = useState(true)
@@ -191,7 +188,10 @@ const {setBreadcrumbs} = useUtility()
           setWorkloadGroupInfo(data?.[0] || null)
         } catch (error: unknown) {
           console.error('checkWorkloadGroup error:', error)
-          if (axios.isAxiosError(error) && error.response?.status === 404) {
+          if (
+            (error as { response?: { status?: number } })?.response?.status ===
+            404
+          ) {
             setWorkloadGroupInfo(null)
           }
         }
@@ -212,17 +212,26 @@ const {setBreadcrumbs} = useUtility()
     const fetchData = async () => {
       try {
         const [subtaskResponse, taskSubtasksResponse] = await Promise.all([
-          axios.get(`${process.env.NEXT_PUBLIC_API}/subtask/${subtask_id}`, {
-            headers,
-          }),
-          axios.get(`${process.env.NEXT_PUBLIC_API}/subtask/task/${task_id}`, {
-            headers,
-          }),
+          SubTaskServices.getSubTaskById(
+            Number(subtask_id),
+            session?.accessToken ?? ''
+          ),
+          SubTaskServices.getSubTasksByTask(
+            Number(task_id),
+            session?.accessToken ?? ''
+          ),
         ])
 
-        
-        const subtaskData: Subtask = subtaskResponse.data?.data || subtaskResponse.data?.payload
-        const taskSubtasks: Subtask[] = taskSubtasksResponse.data?.data || taskSubtasksResponse.data?.payload || []
+        const subtaskData: Subtask =
+          (subtaskResponse as any)?.data ||
+          (subtaskResponse as any)?.payload ||
+          (subtaskResponse as any)
+        const taskSubtasks: Subtask[] =
+          (taskSubtasksResponse as any)?.data ||
+          (taskSubtasksResponse as any)?.payload ||
+          (Array.isArray(taskSubtasksResponse)
+            ? (taskSubtasksResponse as any)
+            : [])
 
 
         if (subtaskData && subtaskData.subtask_id) {
@@ -349,7 +358,10 @@ const {setBreadcrumbs} = useUtility()
             fetchFilesForForm(apiForm.form_id)
           })
         } catch (error) {
-          if (axios.isAxiosError(error) && error.response?.status === 404) {
+          if (
+            (error as { response?: { status?: number } })?.response?.status ===
+            404
+          ) {
             setFormList([])
             setFormFiles({})
             setFormLinks({})
@@ -377,7 +389,9 @@ const {setBreadcrumbs} = useUtility()
       const files: FileInfo[] = data || []
       setFileInfos((prev) => ({ ...prev, [formlist_id]: files }))
     } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.status === 404) {
+      if (
+        (error as { response?: { status?: number } })?.response?.status === 404
+      ) {
         setFileInfos((prev) => ({ ...prev, [formlist_id]: [] }))
       } else {
         console.error(`Error fetching files for form ${formlist_id}:`, error)
@@ -582,13 +596,14 @@ const {setBreadcrumbs} = useUtility()
       console.error('Error adding form:', error)
       let errorMessage = 'เกิดข้อผิดพลาดในการเพิ่มข้อมูล'
 
-      if (axios.isAxiosError(error)) {
-        console.error('API Error Response:', error.response?.data)
-        if (error.response?.data?.error) {
-          errorMessage = error.response.data.error
-        } else if (error.response?.status === 413) {
-          errorMessage = 'ขนาดไฟล์รวมใหญ่เกินไป กรุณาลดขนาดหรือจำนวนไฟล์'
-        }
+      const axiosError = error as {
+        response?: { data?: { error?: string }; status?: number }
+      }
+      console.error('API Error Response:', axiosError.response?.data)
+      if (axiosError.response?.data?.error) {
+        errorMessage = axiosError.response.data.error
+      } else if (axiosError.response?.status === 413) {
+        errorMessage = 'ขนาดไฟล์รวมใหญ่เกินไป กรุณาลดขนาดหรือจำนวนไฟล์'
       }
 
       // Show error alert
@@ -788,8 +803,9 @@ const {setBreadcrumbs} = useUtility()
     } catch (error) {
       console.error('Error updating form:', error)
       let errorMessage = 'เกิดข้อผิดพลาดในการอัปเดตข้อมูล'
-      if (axios.isAxiosError(error) && error.response?.data?.error) {
-        errorMessage = error.response.data.error
+      const axiosError = error as { response?: { data?: { error?: string } } }
+      if (axiosError.response?.data?.error) {
+        errorMessage = axiosError.response.data.error
       }
 
       Swal.fire({
@@ -802,7 +818,7 @@ const {setBreadcrumbs} = useUtility()
   }
 
   const handleViewEvidence = (fileInfo: FileInfo) => {
-    const baseUrl = process.env.NEXT_PUBLIC_API?.replace('/api', '') || 'http://localhost:3333'
+    const baseUrl = BASE_URL_FILE
     window.open(`${baseUrl}/files/${fileInfo.file_name}`, '_blank')
   }
 
@@ -1249,7 +1265,7 @@ const {setBreadcrumbs} = useUtility()
                                   <li key={form.form_id ? `file-${form.form_id}-${index}` : `file-temp-${index}`}>
                                     <button
                                       onClick={() => {
-                                        const baseUrl = process.env.NEXT_PUBLIC_API?.replace('/api', '') || 'http://localhost:3333'
+                                        const baseUrl = BASE_URL_FILE
                                         const url = `${baseUrl}/files/${file.file_name}`
                                         window.open(url, '_blank')
                                       }}
@@ -1272,7 +1288,7 @@ const {setBreadcrumbs} = useUtility()
                               <li>
                                 <button
                                   onClick={() => {
-                                    const baseUrl = process.env.NEXT_PUBLIC_API?.replace('/api', '') || 'http://localhost:3333'
+                                    const baseUrl = BASE_URL_FILE
                                     window.open(
                                       `${baseUrl}/files/${formSystemFiles[form.form_id].file_name}`,
                                       '_blank'

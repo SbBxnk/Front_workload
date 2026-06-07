@@ -16,7 +16,6 @@ import SetAssessorServices from '@/services/setAssessorServices'
 import WorkloadEvaluationService from '@/services/workloadEvaluationService'
 import QuantityWorkloadServices from '@/services/quantityWorkloadServices'
 import { TriangleAlertIcon, CircleX, TrendingUp, UserCheck, BarChart3, FileDown, ChevronDown, Calendar, Info } from 'lucide-react'
-import axios from 'axios'
 import type { Task, Subtask } from '../workload_round/[round_list_id]/types'
 import type { Terms } from '@/Types'
 import { handleExportPDFWithLinks } from '../workload_round/[round_list_id]/exportPDF'
@@ -1454,7 +1453,7 @@ export default function WorkloadDashboard() {
                     />
                   ) : (
                     <div className="rounded-md border border-dashed border-gray-300 p-4 text-center text-sm text-gray-500 dark:border-zinc-700 dark:text-gray-400">
-                      ยังไม่มีข้อมูลหัวข้อสำหรับการเปรียบเทียบคะแนน
+                      ยังไม่มีข้อมูลการเปรียบเทียบคะแนน
                     </div>
                   )}
                 </div>
@@ -1481,7 +1480,7 @@ export default function WorkloadDashboard() {
                     />
                   ) : (
                     <div className="rounded-md border border-dashed border-gray-300 p-4 text-center text-sm text-gray-500 dark:border-zinc-700 dark:text-gray-400">
-                      ยังไม่มีข้อมูลหัวข้อสมรรถนะสำหรับการเปรียบเทียบ
+                      ยังไม่มีข้อมูลการเปรียบเทียบคะแนน
                     </div>
                   )}
                 </div>

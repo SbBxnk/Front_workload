@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Swal from 'sweetalert2'
 import { Loader2 } from 'lucide-react'
 import StickyFooter from '@/components/StickyFooter'
+import { BASE_URL_FILE } from '@/provider/config'
 import WorkloadEvaluationService, {
     type EvaluationPayload,
     type EvaluationItem,
@@ -53,7 +54,7 @@ export default function Component1Content({
     setAssesInfoIdParam,
     accessToken,
 }: Component1ContentProps) {
-    const baseUrl = process.env.NEXT_PUBLIC_API?.replace('/api', '') || 'http://localhost:3333'
+    const baseUrl = BASE_URL_FILE
 
     const [isLoading, setIsLoading] = useState(true)
     const [snapshotRows, setSnapshotRows] = useState<SnapshotRow[]>([])

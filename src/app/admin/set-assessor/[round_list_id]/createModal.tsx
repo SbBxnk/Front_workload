@@ -2,11 +2,10 @@
 
 import type React from 'react'
 import { useEffect, useState } from 'react'
-import axios from 'axios'
-import useAuthHeaders from '@/hooks/Header'
 import type { ExPosition, User } from '@/Types'
 import SelectDropdown, { type SelectOption } from '@/components/SelectValue'
 import PrefixServices from '@/services/prefixServices'
+import SetAssessorServices from '@/services/setAssessorServices'
 import { useSession } from 'next-auth/react'
 import SearchFilter from '@/components/SearchFilter'
 import Select, { MultiValue } from 'react-select'
@@ -41,7 +40,6 @@ export default function CreateModal({
   const [, setPrefixes] = useState<Prefix[]>([])
   const [userOptions, setUserOptions] = useState<SelectOption[]>([])
   const [selectedInputValue, setSelectedInputValue] = useState<SelectOption | null>(null)
-  const headers = useAuthHeaders()
   const { data: session } = useSession()
 
   useEffect(() => {
@@ -70,14 +68,12 @@ export default function CreateModal({
 
     const fetchUsers = async () => {
       try {
-        const resUsers = await axios.get(
-          `${process.env.NEXT_PUBLIC_API}/as_user/${formData.round_list_id}`,
-          {
-            headers,
-          }
+        const resUsers = await SetAssessorServices.getAssessUsers(
+          formData.round_list_id,
+          session?.accessToken ?? ''
         )
-        if (resUsers.data.status) {
-          const processedUsers = resUsers.data.data || []
+        if (resUsers.status) {
+          const processedUsers = resUsers.data || []
           setUsers(processedUsers)
         }
       } catch (error) {

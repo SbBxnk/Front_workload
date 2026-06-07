@@ -5,7 +5,8 @@ import type { Terms, WorkloadGroup } from '@/Types'
 import useAuthHeaders from '@/hooks/Header'
 import { useEffect, useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import axios from 'axios'
+import WorkloadFormServices from '@/services/workloadFormServices'
+import WorkloadGroupServices from '@/services/workloadGroupServices'
 
 interface CheckWorkloadGroupResponse {
   workload_group_id: number | null
@@ -34,19 +35,13 @@ export default function InfoHoverModal({
     setMounted(true)
     const fetchData = async () => {
       try {
-        const responseTerms = await axios.get(
-          `${process.env.NEXT_PUBLIC_API}/workload_form/terms`,
-          { headers }
-        )
-        const responseWorkloadGroups = await axios.get(
-          `${process.env.NEXT_PUBLIC_API}/workload_group`,
-          {
-            headers,
-          }
-        )
+        const accessToken = headers.Authorization?.replace('Bearer ', '') || ''
+        const responseTerms = await WorkloadFormServices.getTerms(accessToken)
+        const responseWorkloadGroups =
+          await WorkloadGroupServices.getAllWorkloadGroups(accessToken)
 
-        const termsData = responseTerms.data.data
-        const workloadGroupsData = responseWorkloadGroups.data.data
+        const termsData = (responseTerms.payload ?? []) as unknown as Terms[]
+        const workloadGroupsData = responseWorkloadGroups.payload ?? []
 
         setTerms(termsData)
         setWorkloadGroups(workloadGroupsData)

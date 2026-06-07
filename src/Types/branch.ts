@@ -10,3 +10,11 @@ export interface BranchSearchParams {
   sort: string
   order: string
 }
+
+export interface CreateBranchRequest {
+  branch_name: string
+}
+
+export interface UpdateBranchRequest {
+  branch_name: string
+}

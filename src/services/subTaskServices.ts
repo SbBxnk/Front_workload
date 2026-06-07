@@ -58,9 +58,14 @@ const SubTaskServices = {
     })
   },
 
-  getSubTasksByTask: (taskId: number, accessToken: string): Promise<SubTask[]> => {
+  getSubTasksByTask: (
+    taskId: number,
+    accessToken: string,
+    params?: { sort?: string; order?: string; limit?: number }
+  ): Promise<SubTask[]> => {
     return http.get(`/subtask/task/${taskId}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
+      params,
     })
   },
 }

@@ -3,6 +3,7 @@ import localFont from 'next/font/local'
 import './globals.css'
 import { SessionProvider } from '@/components/SessionProvider'
 import ReduxProvider from '@/provider/reduxProvider'
+import ReactQueryProvider from '@/provider/reactQueryProvider'
 import { AssessorProvider } from '@/provider/AssessorProvider'
 
 const geistSans = localFont({
@@ -33,9 +34,11 @@ export default function RootLayout({
       >
         <ReduxProvider>
           <SessionProvider>
-            <AssessorProvider>
-              {children}
-            </AssessorProvider>
+            <ReactQueryProvider>
+              <AssessorProvider>
+                {children}
+              </AssessorProvider>
+            </ReactQueryProvider>
           </SessionProvider>
         </ReduxProvider>
       </body>
