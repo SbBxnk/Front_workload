@@ -1,833 +1,79 @@
 'use client'
-import type React from 'react'
-import { useEffect, useState, useCallback } from 'react'
-import { Edit2, Plus, Trash2, FileText } from 'lucide-react'
 
-import type { Personal, Position, Branch, Course, UserLevel, ExPosition } from '@/Types'
-import { UserSearchParams } from '@/Types'
-import { FiFilter  } from 'react-icons/fi'
-import { LuDelete } from "react-icons/lu";
-import Swal from 'sweetalert2'
-import UserServices from '@/services/userServices'
-import { useSession } from 'next-auth/react'
-import Table, { TableColumn, SortState, SortOrder } from '@/components/Table'
+import { useEffect } from 'react'
+import { Plus, FileText } from 'lucide-react'
+import { FiFilter } from 'react-icons/fi'
+import { LuDelete } from 'react-icons/lu'
 import { useRouter } from 'next/navigation'
-import useFetchData from '@/hooks/FetchAPI'
-import DeleteModal from './Personal-listComponents/DeletePersonalModal'
-import UpdatePersonalModal from './Personal-listComponents/UpdatePersonalModal'
-import FilterDialog from './Personal-listComponents/FilterDialog'
-import useUtility from '@/hooks/useUtility'
 
-const positionStyles: { [key: string]: string } = {
-  อาจารย์: 'text-white bg-blue-500',
-  รองศาสตราจารย์: 'text-white bg-green-500',
-  ศาสตราจารย์: 'text-white bg-purple-500',
-  ผู้ช่วยศาสตราจารย์: 'text-white bg-amber-500',
-  ผู้ช่วยอาจารย์: 'text-white bg-purple-500',
+import type { Personal } from '@/Types'
+import Table from '@/components/Table'
+import useUtility from '@/hooks/useUtility'
+import { useUserList } from './_partial/useUserList'
+import { useUserMutations } from './_partial/useUserMutations'
+import { getUserColumns } from './_partial/userColumns'
+import DeletePersonalModal from './_partial/DeletePersonalModal'
+import UpdatePersonalModal from './_partial/UpdatePersonalModal'
+import FilterDialog from './_partial/FilterDialog'
+
+const ROWS_PER_PAGE_OPTIONS = [10, 20, 50, 100, 200]
+
+// เปิด daisyui modal ผ่าน checkbox id
+const openModal = (id: string) => {
+  const el = document.getElementById(id) as HTMLInputElement | null
+  if (el) el.checked = true
 }
 
-const ITEMS_PER_PAGE = 10
-
-type Order = 'asc' | 'desc'
-
-function PersonalListTable() {
-  const { data: session } = useSession()
-  const { setBreadcrumbs } = useUtility()
+export default function PersonalListPage() {
   const router = useRouter()
-  const [loading, setLoading] = useState<boolean>(false)
-  const [order, setOrder] = useState<Order>('asc')
-  const [orderBy, setOrderBy] = useState<string>('')
-  const [page, setPage] = useState<number>(0)
-  const [rowsPerPage, setRowsPerPage] = useState<number>(10)
-  const [total, setTotal] = useState<number>(0)
-  const [data, setData] = useState<Personal[]>([])
-  const [params, setParams] = useState<UserSearchParams>({
-    search: '',
-    page: 1,
-    limit: 10,
-    sort: '',
-    order: '',
-    position_name: '',
-    branch_name: '',
-    course_name: '',
-    ex_position_name: '',
-    gender: '',
-  })
-  const [searchInput, setSearchInput] = useState<string>('')
-  const [selectedPosition, setSelectedPosition] = useState<string>('')
-  const [selectedBranch, setSelectedBranch] = useState<string>('')
-  const [selectedCourse, setSelectedCourse] = useState<string>('')
-  const [selectedExPosition, setSelectedExPosition] = useState<string>('')
-  const [selectedGender, setSelectedGender] = useState<string>('')
-  const [selectedLevel, setSelectedLevel] = useState<string>('')
-  const [selectedUserId, setSelectedUserId] = useState<number>(0)
-  const [selectedUserName, setSelectedUserName] = useState<string>('')
-  const [sortState, setSortState] = useState<SortState>({
-    column: null,
-    order: null,
-  })
-  const [isFilterDialogOpen, setIsFilterDialogOpen] = useState<boolean>(false)
-  
-  // Temporary filter state for dialog (not applied until search is clicked)
-  const [tempFilters, setTempFilters] = useState({
-    position_name: '',
-    branch_name: '',
-    course_name: '',
-    ex_position_name: '',
-    gender: '',
-  })
-
-  // Fetching data using custom hook for dropdowns
-  const {
-    data: positions,
-    loading: positionLoading,
-    error: positionError,
-  } = useFetchData<Position[]>('/position')
-  const {
-    data: branchs,
-    loading: branchLoading,
-    error: branchError,
-  } = useFetchData<Branch[]>('/branch')
-  const {
-    data: courses,
-    loading: courseLoading,
-    error: courseError,
-  } = useFetchData<Course[]>('/course')
-  const {
-    data: exPositions,
-    loading: exPositionLoading,
-    error: exPositionError,
-  } = useFetchData<ExPosition[]>('/ex_position')
-
-  const {
-    data: levels,
-    loading: levelLoading,
-    error: levelError,
-  } = useFetchData<UserLevel[]>('/level')
-
-  // Define table columns
-  const columns: TableColumn<Personal>[] = [
-    {
-      key: 'index',
-      label: '#',
-      width: '80px',
-      align: 'center',
-      render: (_, __, index) => (
-        <span className="font-regular text-sm text-gray-600 dark:text-gray-300">
-          {page * rowsPerPage + index + 1}
-        </span>
-      ),
-    },
-    {
-      key: 'u_img',
-      label: 'รูปภาพ',
-      width: '100px',
-      align: 'center',
-      render: (value, row) => (
-        <div className="flex justify-center">
-          <img
-            src={`/profile/${row?.u_img || 'default.png'}`}
-            alt="User Image"
-            className="h-10 w-10 rounded-md border-2 object-cover"
-          />
-        </div>
-      ),
-    },
-    {
-      key: 'name',
-      label: 'ชื่อ',
-      align: 'left',
-      sortable: false,
-      render: (_, row) => (
-        <span className="text-sm font-light text-gray-500 dark:text-gray-400">
-          {row?.prefix_name || ''}
-          {row?.u_fname || ''} {row?.u_lname || ''}
-        </span>
-      ),
-    },
-    {
-      key: 'position_name',
-      label: 'ตำแหน่งวิชาการ',
-      align: 'left',
-      sortable: true,
-      render: (value) => (
-        <span
-          className={`inline-block rounded-md ${positionStyles[value as string] || 'bg-gray-600 text-white'} px-2 py-0.5 text-sm font-light`}
-        >
-          {value || '-'}
-        </span>
-      ),
-    },
-    {
-      key: 'ex_position_name',
-      label: 'ตำแหน่งบริหาร',
-      align: 'left',
-      sortable: true,
-      render: (value) => (
-        <span className="text-sm font-light text-gray-500 dark:text-gray-400">
-          {value || '-'}
-        </span>
-      ),
-    },
-    {
-      key: 'u_id_card',
-      label: 'เลขประจำตัวประชาชน',
-      align: 'center',
-      sortable: false,
-      render: (value) => (
-        <span className="text-sm font-light text-gray-500 dark:text-gray-400">
-          {value || '-'}
-        </span>
-      ),
-    },
-    {
-      key: 'u_email',
-      label: 'อีเมล',
-      align: 'left',
-      sortable: false,
-      render: (value) => (
-        <span className="text-sm font-light text-gray-500 dark:text-gray-400">
-          {value || '-'}
-        </span>
-      ),
-    },
-    {
-      key: 'u_tel',
-      label: 'เบอร์ติดต่อ',
-      align: 'center',
-      sortable: false,
-      render: (value) => (
-        <span className="text-sm font-light text-gray-500 dark:text-gray-400">
-          {value || '-'}
-        </span>
-      ),
-    },
-    {
-      key: 'age',
-      label: 'อายุ',
-      align: 'center',
-      sortable: true,
-      render: (value) => (
-        <span className="text-sm font-light text-gray-500 dark:text-gray-400">
-          {value || '-'}
-        </span>
-      ),
-    },
-    {
-      key: 'gender',
-      label: 'เพศ',
-      align: 'left',
-      sortable: false,
-      render: (value) => (
-        <span className="text-sm font-light text-gray-500 dark:text-gray-400">
-          {value || '-'}
-        </span>
-      ),
-    },
-    {
-      key: 'salary',
-      label: 'เงินเดือน',
-      align: 'center',
-      sortable: false,
-      render: (value) => (
-        <span className="text-sm font-light text-gray-500 dark:text-gray-400">
-          {value || '-'}
-        </span>
-      ),
-    },
-    {
-      key: 'branch_name',
-      label: 'สาขา',
-      align: 'left',
-      sortable: true,
-      render: (value) => (
-        <span className="text-sm font-light text-gray-500 dark:text-gray-400">
-          {value || '-'}
-        </span>
-      ),
-    },
-    {
-      key: 'course_name',
-      label: 'หลักสูตร',
-      align: 'left',
-      sortable: true,
-      render: (value) => (
-        <span className="text-sm font-light text-gray-500 dark:text-gray-400">
-          {value || '-'}
-        </span>
-      ),
-    },
-    {
-      key: 'actions',
-      label: 'จัดการ',
-      width: '120px',
-      align: 'center',
-      render: (_, row, index) => (
-        <div className="flex w-full justify-center gap-2 p-0">
-          <button
-            type="button"
-            className="cursor-pointer rounded-md p-1 text-yellow-500 transition duration-300 ease-in-out hover:bg-yellow-500 hover:text-white"
-            onClick={() => {
-              router.push(`/admin/personal-list/${row.u_id}/edit-personal`)
-            }}
-          >
-            <Edit2 className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            className="cursor-pointer rounded-md p-1 text-red-500 transition duration-300 ease-in-out hover:bg-red-500 hover:text-white"
-            onClick={() => {
-              setSelectedUserId(row.u_id)
-              setSelectedUserName(
-                `${row.prefix_name}${row.u_fname} ${row.u_lname}`
-              )
-              // Trigger modal
-              const modal = document.getElementById(
-                `modal-delete${row.u_id}`
-              ) as HTMLInputElement
-              if (modal) modal.checked = true
-            }}
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        </div>
-      ),
-    },
-  ]
+  const { setBreadcrumbs } = useUtility()
+  const list = useUserList()
+  const { deleteUser, updateUser, exportUsersToExcel } = useUserMutations()
 
   useEffect(() => {
     setBreadcrumbs([{ text: 'รายชื่อบุคลากร', path: '/admin/personal-list' }])
-
-    const urlParams = new URLSearchParams(window.location.search)
-    const searchFromUrl = urlParams.get('search') || ''
-    const pageFromUrl = parseInt(urlParams.get('page') || '1', 10)
-    const limitFromUrl = parseInt(urlParams.get('limit') || '10', 10)
-    const sortFromUrl = urlParams.get('sort') || ''
-    const orderFromUrl = urlParams.get('order') || ''
-    const positionFromUrl = urlParams.get('position_name') || ''
-    const branchFromUrl = urlParams.get('branch_name') || ''
-    const courseFromUrl = urlParams.get('course_name') || ''
-    const exPositionFromUrl = urlParams.get('ex_position_name') || ''
-    const genderFromUrl = urlParams.get('gender') || ''
-
-    setSearchInput(searchFromUrl)
-    setSelectedPosition(positionFromUrl)
-    setSelectedBranch(branchFromUrl)
-    setSelectedCourse(courseFromUrl)
-    setSelectedExPosition(exPositionFromUrl)
-    setSelectedGender(genderFromUrl)
-    setParams({
-      search: searchFromUrl,
-      page: pageFromUrl,
-      limit: limitFromUrl,
-      sort: sortFromUrl,
-      order: orderFromUrl,
-      position_name: positionFromUrl,
-      branch_name: branchFromUrl,
-      course_name: courseFromUrl,
-      ex_position_name: exPositionFromUrl,
-      gender: genderFromUrl,
-    })
-    if (sortFromUrl && orderFromUrl) {
-      setOrderBy(sortFromUrl)
-      setOrder(orderFromUrl as Order)
-    }
   }, [setBreadcrumbs])
 
-  const updateUrlParams = (params: {
-    search?: string
-    page?: number
-    limit?: number
-    sort?: string
-    order?: string
-    position_name?: string
-    branch_name?: string
-    course_name?: string
-    ex_position_name?: string
-    gender?: string
-  }) => {
-    const searchParams = new URLSearchParams()
-    if (params.search) searchParams.set('search', params.search)
-    if (params.page) searchParams.set('page', params.page.toString())
-    if (params.limit) searchParams.set('limit', params.limit.toString())
-    if (params.sort) {
-      searchParams.set('sort', params.sort)
-    }
-    if (params.order) {
-      searchParams.set('order', params.order)
-    }
-    if (params.position_name) {
-      searchParams.set('position_name', params.position_name)
-    }
-    if (params.branch_name) {
-      searchParams.set('branch_name', params.branch_name)
-    }
-    if (params.course_name) {
-      searchParams.set('course_name', params.course_name)
-    }
-    if (params.ex_position_name) {
-      searchParams.set('ex_position_name', params.ex_position_name)
-    }
-    if (params.gender) {
-      searchParams.set('gender', params.gender)
-    }
-    window.history.replaceState({}, '', `?${searchParams.toString()}`)
-  }
+  const columns = getUserColumns({
+    page: list.params.page ?? 1,
+    rowsPerPage: list.params.limit ?? 10,
+    onEdit: (row) =>
+      router.push(`/admin/personal-list/${row.u_id}/edit-personal`),
+    onDelete: (row) => openModal(`modal-delete${row.u_id}`),
+  })
 
-  const getUsers = useCallback(async (
-    search: string,
-    limit: number | undefined,
-    page: number | undefined,
-    sort: string,
-    order: string,
-    positionName?: string,
-    branchName?: string,
-    courseName?: string,
-    exPositionName?: string,
-    gender?: string,
-    afterSuccess?: () => void
-  ) => {
-    setLoading(true)
-    setData([])
-    try {
-      if (!session?.accessToken) {
-        throw new Error('No access token')
-      }
-
-      const response = await UserServices.getAllUsers({
-        search,
-        page: page ?? 1,
-        limit: limit ?? 10,
-        sort,
-        order,
-        position_name: positionName || '',
-        branch_name: branchName || '',
-        course_name: courseName || '',
-        ex_position_name: exPositionName || '',
-        gender: gender || '',
-      })
-
-      if (response.success) {
-        const responseMeta = response.meta
-        if (responseMeta) {
-          setTotal(responseMeta.total_rows)
-          setPage(responseMeta.page - 1)
-          setRowsPerPage(responseMeta.limit)
-        }
-        setData(response.payload || [])
-      } else {
-        setData([])
-        setTotal(0)
-        setPage(0)
-      }
-      if (afterSuccess) {
-        afterSuccess()
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error)
-      setData([])
-      setTotal(0)
-      setPage(0)
-    } finally {
-      setLoading(false)
-      updateUrlParams({
-        search,
-        page,
-        limit,
-        sort,
-        order,
-        position_name: positionName,
-        branch_name: branchName,
-        course_name: courseName,
-        ex_position_name: exPositionName,
-        gender: gender,
-      })
-    }
-  }, [session?.accessToken])
-
-  // Auto search with debounce
-  useEffect(() => {
-    const delayDebounce = setTimeout(() => {
-      setParams((prev) => ({
-        ...prev,
-        search: searchInput.trim(),
-        page: 1,
-      }))
-    }, 500)
-    return () => clearTimeout(delayDebounce)
-  }, [searchInput])
-
-  useEffect(() => {
-    if (session?.accessToken) {
-      getUsers(
-        params.search || '',
-        params.limit,
-        params.page,
-        params.sort || '',
-        params.order || '',
-        params.position_name,
-        params.branch_name,
-        params.course_name,
-        params.ex_position_name,
-        params.gender
-      )
-    } else {
-      console.log('No access token found')
-    }
-  }, [
-    params.search,
-    params.page,
-    params.limit,
-    params.sort,
-    params.order,
-    params.position_name,
-    params.branch_name,
-    params.course_name,
-    params.ex_position_name,
-    params.gender,
-    session?.accessToken,
-    getUsers,
-  ])
-
-  const clearSearch = () => {
-    setSearchInput('')
-  }
-
-  const handlePageChange = (newPage: number) => {
-    setPage(newPage)
-    setParams((prev) => ({
-      ...prev,
-      page: newPage + 1,
-    }))
-  }
-
-  const handleSort = (column: string, order: SortOrder) => {
-    setSortState({ column, order })
-    setParams((prev) => ({
-      ...prev,
-      sort: order ? column : '',
-      order: order || '',
-      page: 1, // Reset to first page when sorting
-    }))
-    setPage(0) // Reset page to 0 (display page 1)
-  }
-
-  const handleRowsPerPageChange = (newRowsPerPage: number) => {
-    setRowsPerPage(newRowsPerPage)
-    setParams((prev) => ({
-      ...prev,
-      limit: newRowsPerPage,
-      page: 1, // Reset to first page when changing rows per page
-    }))
-    setPage(0) // Reset page to 0 (display page 1)
-  }
-
-  const handlePositionSelect = (value: string) => {
-    setTempFilters(prev => ({ ...prev, position_name: value }))
-  }
-
-  const handleBranchSelect = (value: string) => {
-    setTempFilters(prev => ({ ...prev, branch_name: value }))
-  }
-
-  const handleCourseSelect = (value: string) => {
-    setTempFilters(prev => ({ ...prev, course_name: value }))
-  }
-
-  const handleExPositionSelect = (value: string) => {
-    setTempFilters(prev => ({ ...prev, ex_position_name: value }))
-  }
-
-  const handleGenderSelect = (value: string) => {
-    setTempFilters(prev => ({ ...prev, gender: value }))
-  }
-
-  const handleLevelSelect = (value: string) => {
-    setSelectedLevel(value)
-  }
-
-  const createPersonal = () => {
-    router.push('/admin/personal-list/create-personal')
-  }
-
-  // Filter dialog handlers
-  const openFilterDialog = () => {
-    // Initialize temp filters with current applied filters
-    setTempFilters({
-      position_name: selectedPosition,
-      branch_name: selectedBranch,
-      course_name: selectedCourse,
-      ex_position_name: selectedExPosition,
-      gender: selectedGender,
-    })
-    setIsFilterDialogOpen(true)
-  }
-
-  const closeFilterDialog = () => {
-    setIsFilterDialogOpen(false)
-  }
-
-  const applyFilters = () => {
-    // Apply temp filters to actual state and params
-    setSelectedPosition(tempFilters.position_name)
-    setSelectedBranch(tempFilters.branch_name)
-    setSelectedCourse(tempFilters.course_name)
-    setSelectedExPosition(tempFilters.ex_position_name)
-    setSelectedGender(tempFilters.gender)
-    
-    setParams((prev) => ({
-      ...prev,
-      position_name: tempFilters.position_name,
-      branch_name: tempFilters.branch_name,
-      course_name: tempFilters.course_name,
-      ex_position_name: tempFilters.ex_position_name,
-      gender: tempFilters.gender,
-      page: 1, // Reset to first page when applying filters
-    }))
-    
-    setIsFilterDialogOpen(false)
-  }
-
-  const clearAllFilters = () => {
-    // Clear search input
-    setSearchInput('')
-    
-    // Clear temp filters
-    setTempFilters({
-      position_name: '',
-      branch_name: '',
-      course_name: '',
-      ex_position_name: '',
-      gender: '',
-    })
-    
-    // Apply cleared filters immediately
-    setSelectedPosition('')
-    setSelectedBranch('')
-    setSelectedCourse('')
-    setSelectedExPosition('')
-    setSelectedGender('')
-    
-    setParams((prev) => ({
-      ...prev,
-      search: '', // Clear search parameter
-      position_name: '',
-      branch_name: '',
-      course_name: '',
-      ex_position_name: '',
-      gender: '',
-      page: 1,
-    }))
-    
-    // Close filter dialog if it's open
-    setIsFilterDialogOpen(false)
-  }
-
-  const handleDelete = async (
-    e: React.FormEvent<HTMLFormElement> | React.MouseEvent,
-    userId: number,
-    userName: string
-  ) => {
-    e.preventDefault()
-    setLoading(true)
-    try {
-      if (!session?.accessToken) throw new Error('No access token')
-      await UserServices.deleteUser(userId)
-
-      getUsers(
-        params.search || '',
-        params.limit,
-        params.page,
-        params.sort || '',
-        params.order || '',
-        params.position_name,
-        params.branch_name,
-        params.course_name,
-        params.ex_position_name,
-        params.gender
-      )
-
-      Swal.fire({
-        icon: 'success',
-        title: 'ลบสำเร็จ!',
-        text: `ลบบุคลากร ${userName} สำเร็จ!`,
-        showConfirmButton: false,
-        timer: 1500,
-      })
-    } catch (error) {
-      console.error('Error deleting user:', error)
-      setLoading(false)
-
-      Swal.fire({
-        icon: 'error',
-        title: 'เกิดข้อผิดพลาด!',
-        text: 'เกิดข้อผิดพลาดในการลบบุคลากร',
-        showConfirmButton: false,
-        timer: 1500,
-      })
-    }
-  }
-
-  const handleEdit = async (
-    e: React.FormEvent<HTMLFormElement> | React.MouseEvent,
-    userId: number,
-    userData: Partial<Personal>
-  ) => {
-    e.preventDefault()
-    setLoading(true)
-    try {
-      if (!session?.accessToken) throw new Error('No access token')
-      const response = await UserServices.updateUser(
-        userId,
-        userData as any
-      )
-
-      if (response && (response as any).status === true) {
-        getUsers(
-          params.search || '',
-          params.limit,
-          params.page,
-          params.sort || '',
-          params.order || '',
-          params.position_name,
-          params.branch_name,
-          params.course_name,
-          params.ex_position_name,
-          params.gender
-        )
-
-        Swal.fire({
-          icon: 'success',
-          title: 'แก้ไขสำเร็จ!',
-          text: `แก้ไขข้อมูลบุคลากรสำเร็จ!`,
-          showConfirmButton: false,
-          timer: 1500,
-        })
-      } else {
-        throw new Error('ไม่สามารถแก้ไขข้อมูลได้')
-      }
-    } catch (error) {
-      console.error('Error updating user:', error)
-      setLoading(false)
-
-      Swal.fire({
-        icon: 'error',
-        title: 'เกิดข้อผิดพลาด!',
-        text: 'เกิดข้อผิดพลาดในการแก้ไขข้อมูล',
-        showConfirmButton: false,
-        timer: 1500,
-      })
-    }
-  }
-
-  const totalPages = Math.ceil(total / rowsPerPage)
-
-  // Default labels for selects (using temp filters for dialog display)
+  // ป้ายชื่อตัวเลือกที่เลือกอยู่ใน dialog (อิงค่า temp)
   const tempPositionLabel =
-    positions?.find((pos) => pos.position_name === tempFilters.position_name)
-      ?.position_name || 'เลือกตำแหน่งวิชาการ'
-  const tempBranchLabel =
-    branchs?.find((branch) => branch.branch_name === tempFilters.branch_name)
-      ?.branch_name || 'เลือกสาขา'
-  const tempCourseLabel =
-    courses?.find((course) => course.course_name === tempFilters.course_name)
-      ?.course_name || 'เลือกหลักสูตร'
+    list.tempFilters.position_name || 'เลือกตำแหน่งวิชาการ'
+  const tempBranchLabel = list.tempFilters.branch_name || 'เลือกสาขา'
+  const tempCourseLabel = list.tempFilters.course_name || 'เลือกหลักสูตร'
   const tempExPositionLabel =
-    exPositions?.find((exPos) => exPos.ex_position_name === tempFilters.ex_position_name)
-      ?.ex_position_name || 'เลือกตำแหน่งบริหาร'
-  const tempGenderLabel = tempFilters.gender || 'เลือกเพศ'
+    list.tempFilters.ex_position_name || 'เลือกตำแหน่งบริหาร'
+  const tempGenderLabel = list.tempFilters.gender || 'เลือกเพศ'
 
-  // Gender options
-  interface GenderOption {
-    value: string
-    label: string
-  }
-  
-  const genderOptions: GenderOption[] = [
-    { value: 'ชาย', label: 'ชาย' },
-    { value: 'หญิง', label: 'หญิง' },
-  ]
-
-
-  const exportData = async () => {
-    if (!session?.accessToken) {
-      Swal.fire({
-        icon: 'error',
-        title: 'เกิดข้อผิดพลาด',
-        text: 'ไม่พบข้อมูลการเข้าสู่ระบบ',
-      })
-      return
-    }
-
-    try {
-      
-      Swal.fire({
-        title: 'กำลังส่งออกข้อมูล...',
-        text: 'กรุณารอสักครู่',
-        allowOutsideClick: false,
-        showConfirmButton: false,
-      })
-
-      // Wait for 3 seconds before calling the API
-      await new Promise(resolve => setTimeout(resolve, 3000))
-
-      // Call the export API
-      const blob = await UserServices.exportUsersToExcel(params)
-      
-      // Create download link
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `users_export_${new Date().toISOString().split('T')[0]}.xlsx`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(url)
-
-      // Show success message
-      Swal.fire({
-        icon: 'success',
-        title: 'ส่งออกข้อมูลสำเร็จ',
-        text: 'ไฟล์ Excel ได้ถูกดาวน์โหลดแล้ว',
-        timer: 2000,
-        showConfirmButton: false
-      })
-
-    } catch (error) {
-      console.error('Export error:', error)
-      Swal.fire({
-        icon: 'error',
-        title: 'เกิดข้อผิดพลาด',
-        text: 'ไม่สามารถส่งออกข้อมูลได้ กรุณาลองใหม่อีกครั้ง',
-      })
-    } finally {
-    }
-  }
   return (
     <div className="rounded-md bg-white p-4 shadow transition-all duration-300 ease-in-out dark:bg-zinc-900 dark:text-gray-400">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
-        {/* Total count */}
-        {loading ? (
-          <div className="skeleton h-7 w-16 rounded-md"></div>
+        {list.isLoading ? (
+          <div className="skeleton h-7 w-16 rounded-md" />
         ) : (
-          <div className="w-auto rounded-md bg-gray-200 px-2 py-1 text-sm font-normal text-business1 dark:text-blue-500 dark:bg-zinc-800">
-            {total} รายการ
+          <div className="w-auto rounded-md bg-gray-200 px-2 py-1 text-sm font-normal text-business1 dark:bg-zinc-800 dark:text-blue-500">
+            {list.total} รายการ
           </div>
         )}
 
         <div className="flex flex-wrap items-center justify-end gap-4">
-          {/* Search and Filter */}
           <div className="flex items-center gap-4">
             <div className="relative flex w-full items-center sm:w-52">
               <input
                 className="w-full rounded-md border border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
                 placeholder="ค้นหาชื่อ, สาขา, หลักสูตร, เลขบัตร, อีเมล"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
+                value={list.searchInput}
+                onChange={(e) => list.handleSearchChange(e.target.value)}
               />
-              {searchInput && (
+              {list.searchInput && (
                 <button
-                  onClick={clearSearch}
+                  onClick={() => list.handleSearchChange('')}
                   className="absolute right-3 text-gray-400 transition duration-200 hover:text-red-500"
                 >
                   <LuDelete className="h-4 w-4" />
@@ -836,30 +82,20 @@ function PersonalListTable() {
             </div>
 
             <button
-              onClick={openFilterDialog}
+              onClick={list.openFilterDialog}
               className="relative flex items-center gap-2 rounded-md border border-business1 px-4 py-2 text-sm font-light text-business1 transition duration-300 ease-in-out hover:bg-business1 hover:text-white dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-400"
             >
               <FiFilter className="h-4 w-4" />
               ตัวกรอง
-              {(() => {
-                const activeFiltersCount = [
-                  selectedPosition,
-                  selectedBranch,
-                  selectedCourse,
-                  selectedExPosition,
-                  selectedGender,
-                ].filter(Boolean).length;
-                
-                return activeFiltersCount > 0 ? (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {activeFiltersCount}
-                  </span>
-                ) : null;
-              })()}
+              {list.activeFiltersCount > 0 && (
+                <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white">
+                  {list.activeFiltersCount}
+                </span>
+              )}
             </button>
 
             <button
-              onClick={clearAllFilters}
+              onClick={list.clearAllFilters}
               className="flex items-center gap-2 rounded-md border border-red-500 px-4 py-2 text-sm font-light text-red-500 transition duration-300 ease-in-out hover:bg-red-500 hover:text-white dark:border-red-400 dark:text-red-400 dark:hover:bg-red-400"
             >
               <LuDelete className="h-4 w-4" />
@@ -868,14 +104,14 @@ function PersonalListTable() {
           </div>
 
           <button
-            onClick={exportData}
+            onClick={() => exportUsersToExcel(list.params)}
             className="flex items-center gap-2 rounded-md border border-success px-4 py-2 text-sm font-light text-success transition duration-300 ease-in-out hover:bg-success hover:text-white dark:border-success dark:text-success dark:hover:bg-success"
           >
             ส่งออกข้อมูล
             <FileText className="h-4 w-4" />
           </button>
           <button
-            onClick={createPersonal}
+            onClick={() => router.push('/admin/personal-list/create-personal')}
             className="flex w-full items-center justify-between gap-2 rounded-md bg-success px-4 py-2.5 text-sm font-light text-white transition duration-300 ease-in-out hover:bg-success/80 sm:w-52"
           >
             เพิ่มบุคลากร
@@ -885,62 +121,63 @@ function PersonalListTable() {
       </div>
 
       <Table
-        data={data}
+        data={list.users}
         columns={columns}
-        loading={loading}
-        total={total}
-        currentPage={page + 1}
-        totalPages={totalPages}
-        rowsPerPage={rowsPerPage}
-        onPageChange={(newPage) => handlePageChange(newPage - 1)}
-        onRowsPerPageChange={handleRowsPerPageChange}
-        emptyMessage={'ไม่พบข้อมูลบุคลากร'}
-        skeletonRows={rowsPerPage}
+        loading={list.isLoading}
+        total={list.total}
+        currentPage={list.params.page ?? 1}
+        totalPages={list.totalPages}
+        rowsPerPage={list.params.limit ?? 10}
+        onPageChange={list.handlePageChange}
+        onRowsPerPageChange={list.handleRowsPerPageChange}
+        emptyMessage="ไม่พบข้อมูลบุคลากร"
+        skeletonRows={list.params.limit ?? 10}
         stickyColumns={1}
-        sortable={true}
-        sortState={sortState}
-        onSort={handleSort}
-        rowsPerPageOptions={[10, 20, 50, 100, 200]}
+        sortable
+        sortState={list.sortState}
+        onSort={list.handleSort}
+        rowsPerPageOptions={ROWS_PER_PAGE_OPTIONS}
       />
 
-      <DeleteModal
-        currentData={data}
-        handleDeletePost={(e, userId: number, userName: string) => handleDelete(e, userId, userName) }
-        isLoading={loading}
+      <DeletePersonalModal
+        currentData={list.users}
+        isLoading={list.isLoading}
+        handleDeletePost={(e, userId, userName) => {
+          e.preventDefault()
+          deleteUser.mutate({ userId, userName })
+        }}
       />
       <UpdatePersonalModal
-        currentData={data}
-        handleUpdatePost={(e, prefix, fname, lname, id) => {
-          const userData = data.find((user) => user.u_id === id)
+        currentData={list.users}
+        isLoading={list.isLoading}
+        handleUpdatePost={(e, _prefix, _fname, _lname, id) => {
+          e.preventDefault()
+          const userData = list.users.find((user) => user.u_id === id)
           if (userData) {
-            handleEdit(e, id, userData)
+            updateUser.mutate({ userId: id, data: userData as Partial<Personal> })
           }
         }}
-        isLoading={loading}
       />
 
-      {/* Filter Dialog */}
       <FilterDialog
-        isOpen={isFilterDialogOpen}
-        onClose={closeFilterDialog}
-        positions={positions || []}
-        branchs={branchs || []}
-        courses={courses || []}
-        exPositions={exPositions || []}
+        isOpen={list.isFilterDialogOpen}
+        onClose={list.closeFilterDialog}
+        positions={list.positions}
+        branchs={list.branches}
+        courses={list.courses}
+        exPositions={list.exPositions}
         selectedPositionLabel={tempPositionLabel}
         selectedBranchLabel={tempBranchLabel}
         selectedCourseLabel={tempCourseLabel}
         selectedExPositionLabel={tempExPositionLabel}
         selectedGenderLabel={tempGenderLabel}
-        onPositionSelect={handlePositionSelect}
-        onBranchSelect={handleBranchSelect}
-        onCourseSelect={handleCourseSelect}
-        onExPositionSelect={handleExPositionSelect}
-        onGenderSelect={handleGenderSelect}
-        onApplyFilters={applyFilters}
+        onPositionSelect={(v) => list.setTempFilter('position_name', v)}
+        onBranchSelect={(v) => list.setTempFilter('branch_name', v)}
+        onCourseSelect={(v) => list.setTempFilter('course_name', v)}
+        onExPositionSelect={(v) => list.setTempFilter('ex_position_name', v)}
+        onGenderSelect={(v) => list.setTempFilter('gender', v)}
+        onApplyFilters={list.applyFilters}
       />
     </div>
   )
 }
-
-export default PersonalListTable
