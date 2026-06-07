@@ -1,20 +1,18 @@
 'use client'
 
 import type React from 'react'
-import { CalendarClock } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import useAuthHeaders from '@/hooks/Header'
 import type { ExPosition, User } from '@/Types'
-import SelectDropdown, { type SelectOption } from '@/components/SelectValue'
+import { type SelectOption } from '@/components/SelectValue'
 import SetAssessorServices from '@/services/setAssessorServices'
-import Select, { MultiValue } from 'react-select'
+import Select from 'react-select'
 
 interface FormDataFormList {
   ex_u_id: number[]
   set_asses_list_id: number
 }
 
-interface CreateModalProps {
+interface AddAssessorModalProps {
   isLoading: boolean
   formData: FormDataFormList
   setFormData: React.Dispatch<React.SetStateAction<FormDataFormList>>
@@ -25,7 +23,7 @@ interface CreateModalProps {
   onDeleteSuccess?: () => void
 }
 
-export default function CreateModal({
+export default function AddAssessorModal({
   isLoading,
   handleSubmit,
   formData,
@@ -33,13 +31,12 @@ export default function CreateModal({
   round_list_id,
   onSuccess,
   onDeleteSuccess,
-}: CreateModalProps) {
+}: AddAssessorModalProps) {
   const [users, setUsers] = useState<User[]>([])
   const [isLoadingUsers, setIsLoadingUsers] = useState<boolean>(false)
   const [noUsersAvailable, setNoUsersAvailable] = useState<boolean>(false)
   const [userOptions, setUserOptions] = useState<SelectOption[]>([])
   const [selectedInputValue, setSelectedInputValue] = useState<SelectOption | null>(null)
-  const headers = useAuthHeaders()
 
   // Function to refresh users list
   const refreshUsers = async () => {
@@ -59,7 +56,7 @@ export default function CreateModal({
 
       // Backend returns { status: true, data: result }
       const userData = (response as any).data || []
-      
+
       if (userData && userData.length > 0) {
         setUsers(userData)
         setNoUsersAvailable(false)
@@ -145,24 +142,24 @@ export default function CreateModal({
   // Custom handle submit that refreshes the list after success
   const handleCustomSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    
+
     try {
       // Call the original handleSubmit
       await handleSubmit(e)
-      
+
       // Close modal first
       const modalCheckbox = document.getElementById('modal-create') as HTMLInputElement
       if (modalCheckbox) {
         modalCheckbox.checked = false
       }
-      
+
       // Refresh the users list after successful submission
       await refreshUsers()
-      
+
       // Reset form
       setFormData(prev => ({ ...prev, ex_u_id: [] }))
       setSelectedInputValue(null)
-      
+
       // Call onSuccess callback if provided
       if (onSuccess) {
         onSuccess()

@@ -1,6 +1,6 @@
 import type React from 'react'
 
-interface DeleteModalProps {
+interface DeleteAssessorModalProps {
   isLoading: boolean
   set_asses_info_id: number
   handleDelete: (
@@ -9,11 +9,11 @@ interface DeleteModalProps {
   ) => void
 }
 
-export default function DeleteModal({
+export default function DeleteAssessorModal({
   isLoading,
   set_asses_info_id,
   handleDelete,
-}: DeleteModalProps) {
+}: DeleteAssessorModalProps) {
   if (isLoading) return null
   return (
     <div className="relative z-[100]">
