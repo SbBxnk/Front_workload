@@ -2,10 +2,11 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { useSession } from 'next-auth/react'
 import { jwtDecode } from 'jwt-decode'
-import PerformanceService, {
-  type PerformanceEvaluationFormData,
-  type PerformanceEvaluationRequest,
-} from '@/services/performanceService'
+import PerformanceService from '@/services/performanceService'
+import type {
+  PerformanceEvaluationFormData,
+  PerformanceEvaluationRequest,
+} from '@/Types/performance'
 import SnapshotService from '@/services/snapshotService'
 import { AlertCircle, Save } from 'lucide-react'
 

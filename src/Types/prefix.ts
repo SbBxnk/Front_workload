@@ -10,3 +10,11 @@ export interface PrefixSearchParams {
   sort: string
   order: string
 }
+
+export interface CreatePrefixRequest {
+  prefix_name: string
+}
+
+export interface UpdatePrefixRequest {
+  prefix_name: string
+}

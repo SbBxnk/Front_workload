@@ -14,3 +14,15 @@ export interface QuantityWorkloadSearchParams {
   sort?: string
   order?: string
 }
+
+export interface CreateQuantityWorkloadRequest {
+  quantity_workload_hours: number
+  workload_group_id: number
+  task_id: number
+}
+
+export interface UpdateQuantityWorkloadRequest {
+  quantity_workload_hours: number
+  workload_group_id: number
+  task_id: number
+}

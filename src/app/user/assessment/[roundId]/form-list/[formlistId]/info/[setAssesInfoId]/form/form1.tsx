@@ -5,11 +5,12 @@ import Swal from 'sweetalert2'
 import { Loader2 } from 'lucide-react'
 import StickyFooter from '@/components/StickyFooter'
 import { BASE_URL_FILE } from '@/provider/config'
-import WorkloadEvaluationService, {
-    type EvaluationPayload,
-    type EvaluationItem,
-    type SnapshotRow,
-} from '@/services/workloadEvaluationService'
+import WorkloadEvaluationService from '@/services/workloadEvaluationService'
+import type {
+    EvaluationPayload,
+    EvaluationItem,
+    SnapshotRow,
+} from '@/Types/workloadEvaluation'
 import React from 'react'
 import ConfirmSubmitEvaluationModal from '../partial/confirmSubmitEvaluationModal'
 

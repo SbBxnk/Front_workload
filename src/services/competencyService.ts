@@ -1,23 +1,11 @@
-import { Competency, ResponsePayload } from '@/Types'
+import {
+  Competency,
+  CompetencySearchParams,
+  CreateCompetencyRequest,
+  ResponsePayload,
+  UpdateCompetencyRequest,
+} from '@/Types'
 import http from '@/utils/http'
-
-export interface CompetencySearchParams {
-  search?: string
-  page?: number
-  limit?: number
-  sort?: string
-  order?: string
-}
-
-export interface CreateCompetencyRequest {
-  competency_name: string
-  competency_order: number
-}
-
-export interface UpdateCompetencyRequest {
-  competency_name: string
-  competency_order: number
-}
 
 const CompetencyServices = {
   getAllCompetencies: (param?: CompetencySearchParams): Promise<ResponsePayload<Competency>> => {

@@ -6,7 +6,7 @@ import WorkloadGroupServices from '@/services/workloadGroupServices'
 import PerformanceService from '@/services/performanceService'
 import { BASE_URL_FILE } from '@/provider/config'
 import type { Terms } from '@/Types'
-import type { PerformanceSnapshot } from '@/services/performanceService'
+import type { PerformanceSnapshot } from '@/Types/performance'
 import type { Task } from './types'
 
 export interface ExportPDFParams {

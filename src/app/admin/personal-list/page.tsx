@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { Edit2, Plus, Trash2, FileText } from 'lucide-react'
 
 import type { Personal, Position, Branch, Course, UserLevel, ExPosition } from '@/Types'
-import { UserSearchParams } from '@/services/userServices'
+import { UserSearchParams } from '@/Types'
 import { FiFilter  } from 'react-icons/fi'
 import { LuDelete } from "react-icons/lu";
 import Swal from 'sweetalert2'

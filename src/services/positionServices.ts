@@ -1,23 +1,11 @@
-import { Position, ResponsePayload } from '@/Types'
+import {
+  CreatePositionRequest,
+  Position,
+  PositionSearchParams,
+  ResponsePayload,
+  UpdatePositionRequest,
+} from '@/Types'
 import http from '@/utils/http'
-
-export interface PositionSearchParams {
-  search?: string
-  page?: number
-  limit?: number
-  sort?: string
-  order?: string
-}
-
-export interface CreatePositionRequest {
-  position_name: string
-  position_short_name?: string
-}
-
-export interface UpdatePositionRequest {
-  position_name: string
-  position_short_name?: string
-}
 
 const PositionServices = {
   getAllPositions: (

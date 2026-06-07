@@ -1,56 +1,11 @@
-import { Personal, ResponsePayload } from '@/Types'
+import {
+  CreateUserRequest,
+  Personal,
+  ResponsePayload,
+  UpdateUserRequest,
+  UserSearchParams,
+} from '@/Types'
 import http from '@/utils/http'
-
-export interface UserSearchParams {
-  search?: string
-  position_name?: string
-  branch_name?: string
-  course_name?: string
-  ex_position_name?: string
-  gender?: string
-  page?: number
-  limit?: number
-  sort?: string
-  order?: string
-}
-
-export interface CreateUserRequest {
-  u_fname: string
-  u_lname: string
-  u_email: string
-  u_pass: string
-  u_tel: string
-  u_id_card: string
-  age: number
-  salary: number
-  gender: string
-  level_id: number
-  prefix_id: number
-  position_id: number
-  course_id: number
-  type_p_id: number
-  ex_position_id?: number
-  work_start: string
-}
-
-export interface UpdateUserRequest {
-  u_fname?: string
-  u_lname?: string
-  u_email?: string
-  u_pass?: string
-  u_tel?: string
-  u_id_card?: string
-  age?: number
-  salary?: number
-  gender?: string
-  level_id?: number
-  prefix_id?: number
-  position_id?: number
-  course_id?: number
-  type_p_id?: number
-  ex_position_id?: number
-  work_start?: string
-}
 
 const UserServices = {
   getAllUsers: (param: UserSearchParams): Promise<ResponsePayload<Personal>> => {

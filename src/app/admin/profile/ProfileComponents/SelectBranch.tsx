@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import DropdownService from '@/services/dropdownServices'
-import type { DropdownBranch } from '@/services/dropdownServices'
+import type { DropdownBranch } from '@/Types/dropdown'
 
 interface SelectBranchProps {
   openDropdown: string | null

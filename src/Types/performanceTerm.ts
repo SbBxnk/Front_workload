@@ -21,3 +21,22 @@ export interface PerformanceTermMatrix {
   }
 }
 
+export interface PerformanceTermSearchParams {
+  search?: string
+  page?: number
+  limit?: number
+  sort?: string
+  order?: string
+}
+
+export interface CreatePerformanceTermRequest {
+  competency_id: number
+  position_id: number
+  expected_level: number
+}
+
+export interface UpdatePerformanceTermRequest {
+  competency_id: number
+  position_id: number
+  expected_level: number
+}

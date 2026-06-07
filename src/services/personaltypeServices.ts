@@ -1,13 +1,11 @@
-import { PersonalType, PersonalTypeSearchParams, ResponsePayload } from '@/Types'
+import {
+  CreatePersonalTypeRequest,
+  PersonalType,
+  PersonalTypeSearchParams,
+  ResponsePayload,
+  UpdatePersonalTypeRequest,
+} from '@/Types'
 import http from '@/utils/http'
-
-export interface CreatePersonalTypeRequest {
-  type_p_name: string
-}
-
-export interface UpdatePersonalTypeRequest {
-  type_p_name: string
-}
 
 const PersonalTypeServices = {
   getAllPersonalTypes: (

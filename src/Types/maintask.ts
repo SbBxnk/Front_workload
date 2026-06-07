@@ -10,3 +10,11 @@ export interface MainTaskSearchParams {
   sort?: string
   order?: string
 }
+
+export interface CreateMainTaskRequest {
+  task_name: string
+}
+
+export interface UpdateMainTaskRequest {
+  task_name: string
+}

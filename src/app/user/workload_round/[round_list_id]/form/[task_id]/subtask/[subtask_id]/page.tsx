@@ -21,10 +21,8 @@ import CreateModal from './createModal'
 import DeleteModal from './deleteModal'
 import EditModal from './editModal'
 import useUtility from '@/hooks/useUtility'
-import WorkloadFormServices, {
-  type WorkloadFormData,
-  type WorkloadFormDetail
-} from '@/services/workloadFormServices'
+import WorkloadFormServices from '@/services/workloadFormServices'
+import type { WorkloadFormData, WorkloadFormDetail } from '@/Types/workloadForm'
 import SubTaskServices from '@/services/subTaskServices'
 import { BASE_URL_FILE } from '@/provider/config'
 

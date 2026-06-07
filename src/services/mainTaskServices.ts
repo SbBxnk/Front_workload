@@ -1,13 +1,11 @@
-import { MainTask, MainTaskSearchParams, ResponsePayload } from '@/Types'
+import {
+  CreateMainTaskRequest,
+  MainTask,
+  MainTaskSearchParams,
+  ResponsePayload,
+  UpdateMainTaskRequest,
+} from '@/Types'
 import http from '@/utils/http'
-
-export interface CreateMainTaskRequest {
-  task_name: string
-}
-
-export interface UpdateMainTaskRequest {
-  task_name: string
-}
 
 const MainTaskServices = {
   getAllMainTasks: ( param?: MainTaskSearchParams ): Promise<ResponsePayload<MainTask>> => {

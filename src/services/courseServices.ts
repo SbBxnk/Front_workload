@@ -1,23 +1,11 @@
-import { Course, ResponsePayload } from '@/Types'
+import {
+  Course,
+  CourseSearchParams,
+  CreateCourseRequest,
+  ResponsePayload,
+  UpdateCourseRequest,
+} from '@/Types'
 import http from '@/utils/http'
-
-export interface CourseSearchParams {
-  search?: string
-  page?: number
-  limit?: number
-  sort?: string
-  order?: string
-}
-
-export interface CreateCourseRequest {
-  course_name: string
-  branch_id: number
-}
-
-export interface UpdateCourseRequest {
-  course_name: string
-  branch_id: number
-}
 
 const CourseServices = {
   getAllCourses: (param?: CourseSearchParams): Promise<ResponsePayload<Course>> => {

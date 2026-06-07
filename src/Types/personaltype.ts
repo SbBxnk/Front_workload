@@ -10,3 +10,11 @@ export interface PersonalTypeSearchParams {
   sort: string
   order: string
 }
+
+export interface CreatePersonalTypeRequest {
+  type_p_name: string
+}
+
+export interface UpdatePersonalTypeRequest {
+  type_p_name: string
+}

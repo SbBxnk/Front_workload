@@ -1,25 +1,11 @@
-import { PerformanceTerm, ResponsePayload } from '@/Types'
+import {
+  CreatePerformanceTermRequest,
+  PerformanceTerm,
+  PerformanceTermSearchParams,
+  ResponsePayload,
+  UpdatePerformanceTermRequest,
+} from '@/Types'
 import http from '@/utils/http'
-
-export interface PerformanceTermSearchParams {
-  search?: string
-  page?: number
-  limit?: number
-  sort?: string
-  order?: string
-}
-
-export interface CreatePerformanceTermRequest {
-  competency_id: number
-  position_id: number
-  expected_level: number
-}
-
-export interface UpdatePerformanceTermRequest {
-  competency_id: number
-  position_id: number
-  expected_level: number
-}
 
 const PerformanceTermServices = {
   getAllPerformanceTerms: (param?: PerformanceTermSearchParams): Promise<ResponsePayload<PerformanceTerm>> => {

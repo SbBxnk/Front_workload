@@ -1,21 +1,11 @@
-import { ExPosition, ResponsePayload } from '@/Types'
+import {
+  CreateExpositionRequest,
+  ExPosition,
+  ExpositionSearchParams,
+  ResponsePayload,
+  UpdateExpositionRequest,
+} from '@/Types'
 import http from '@/utils/http'
-
-export interface ExpositionSearchParams {
-  search?: string
-  page?: number
-  limit?: number
-  sort?: string
-  order?: string
-}
-
-export interface CreateExpositionRequest {
-  ex_position_name: string
-}
-
-export interface UpdateExpositionRequest {
-  ex_position_name: string
-}
 
 const ExpositionServices = {
   getAllExpositions: (param?: ExpositionSearchParams): Promise<ResponsePayload<ExPosition>> => {

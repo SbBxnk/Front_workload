@@ -1,13 +1,11 @@
-import { Prefix, PrefixSearchParams, ResponsePayload } from '@/Types'
+import {
+  CreatePrefixRequest,
+  Prefix,
+  PrefixSearchParams,
+  ResponsePayload,
+  UpdatePrefixRequest,
+} from '@/Types'
 import http from '@/utils/http'
-
-export interface CreatePrefixRequest {
-  prefix_name: string
-}
-
-export interface UpdatePrefixRequest {
-  prefix_name: string
-}
 
 const PrefixServices = {
   getAllPrefixes: (

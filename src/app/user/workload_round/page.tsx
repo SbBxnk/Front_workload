@@ -8,7 +8,8 @@ import { useSession } from 'next-auth/react'
 import { jwtDecode } from 'jwt-decode'
 import Table, { TableColumn, SortState } from '@/components/Table'
 import SearchFilter from '@/components/SearchFilter'
-import SetAssessorServices, { RoundList, CreateRoundListRequest, UpdateRoundListRequest } from '@/services/setAssessorServices'
+import SetAssessorServices from '@/services/setAssessorServices'
+import type { RoundList, CreateRoundListRequest, UpdateRoundListRequest } from '@/Types/setAssessor'
 import useUtility from '@/hooks/useUtility'
 
 const ITEMS_PER_PAGE = 10

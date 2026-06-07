@@ -10,3 +10,11 @@ export interface WorkloadGroupSearchParams {
   sort?: string
   order?: string
 }
+
+export interface CreateWorkloadGroupRequest {
+  workload_group_name: string
+}
+
+export interface UpdateWorkloadGroupRequest {
+  workload_group_name: string
+}

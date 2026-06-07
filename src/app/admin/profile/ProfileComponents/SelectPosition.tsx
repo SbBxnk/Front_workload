@@ -2,7 +2,7 @@ import type React from 'react'
 import { useState, useEffect } from 'react'
 import { ChevronDown } from 'lucide-react'
 import DropdownService from '@/services/dropdownServices'
-import type { DropdownPosition } from '@/services/dropdownServices'
+import type { DropdownPosition } from '@/Types/dropdown'
 import { useSession } from 'next-auth/react'
 
 interface SelectPosition {

@@ -4,10 +4,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Swal from 'sweetalert2'
 import { Loader2 } from 'lucide-react'
 import StickyFooter from '@/components/StickyFooter'
-import PerformanceEvaluationAssessmentService, {
-    type EvaluationAssessmentResponse,
-    type AssessmentItem,
-} from '@/services/performanceEvaluationAssessmentService'
+import PerformanceEvaluationAssessmentService from '@/services/performanceEvaluationAssessmentService'
+import type {
+    EvaluationAssessmentResponse,
+    AssessmentItem,
+} from '@/Types/performanceEvaluationAssessment'
 import React from 'react'
 import ConfirmSubmitEvaluationModal from '../partial/confirmSubmitEvaluationModal'
 

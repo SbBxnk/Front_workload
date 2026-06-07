@@ -3,8 +3,9 @@
 import React, { useEffect, useState } from 'react'
 import { AlertCircle } from 'lucide-react'
 import { useSession } from 'next-auth/react'
-import type { PerformanceSnapshot } from '@/services/performanceService'
-import PerformanceEvaluationAssessmentService, { type AverageAssessedLevel } from '@/services/performanceEvaluationAssessmentService'
+import type { PerformanceSnapshot } from '@/Types/performance'
+import PerformanceEvaluationAssessmentService from '@/services/performanceEvaluationAssessmentService'
+import type { AverageAssessedLevel } from '@/Types/performanceEvaluationAssessment'
 import SnapshotService from '@/services/snapshotService'
 
 interface PositionInfo {

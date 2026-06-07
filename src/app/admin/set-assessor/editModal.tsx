@@ -5,7 +5,7 @@ import type React from 'react'
 import SelectDropdown, { type SelectOption } from '@/components/SelectValue'
 import SetAssessorServices from '@/services/setAssessorServices'
 import { useSession } from 'next-auth/react'
-import { RoundList } from '@/services/setAssessorServices'
+import type { RoundList } from '@/Types/setAssessor'
 interface EditModalProps {
   isLoading: boolean
   round_list_id: number

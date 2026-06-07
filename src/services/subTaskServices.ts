@@ -1,15 +1,11 @@
-import { SubTask, SubTaskSearchParams, ResponsePayload } from '@/Types'
+import {
+  CreateSubTaskRequest,
+  ResponsePayload,
+  SubTask,
+  SubTaskSearchParams,
+  UpdateSubTaskRequest,
+} from '@/Types'
 import http from '@/utils/http'
-
-export interface CreateSubTaskRequest {
-  subtask_name: string
-  task_id: number
-}
-
-export interface UpdateSubTaskRequest {
-  subtask_name: string
-  task_id: number
-}
 
 const SubTaskServices = {
   getAllSubTasks: ( param: SubTaskSearchParams ): Promise<ResponsePayload<SubTask>> => {

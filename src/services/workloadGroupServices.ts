@@ -1,13 +1,11 @@
-import { WorkloadGroup, WorkloadGroupSearchParams, ResponsePayload } from '@/Types'
+import {
+  CreateWorkloadGroupRequest,
+  ResponsePayload,
+  UpdateWorkloadGroupRequest,
+  WorkloadGroup,
+  WorkloadGroupSearchParams,
+} from '@/Types'
 import http from '@/utils/http'
-
-export interface CreateWorkloadGroupRequest {
-  workload_group_name: string
-}
-
-export interface UpdateWorkloadGroupRequest {
-  workload_group_name: string
-}
 
 const WorkloadGroupServices = {
   getAllWorkloadGroups: ( param?: WorkloadGroupSearchParams ): Promise<ResponsePayload<WorkloadGroup>> => {

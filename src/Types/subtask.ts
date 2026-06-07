@@ -12,3 +12,13 @@ export interface SubTaskSearchParams {
   sort: string
   order: string
 }
+
+export interface CreateSubTaskRequest {
+  subtask_name: string
+  task_id: number
+}
+
+export interface UpdateSubTaskRequest {
+  subtask_name: string
+  task_id: number
+}

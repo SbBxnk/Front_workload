@@ -1,17 +1,11 @@
-import { QuantityWorkload, QuantityWorkloadSearchParams, ResponsePayload } from '@/Types'
+import {
+  CreateQuantityWorkloadRequest,
+  QuantityWorkload,
+  QuantityWorkloadSearchParams,
+  ResponsePayload,
+  UpdateQuantityWorkloadRequest,
+} from '@/Types'
 import http from '@/utils/http'
-
-export interface CreateQuantityWorkloadRequest {
-  quantity_workload_hours: number
-  workload_group_id: number
-  task_id: number
-}
-
-export interface UpdateQuantityWorkloadRequest {
-  quantity_workload_hours: number
-  workload_group_id: number
-  task_id: number
-}
 
 const QuantityWorkloadServices = {
   getAllQuantityWorkloads: (param?: QuantityWorkloadSearchParams): Promise<ResponsePayload<QuantityWorkload>> => {

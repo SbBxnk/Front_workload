@@ -3,7 +3,8 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { jwtDecode } from 'jwt-decode'
-import AssessorServices, { AssessorData } from '@/services/assessorService'
+import AssessorServices from '@/services/assessorService'
+import type { AssessorData } from '@/Types/assessor'
 import type { DecodedToken } from '@/Types/decodetoken'
 
 interface AssessorContextType {

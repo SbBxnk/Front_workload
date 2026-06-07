@@ -12,7 +12,8 @@ import MainTaskServices from '@/services/mainTaskServices'
 import SubTaskServices from '@/services/subTaskServices'
 import WorkloadFormServices from '@/services/workloadFormServices'
 import WorkloadGroupServices from '@/services/workloadGroupServices'
-import PerformanceService, { type PerformanceSnapshot } from '@/services/performanceService'
+import PerformanceService from '@/services/performanceService'
+import type { PerformanceSnapshot } from '@/Types/performance'
 import type {
   Subtask,
   Task
