@@ -18,11 +18,8 @@ export interface UpdateExpositionRequest {
 }
 
 const ExpositionServices = {
-  getAllExpositions: (accessToken: string, param?: ExpositionSearchParams): Promise<ResponsePayload<ExPosition>> => {
+  getAllExpositions: (param?: ExpositionSearchParams): Promise<ResponsePayload<ExPosition>> => {
     return http.get('/ex_position', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
       params: {
         search: param?.search,
         page: param?.page,
@@ -34,34 +31,24 @@ const ExpositionServices = {
   },
 
   createExposition: (
-    data: CreateExpositionRequest,
-    accessToken: string
+    data: CreateExpositionRequest
   ): Promise<ExPosition> => {
-    return http.post('/ex_position/add', data, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+    return http.post('/ex_position/add', data)
   },
 
   updateExposition: (
     expositionId: number,
-    data: UpdateExpositionRequest,
-    accessToken: string
+    data: UpdateExpositionRequest
   ): Promise<ExPosition> => {
-    return http.put(`/ex_position/update/${expositionId}`, data, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+    return http.put(`/ex_position/update/${expositionId}`, data)
   },
 
-  deleteExposition: (expositionId: number, accessToken: string): Promise<void> => {
-    return http.delete(`/ex_position/delete/${expositionId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+  deleteExposition: (expositionId: number): Promise<void> => {
+    return http.delete(`/ex_position/delete/${expositionId}`)
   },
 
-  getExpositionById: (expositionId: number, accessToken: string): Promise<ExPosition> => {
-    return http.get(`/ex_position/${expositionId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+  getExpositionById: (expositionId: number): Promise<ExPosition> => {
+    return http.get(`/ex_position/${expositionId}`)
   },
 }
 

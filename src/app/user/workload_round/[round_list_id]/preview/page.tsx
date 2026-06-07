@@ -45,14 +45,13 @@ export default function PreviewPage() {
                 setLoading(true)
 
                 // ดึงข้อมูล terms ผ่าน service
-                const termsResponse = await WorkloadFormServices.getTerms(session.accessToken)
+                const termsResponse = await WorkloadFormServices.getTerms()
                 setTerms(termsResponse.payload || [])
 
                 // ตรวจสอบ workload group ของผู้ใช้
                 const workloadGroupResponse = await WorkloadFormServices.checkWorkloadGroup(
                     user.id,
-                    parseInt(round_list_id),
-                    session.accessToken
+                    parseInt(round_list_id)
                 )
                 setWorkloadGroupInfo({
                     workload_group_id: workloadGroupResponse.data?.[0]?.workload_group_id || null,

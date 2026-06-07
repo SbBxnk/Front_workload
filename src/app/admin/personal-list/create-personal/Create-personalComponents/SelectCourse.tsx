@@ -37,8 +37,7 @@ function SelectCourse({
         setError(null)
 
         const response = await CourseServices.getCoursesByBranch(
-          branch_id,
-          session?.accessToken ?? ''
+          branch_id
         )
 
         if (response.success) {

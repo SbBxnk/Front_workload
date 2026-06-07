@@ -293,8 +293,7 @@ function SetAssessor() {
     try {
       const response = await SetAssessorServices.checkUserAccessToRound(
         userId,
-        round_list_id,
-        session.accessToken
+        round_list_id
       )
 
       if (response.success && Array.isArray(response.payload)) {
@@ -326,7 +325,7 @@ function SetAssessor() {
       setLoading(true)
       setError('')
 
-      const response = await SetAssessorServices.getAllRoundLists(session.accessToken, {
+      const response = await SetAssessorServices.getAllRoundLists({
         search: params.search,
         page: params.page,
         limit: params.limit,

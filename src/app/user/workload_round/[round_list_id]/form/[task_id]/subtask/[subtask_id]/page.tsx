@@ -181,7 +181,7 @@ const {setBreadcrumbs} = useUtility()
     const checkWorkloadGroup = async () => {
       if (userId && round_list_id && session?.accessToken) {
         try {
-          const response = await WorkloadFormServices.checkWorkloadGroup(userId, parseInt(round_list_id as string), session.accessToken)
+          const response = await WorkloadFormServices.checkWorkloadGroup(userId, parseInt(round_list_id as string))
           
           // ใช้ legacy format เหมือนเดิม
           const data = response.data
@@ -213,12 +213,10 @@ const {setBreadcrumbs} = useUtility()
       try {
         const [subtaskResponse, taskSubtasksResponse] = await Promise.all([
           SubTaskServices.getSubTaskById(
-            Number(subtask_id),
-            session?.accessToken ?? ''
+            Number(subtask_id)
           ),
           SubTaskServices.getSubTasksByTask(
-            Number(task_id),
-            session?.accessToken ?? ''
+            Number(task_id)
           ),
         ])
 
@@ -277,8 +275,7 @@ const {setBreadcrumbs} = useUtility()
           const response = await WorkloadFormServices.getFormInfo(
             workloadGroupInfo.formlist_id,
             Number(subtask_id),
-            userId || 0,
-            session.accessToken
+            userId || 0
           )
 
           
@@ -383,7 +380,7 @@ const {setBreadcrumbs} = useUtility()
     if (!session?.accessToken) return
     
     try {
-      const response = await WorkloadFormServices.getFileInfo(workloadGroupInfo?.formlist_id || 0, session.accessToken)
+      const response = await WorkloadFormServices.getFileInfo(workloadGroupInfo?.formlist_id || 0)
       // ใช้ legacy format เหมือนเดิม
       const data = response.data
       const files: FileInfo[] = data || []
@@ -491,7 +488,7 @@ const {setBreadcrumbs} = useUtility()
         throw new Error('No access token available')
       }
 
-      const response = await WorkloadFormServices.addFormInfo(apiFormData, session.accessToken)
+      const response = await WorkloadFormServices.addFormInfo(apiFormData)
       // ใช้ legacy format เหมือนเดิม
       const data = response.data
       const apiForm: ApiFormData = (data?.[0] || {}) as ApiFormData
@@ -710,7 +707,7 @@ const {setBreadcrumbs} = useUtility()
       }
 
 
-      const response = await WorkloadFormServices.updateFormInfo(apiFormData, session.accessToken)
+      const response = await WorkloadFormServices.updateFormInfo(apiFormData)
       // ใช้ legacy format เหมือนเดิม
       const data = response.data
       const updatedForm = data?.[0] || {}
@@ -845,7 +842,7 @@ const {setBreadcrumbs} = useUtility()
     
     try {
       // เพิ่ม userId ในการเรียก API
-      const response = await WorkloadFormServices.getFormDetail(id, userId || 0, session.accessToken)
+      const response = await WorkloadFormServices.getFormDetail(id, userId || 0)
 
       // ใช้ legacy format เหมือนเดิม
       const data = response.data
@@ -890,7 +887,7 @@ const {setBreadcrumbs} = useUtility()
         checkbox.checked = false
       }
 
-      const response = await WorkloadFormServices.deleteFormInfo(form_id, session.accessToken)
+      const response = await WorkloadFormServices.deleteFormInfo(form_id)
 
       // ใช้ legacy format เหมือนเดิม
       const isSuccess = response.status

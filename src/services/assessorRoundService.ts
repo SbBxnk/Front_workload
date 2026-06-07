@@ -26,16 +26,13 @@ class AssessorRoundService {
   /**
    * ดึงรอบการประเมินสำหรับผู้ประเมิน
    * @param ex_u_id - ID ของผู้ประเมิน
-   * @param accessToken - Access token สำหรับ authentication
    * @returns Promise<AssessorRound[]>
    */
   static async getAssessorRounds(
-    ex_u_id: number, 
-    accessToken: string
+    ex_u_id: number
   ): Promise<AssessorRound[]> {
     try {
       const headers = {
-        Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       }
 

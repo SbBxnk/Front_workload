@@ -38,7 +38,7 @@ function SelectPrefix({
           throw new Error('No token found. Please log in.')
         }
         
-        const response = await DropdownService.getExPositions(token)
+        const response = await DropdownService.getExPositions()
 
         if (response.status && response.data) {
           setExPositions(response.data)

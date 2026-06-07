@@ -129,7 +129,6 @@ export default function Component1Content({
 
         try {
             const data = await WorkloadEvaluationService.getEvaluation(
-                accessToken,
                 Number(formlistIdParam),
                 Number(setAssesInfoIdParam)
             )
@@ -254,7 +253,6 @@ export default function Component1Content({
                 }
 
                 await WorkloadEvaluationService.saveDraft(
-                    accessToken,
                     evaluation.evaluation_id,
                     payload
                 )
@@ -487,7 +485,6 @@ export default function Component1Content({
             await saveDraft({ force: true })
 
             const submitResult = await WorkloadEvaluationService.submitEvaluation(
-                accessToken,
                 evaluationId
             )
 

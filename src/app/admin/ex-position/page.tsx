@@ -113,7 +113,6 @@ function PositionTable() {
       }
 
       const response = await ExpositionServices.getAllExpositions(
-        session.accessToken,
         {
           search,
           page: page ?? 1,
@@ -231,8 +230,7 @@ function PositionTable() {
     try {
       if (!session?.accessToken) throw new Error('No access token')
       const response = await ExpositionServices.createExposition(
-        { ex_position_name },
-        session.accessToken
+        { ex_position_name }
       )
 
       if (response && (response as any).status === true) {
@@ -278,7 +276,7 @@ function PositionTable() {
     setLoading(true)
     try {
       if (!session?.accessToken) throw new Error('No access token')
-      await ExpositionServices.deleteExposition(ex_position_id, session.accessToken)
+      await ExpositionServices.deleteExposition(ex_position_id)
 
       // Reset to page 1 and fetch new data
       setPage(0)
@@ -327,8 +325,7 @@ function PositionTable() {
       if (!session?.accessToken) throw new Error('No access token')
       const response = await ExpositionServices.updateExposition(
         ex_position_id,
-        { ex_position_name },
-        session.accessToken
+        { ex_position_name }
       )
 
       if (response && (response as any).status === true) {

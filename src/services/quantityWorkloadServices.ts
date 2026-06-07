@@ -14,11 +14,8 @@ export interface UpdateQuantityWorkloadRequest {
 }
 
 const QuantityWorkloadServices = {
-  getAllQuantityWorkloads: (accessToken: string, param?: QuantityWorkloadSearchParams): Promise<ResponsePayload<QuantityWorkload>> => {
+  getAllQuantityWorkloads: (param?: QuantityWorkloadSearchParams): Promise<ResponsePayload<QuantityWorkload>> => {
     return http.get('/quantity-workload', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
       params: {
         search: param?.search,
         page: param?.page,
@@ -30,40 +27,28 @@ const QuantityWorkloadServices = {
   },
 
   createQuantityWorkload: (
-    data: CreateQuantityWorkloadRequest,
-    accessToken: string
+    data: CreateQuantityWorkloadRequest
   ): Promise<QuantityWorkload> => {
-    return http.post('/quantity-workload/add', data, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+    return http.post('/quantity-workload/add', data)
   },
 
   updateQuantityWorkload: (
     quantityWorkloadId: number,
-    data: UpdateQuantityWorkloadRequest,
-    accessToken: string
+    data: UpdateQuantityWorkloadRequest
   ): Promise<QuantityWorkload> => {
-    return http.put(`/quantity-workload/update/${quantityWorkloadId}`, data, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+    return http.put(`/quantity-workload/update/${quantityWorkloadId}`, data)
   },
 
-  deleteQuantityWorkload: (quantityWorkloadId: number, accessToken: string): Promise<void> => {
-    return http.delete(`/quantity-workload/delete/${quantityWorkloadId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+  deleteQuantityWorkload: (quantityWorkloadId: number): Promise<void> => {
+    return http.delete(`/quantity-workload/delete/${quantityWorkloadId}`)
   },
 
-  getQuantityWorkloadById: (quantityWorkloadId: number, accessToken: string): Promise<QuantityWorkload> => {
-    return http.get(`/quantity-workload/${quantityWorkloadId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+  getQuantityWorkloadById: (quantityWorkloadId: number): Promise<QuantityWorkload> => {
+    return http.get(`/quantity-workload/${quantityWorkloadId}`)
   },
 
-  getQuantityWorkloadByGroupId: (workloadGroupId: number, accessToken: string): Promise<ResponsePayload<QuantityWorkload>> => {
-    return http.get(`/quantity-workload/group/${workloadGroupId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+  getQuantityWorkloadByGroupId: (workloadGroupId: number): Promise<ResponsePayload<QuantityWorkload>> => {
+    return http.get(`/quantity-workload/group/${workloadGroupId}`)
   },
 }
 

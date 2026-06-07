@@ -92,7 +92,6 @@ const Section2: React.FC<Section2Props> = ({
 
       try {
         const data = await PerformanceEvaluationAssessmentService.getAverageAssessedLevels(
-          session.accessToken,
           formlistId
         )
         setAverageAssessedLevels(data)

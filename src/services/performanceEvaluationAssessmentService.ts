@@ -51,14 +51,11 @@ export interface AverageAssessedLevel {
 
 const PerformanceEvaluationAssessmentService = {
   getEvaluationAssessment: (
-    accessToken: string,
     formlistId: number,
     setAssesInfoId: number
   ): Promise<EvaluationAssessmentResponse> => {
     return http
-      .get(`/performance_evaluation_assessment/${formlistId}/${setAssesInfoId}`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      })
+      .get(`/performance_evaluation_assessment/${formlistId}/${setAssesInfoId}`)
       .then((res: any) => {
         // res คือ ResponsePayload object ที่มี payload field
         // payload อาจเป็น array หรือ object
@@ -82,37 +79,28 @@ const PerformanceEvaluationAssessmentService = {
   },
 
   saveDraft: (
-    accessToken: string,
     evaluationAssessmentId: number,
     body: SaveDraftRequest
   ): Promise<void> => {
-    return http.put(`/performance_evaluation_assessment/${evaluationAssessmentId}`, body, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+    return http.put(`/performance_evaluation_assessment/${evaluationAssessmentId}`, body)
   },
 
   submitEvaluationAssessment: (
-    accessToken: string,
     evaluationAssessmentId: number
   ): Promise<{
     evaluation_assessment_id: number
     submitted: boolean
   }> => {
     return http
-      .post(`/performance_evaluation_assessment/${evaluationAssessmentId}/submit`, {}, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      })
+      .post(`/performance_evaluation_assessment/${evaluationAssessmentId}/submit`, {})
       .then((res: any) => res.payload?.[0] ?? res.payload)
   },
 
   getAverageAssessedLevels: (
-    accessToken: string,
     formlistId: number
   ): Promise<AverageAssessedLevel[]> => {
     return http
-      .get(`/performance_evaluation_assessment/average/${formlistId}`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      })
+      .get(`/performance_evaluation_assessment/average/${formlistId}`)
       .then((res: any) => {
         const payload = res?.payload
         if (!payload) {

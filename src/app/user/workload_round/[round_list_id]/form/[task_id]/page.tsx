@@ -2,7 +2,6 @@
 import { useParams } from 'next/navigation'
 import type React from 'react'
 import { useEffect, useState, useRef } from 'react'
-import useAuthHeaders from '@/hooks/Header'
 import { useRouter } from 'next/navigation'
 import useUtility from '@/hooks/useUtility'
 import SubTaskServices from '@/services/subTaskServices'
@@ -18,7 +17,6 @@ export default function WorkloadSubtask() {
   const { setBreadcrumbs } = useUtility()
   const router = useRouter()
   const task_id = params.task_id
-  const headers = useAuthHeaders()
   const round_list_id = params.round_list_id as string
   const [subtasks, setSubtasks] = useState<SubTaskDetail[]>([])
   const [loading, setLoading] = useState(true)
@@ -44,10 +42,8 @@ export default function WorkloadSubtask() {
 
     const fetchTaskAndSubtasks = async () => {
       try {
-        const accessToken = headers.Authorization?.replace('Bearer ', '') || ''
         const subtaskResponse: any = await SubTaskServices.getSubTasksByTask(
           Number(task_id),
-          accessToken,
           { sort: 'subtask_id', order: 'asc', limit: 100 }
         )
 

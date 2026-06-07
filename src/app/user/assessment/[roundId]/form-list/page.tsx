@@ -42,7 +42,7 @@ export default function AssessmentRoundPage() {
     if (!accessToken || Number.isNaN(roundNumericId)) return
 
     try {
-      const roundResponse = await SetAssessorServices.getRoundListById(roundNumericId, accessToken)
+      const roundResponse = await SetAssessorServices.getRoundListById(roundNumericId)
       const roundPayload = Array.isArray(roundResponse.payload) ? roundResponse.payload[0] : roundResponse.payload
 
       if (roundPayload) {
@@ -123,7 +123,6 @@ export default function AssessmentRoundPage() {
       const response = await AssesseeService.getAssesseesByRound(
         decoded.id,
         roundNumericId,
-        session.accessToken,
         {
           page: safePage,
           limit: safeLimit,
@@ -177,8 +176,7 @@ export default function AssessmentRoundPage() {
             } else {
               try {
                 const statusRes = await WorkloadFormServices.getAssessorEvaluationStatus(
-                  assessee.set_asses_info_id,
-                  session.accessToken as string
+                  assessee.set_asses_info_id
                 )
                 const statusPayload = Array.isArray(statusRes.payload) ? statusRes.payload[0] : statusRes.payload
 
@@ -207,8 +205,7 @@ export default function AssessmentRoundPage() {
             try {
               const formlistRes = await WorkloadFormServices.getFormlistByUserAndRound(
                 assessee.as_u_id,
-                roundNumericId,
-                session.accessToken as string
+                roundNumericId
               )
               const formlistPayload = Array.isArray(formlistRes.payload) ? formlistRes.payload : [formlistRes.payload]
 

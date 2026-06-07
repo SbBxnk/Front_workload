@@ -186,7 +186,6 @@ function MainTaskTable() {
       }
 
       const response = await MainTaskServices.getAllMainTasks(
-        session.accessToken,
         {
           search: params.search || '',
           page: params.page ?? 1,
@@ -287,8 +286,7 @@ function MainTaskTable() {
     try {
       if (!session?.accessToken) throw new Error('No access token')
       const response = await MainTaskServices.createMainTask(
-        { task_name },
-        session.accessToken
+        { task_name }
       )
 
       if (response && (response as any).status === true) {
@@ -337,7 +335,7 @@ function MainTaskTable() {
     setLoading(true)
     try {
       if (!session?.accessToken) throw new Error('No access token')
-      await MainTaskServices.deleteMainTask(task_id, session.accessToken)
+      await MainTaskServices.deleteMainTask(task_id)
 
       // Reset to page 1 and fetch new data
       setPage(0)
@@ -380,8 +378,7 @@ function MainTaskTable() {
       if (!session?.accessToken) throw new Error('No access token')
       const response = await MainTaskServices.updateMainTask(
         task_id,
-        { task_name },
-        session.accessToken
+        { task_name }
       )
 
       if (response && (response as any).status === true) {

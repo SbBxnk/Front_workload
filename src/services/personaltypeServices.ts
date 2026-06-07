@@ -10,11 +10,10 @@ export interface UpdatePersonalTypeRequest {
 }
 
 const PersonalTypeServices = {
-  getAllPersonalTypes: (accessToken: string, param: PersonalTypeSearchParams): Promise<ResponsePayload<PersonalType>> => {
+  getAllPersonalTypes: (
+    param: PersonalTypeSearchParams
+  ): Promise<ResponsePayload<PersonalType>> => {
     return http.get('/personalType', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
       params: {
         search: param.search,
         page: param.page,
@@ -26,34 +25,24 @@ const PersonalTypeServices = {
   },
 
   createPersonalType: (
-    data: CreatePersonalTypeRequest,
-    accessToken: string
+    data: CreatePersonalTypeRequest
   ): Promise<PersonalType> => {
-    return http.post('/personalType/add', data, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+    return http.post('/personalType/add', data)
   },
 
   updatePersonalType: (
     typePId: number,
-    data: UpdatePersonalTypeRequest,
-    accessToken: string
+    data: UpdatePersonalTypeRequest
   ): Promise<PersonalType> => {
-    return http.put(`/personalType/update/${typePId}`, data, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+    return http.put(`/personalType/update/${typePId}`, data)
   },
 
-  deletePersonalType: (typePId: number, accessToken: string): Promise<void> => {
-    return http.delete(`/personalType/delete/${typePId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+  deletePersonalType: (typePId: number): Promise<void> => {
+    return http.delete(`/personalType/delete/${typePId}`)
   },
 
-  getPersonalTypeById: (typePId: number, accessToken: string): Promise<PersonalType> => {
-    return http.get(`/personalType/${typePId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+  getPersonalTypeById: (typePId: number): Promise<PersonalType> => {
+    return http.get(`/personalType/${typePId}`)
   },
 }
 

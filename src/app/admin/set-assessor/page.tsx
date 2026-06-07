@@ -208,8 +208,7 @@ function SetAssessor() {
       if (!session?.accessToken) return false
       
       const response = await SetAssessorServices.getSetAssessorListByRound(
-        round_list_id,
-        session.accessToken
+        round_list_id
       )
       
       if (response.payload && Array.isArray(response.payload) && response.payload.length > 0) {
@@ -236,7 +235,7 @@ function SetAssessor() {
       setLoading(true)
       setError('')
 
-      const response = await SetAssessorServices.getAllRoundLists(session.accessToken, {
+      const response = await SetAssessorServices.getAllRoundLists({
         search: params.search,
         page: params.page,
         limit: params.limit,
@@ -414,7 +413,7 @@ function SetAssessor() {
           : `รอบการประเมินภาระงานที่ ${FormData.round}/${FormData.year}`,
       }
 
-      await SetAssessorServices.createRoundList(formattedData, session.accessToken)
+      await SetAssessorServices.createRoundList(formattedData)
       setFormData(FormRoundList)
       await fetchRoundListData()
 
@@ -451,7 +450,7 @@ function SetAssessor() {
     e.preventDefault()
     setLoading(true)
     try {
-      await SetAssessorServices.deleteRoundList(round_list_id, session.accessToken)
+      await SetAssessorServices.deleteRoundList(round_list_id)
       await fetchRoundListData()
       setLoading(false)
 
@@ -491,7 +490,7 @@ function SetAssessor() {
         round_list_name: `รอบการประเมินภาระงานที่ ${updateRoundList.round}/${updateRoundList.year}`,
       }
 
-      await SetAssessorServices.updateRoundList(round_list_id, formattedData, session.accessToken)
+      await SetAssessorServices.updateRoundList(round_list_id, formattedData)
       await fetchRoundListData()
       setLoading(false)
 

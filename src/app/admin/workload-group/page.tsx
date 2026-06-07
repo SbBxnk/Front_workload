@@ -187,7 +187,6 @@ function WorkloadGroupTable() {
       }
 
       const response = await WorkloadGroupServices.getAllWorkloadGroups(
-        session.accessToken,
         {
           search: params.search || '',
           page: params.page ?? 1,
@@ -288,8 +287,7 @@ function WorkloadGroupTable() {
     try {
       if (!session?.accessToken) throw new Error('No access token')
       const response = await WorkloadGroupServices.createWorkloadGroup(
-        { workload_group_name },
-        session.accessToken
+        { workload_group_name }
       )
 
       if (response && (response as any).status === true) {
@@ -338,7 +336,7 @@ function WorkloadGroupTable() {
     setLoading(true)
     try {
       if (!session?.accessToken) throw new Error('No access token')
-      await WorkloadGroupServices.deleteWorkloadGroup(workload_group_id, session.accessToken)
+      await WorkloadGroupServices.deleteWorkloadGroup(workload_group_id)
 
       // Reset to page 1 and fetch new data
       setPage(0)
@@ -381,8 +379,7 @@ function WorkloadGroupTable() {
       if (!session?.accessToken) throw new Error('No access token')
       const response = await WorkloadGroupServices.updateWorkloadGroup(
         workload_group_id,
-        { workload_group_name },
-        session.accessToken
+        { workload_group_name }
       )
 
       if (response && (response as any).status === true) {

@@ -125,7 +125,6 @@ function PositionTable() {
       setData([])
       try {
         const response = await PositionServices.getAllPositions(
-          session.accessToken,
           {
             search: params.search || '',
             page: params.page ?? 1,
@@ -221,11 +220,10 @@ function PositionTable() {
     try {
       if (!session?.accessToken) throw new Error('No access token')
       const response = await PositionServices.createPosition(
-        { 
+        {
           position_name,
           position_short_name: position_short_name || undefined
-        },
-        session.accessToken
+        }
       )
 
       if (response && (response as any).status === true) {
@@ -273,7 +271,7 @@ function PositionTable() {
     setLoading(true)
     try {
       if (!session?.accessToken) throw new Error('No access token')
-      await PositionServices.deletePosition(position_id, session.accessToken)
+      await PositionServices.deletePosition(position_id)
 
       // Reset to page 1 and fetch new data
       setPage(0)
@@ -322,11 +320,10 @@ function PositionTable() {
       if (!session?.accessToken) throw new Error('No access token')
       const response = await PositionServices.updatePosition(
         position_id,
-        { 
+        {
           position_name,
           position_short_name: position_short_name || undefined
-        },
-        session.accessToken
+        }
       )
 
       if (response && (response as any).status === true) {

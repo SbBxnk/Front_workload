@@ -58,8 +58,7 @@ export function AssessorProvider({ children }: AssessorProviderProps) {
       const decoded: DecodedToken = jwtDecode(session.accessToken)
       
       const data = await AssessorServices.checkAssessor(
-        decoded.id,
-        session.accessToken
+        decoded.id
       )
 
       setAssessorData(data)

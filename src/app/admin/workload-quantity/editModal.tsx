@@ -77,7 +77,6 @@ export default function EditModal({
       setLoadingWorkloadGroups(true)
       try {
         const response = await WorkloadGroupServices.getAllWorkloadGroups(
-          session.accessToken,
           { search: '', page: 1, limit: 1000, sort: 'workload_group_name', order: 'asc' }
         )
         if (response.success) {
@@ -100,7 +99,6 @@ export default function EditModal({
       setLoadingMainTasks(true)
       try {
         const response = await MainTaskServices.getAllMainTasks(
-          session.accessToken,
           { search: '', page: 1, limit: 1000, sort: 'task_name', order: 'asc' }
         )
         if (response.success) {

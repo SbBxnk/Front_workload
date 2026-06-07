@@ -2,7 +2,6 @@
 
 import { CalendarClock } from 'lucide-react'
 import type { Terms, WorkloadGroup } from '@/Types'
-import useAuthHeaders from '@/hooks/Header'
 import { useEffect, useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import WorkloadFormServices from '@/services/workloadFormServices'
@@ -27,7 +26,6 @@ export default function InfoHoverModal({
   const [terms, setTerms] = useState<Terms[]>([])
   const [, setWorkloadGroups] = useState<WorkloadGroup[]>([])
   const [taskNames, setTaskNames] = useState<string[]>([])
-  const headers = useAuthHeaders()
   const modalRef = useRef<HTMLDivElement>(null)
   const [mounted, setMounted] = useState(false)
 
@@ -35,10 +33,9 @@ export default function InfoHoverModal({
     setMounted(true)
     const fetchData = async () => {
       try {
-        const accessToken = headers.Authorization?.replace('Bearer ', '') || ''
-        const responseTerms = await WorkloadFormServices.getTerms(accessToken)
+        const responseTerms = await WorkloadFormServices.getTerms()
         const responseWorkloadGroups =
-          await WorkloadGroupServices.getAllWorkloadGroups(accessToken)
+          await WorkloadGroupServices.getAllWorkloadGroups()
 
         const termsData = (responseTerms.payload ?? []) as unknown as Terms[]
         const workloadGroupsData = responseWorkloadGroups.payload ?? []

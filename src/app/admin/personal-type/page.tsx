@@ -139,7 +139,7 @@ function PersonalTypeTable() {
         throw new Error('No access token')
       }
 
-      const response = await PersonalTypeServices.getAllPersonalTypes(session.accessToken, {
+      const response = await PersonalTypeServices.getAllPersonalTypes({
         search,
         page,
         limit,
@@ -276,8 +276,7 @@ function PersonalTypeTable() {
     try {
       if (!session?.accessToken) throw new Error('No access token')
       const response = await PersonalTypeServices.createPersonalType(
-        { type_p_name },
-        session.accessToken
+        { type_p_name }
       )
 
       if (response && (response as any).status === true) {
@@ -323,7 +322,7 @@ function PersonalTypeTable() {
     setLoading(true)
     try {
       if (!session?.accessToken) throw new Error('No access token')
-      await PersonalTypeServices.deletePersonalType(type_p_id, session.accessToken)
+      await PersonalTypeServices.deletePersonalType(type_p_id)
 
       // Reset to page 1 and fetch new data
       setPage(0)
@@ -372,8 +371,7 @@ function PersonalTypeTable() {
       if (!session?.accessToken) throw new Error('No access token')
       const response = await PersonalTypeServices.updatePersonalType(
         type_p_id,
-        { type_p_name: updatedTypePName },
-        session.accessToken
+        { type_p_name: updatedTypePName }
       )
 
       if (response && (response as any).status === true) {

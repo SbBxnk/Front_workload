@@ -33,7 +33,7 @@ export interface CheckAssessorResponse {
 
 const AssessorServices = {
   
-  checkRound: (queryParams: Params, accessToken: string): Promise<ResponsePayload<RoundList>> => {
+  checkRound: (queryParams: Params): Promise<ResponsePayload<RoundList>> => {
     const params = new URLSearchParams({
       page: queryParams.page,
       limit: queryParams.limit,
@@ -44,21 +44,11 @@ const AssessorServices = {
     }).toString()
 
     // ใช้ endpoint ใหม่สำหรับ user API
-    return http.get(`/check_round?${params}`, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-    })
+    return http.get(`/check_round?${params}`)
   },
 
-  checkAssessor: (userId: number, accessToken: string): Promise<AssessorData> => {
-    return http.get(`/check_assessor/${userId}`, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-    }).then((response) => {
+  checkAssessor: (userId: number): Promise<AssessorData> => {
+    return http.get(`/check_assessor/${userId}`).then((response) => {
       const isAssessor = response.data && response.data.assessor_id
       
       const assessorData: AssessorData = {
@@ -79,8 +69,8 @@ const AssessorServices = {
     })
   },
 
-  isUserAssessor: (userId: number, accessToken: string): Promise<boolean> => {
-    return AssessorServices.checkAssessor(userId, accessToken).then(data => data.isAssessor)
+  isUserAssessor: (userId: number): Promise<boolean> => {
+    return AssessorServices.checkAssessor(userId).then(data => data.isAssessor)
   }
 }
 

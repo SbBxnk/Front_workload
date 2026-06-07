@@ -69,7 +69,6 @@ export default function WorkLoadForm() {
     const fetchWorkloads = async () => {
       try {
         const response = await MainTaskServices.getAllMainTasks(
-          session?.accessToken ?? '',
           { sort: 'task_id', order: 'asc', limit: 100 }
         )
 

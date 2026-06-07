@@ -223,7 +223,6 @@ function SubTaskTable() {
       }
 
       const response = await SubTaskServices.getAllSubTasks(
-        session.accessToken,
         {
           search: params.search || '',
           page: params.page ?? 1,
@@ -263,7 +262,7 @@ function SubTaskTable() {
   const getMainTasks = async () => {
     try {
       if (!session?.accessToken) return
-      const response = await MainTaskServices.getAllMainTasks(session.accessToken, {
+      const response = await MainTaskServices.getAllMainTasks({
         search: '',
         page: 1,
         limit: 100,
@@ -340,8 +339,7 @@ function SubTaskTable() {
     try {
       if (!session?.accessToken) throw new Error('No access token')
       const response = await SubTaskServices.createSubTask(
-        { subtask_name, task_id },
-        session.accessToken
+        { subtask_name, task_id }
       )
 
       if (response && (response as any).status === true) {
@@ -390,7 +388,7 @@ function SubTaskTable() {
     setLoading(true)
     try {
       if (!session?.accessToken) throw new Error('No access token')
-      await SubTaskServices.deleteSubTask(subtask_id, session.accessToken)
+      await SubTaskServices.deleteSubTask(subtask_id)
 
       // Reset to page 1 and fetch new data
       setPage(0)
@@ -434,8 +432,7 @@ function SubTaskTable() {
       if (!session?.accessToken) throw new Error('No access token')
       const response = await SubTaskServices.updateSubTask(
         subtask_id,
-        { subtask_name, task_id },
-        session.accessToken
+        { subtask_name, task_id }
       )
 
       if (response && (response as any).status === true) {

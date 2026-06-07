@@ -21,7 +21,7 @@ export default function SuccessForm({ selectedGroupName, userId, roundId }: Succ
       if (!session?.accessToken) return
 
       try {
-        const response = await WorkloadFormServices.getTerms(session.accessToken)
+        const response = await WorkloadFormServices.getTerms()
         setTerms(response.payload || [])
       } catch (error) {
         console.error('Error fetching terms:', error)

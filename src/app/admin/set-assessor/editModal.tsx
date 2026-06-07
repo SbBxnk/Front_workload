@@ -41,7 +41,7 @@ export default function EditModal({
         setLoading(true)
         try {
           console.log('Calling getRoundListById with ID:', round_list_id)
-          const response = await SetAssessorServices.getRoundListById(round_list_id, session.accessToken)
+          const response = await SetAssessorServices.getRoundListById(round_list_id)
           console.log('getRoundListById response:', response)
           
           if (response.success && response.payload) {

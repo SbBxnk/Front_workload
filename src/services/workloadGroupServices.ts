@@ -10,11 +10,8 @@ export interface UpdateWorkloadGroupRequest {
 }
 
 const WorkloadGroupServices = {
-  getAllWorkloadGroups: ( accessToken: string, param?: WorkloadGroupSearchParams ): Promise<ResponsePayload<WorkloadGroup>> => {
+  getAllWorkloadGroups: ( param?: WorkloadGroupSearchParams ): Promise<ResponsePayload<WorkloadGroup>> => {
     return http.get('/workload_group', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
       params: {
         search: param?.search,
         page: param?.page,
@@ -26,34 +23,24 @@ const WorkloadGroupServices = {
   },
 
   createWorkloadGroup: (
-    data: CreateWorkloadGroupRequest,
-    accessToken: string
+    data: CreateWorkloadGroupRequest
   ): Promise<WorkloadGroup> => {
-    return http.post('/workload_group/add', data, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+    return http.post('/workload_group/add', data)
   },
 
   updateWorkloadGroup: (
     workloadGroupId: number,
-    data: UpdateWorkloadGroupRequest,
-    accessToken: string
+    data: UpdateWorkloadGroupRequest
   ): Promise<WorkloadGroup> => {
-    return http.put(`/workload_group/update/${workloadGroupId}`, data, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+    return http.put(`/workload_group/update/${workloadGroupId}`, data)
   },
 
-  deleteWorkloadGroup: (workloadGroupId: number, accessToken: string): Promise<void> => {
-    return http.delete(`/workload_group/delete/${workloadGroupId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+  deleteWorkloadGroup: (workloadGroupId: number): Promise<void> => {
+    return http.delete(`/workload_group/delete/${workloadGroupId}`)
   },
 
-  getWorkloadGroupById: (workloadGroupId: number, accessToken: string): Promise<WorkloadGroup> => {
-    return http.get(`/workload_group/${workloadGroupId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+  getWorkloadGroupById: (workloadGroupId: number): Promise<WorkloadGroup> => {
+    return http.get(`/workload_group/${workloadGroupId}`)
   },
 }
 

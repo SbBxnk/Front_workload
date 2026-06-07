@@ -10,11 +10,8 @@ export interface UpdateMainTaskRequest {
 }
 
 const MainTaskServices = {
-  getAllMainTasks: ( accessToken: string, param?: MainTaskSearchParams ): Promise<ResponsePayload<MainTask>> => {
+  getAllMainTasks: ( param?: MainTaskSearchParams ): Promise<ResponsePayload<MainTask>> => {
     return http.get('/maintask', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
       params: {
         search: param?.search,
         page: param?.page,
@@ -26,34 +23,24 @@ const MainTaskServices = {
   },
 
   createMainTask: (
-    data: CreateMainTaskRequest,
-    accessToken: string
+    data: CreateMainTaskRequest
   ): Promise<MainTask> => {
-    return http.post('/maintask/add', data, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+    return http.post('/maintask/add', data)
   },
 
   updateMainTask: (
     taskId: number,
-    data: UpdateMainTaskRequest,
-    accessToken: string
+    data: UpdateMainTaskRequest
   ): Promise<MainTask> => {
-    return http.put(`/maintask/update/${taskId}`, data, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+    return http.put(`/maintask/update/${taskId}`, data)
   },
 
-  deleteMainTask: (taskId: number, accessToken: string): Promise<void> => {
-    return http.delete(`/maintask/delete/${taskId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+  deleteMainTask: (taskId: number): Promise<void> => {
+    return http.delete(`/maintask/delete/${taskId}`)
   },
 
-  getMainTaskById: (taskId: number, accessToken: string): Promise<MainTask> => {
-    return http.get(`/maintask/${taskId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+  getMainTaskById: (taskId: number): Promise<MainTask> => {
+    return http.get(`/maintask/${taskId}`)
   },
 }
 

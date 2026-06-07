@@ -67,12 +67,8 @@ const AuthService = {
     return server.post('/reset-password', { token, newPassword });
   },
 
-  UpdateProfile: (accessToken: string, data: FormData): Promise<ResponsePayload<UserProfile>> => {
-    return server.patch('/profile/update', data, {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`
-      }
-    });
+  UpdateProfile: (data: FormData): Promise<ResponsePayload<UserProfile>> => {
+    return http.patch('/profile/update', data);
   },
 
 }

@@ -70,14 +70,11 @@ export interface SaveDraftRequest {
 
 const WorkloadEvaluationService = {
   getEvaluation: (
-    accessToken: string,
     formlistId: number,
     setAssesInfoId: number
   ): Promise<EvaluationResponse> => {
     return http
-      .get(`/workload_evaluation/${formlistId}/${setAssesInfoId}`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      })
+      .get(`/workload_evaluation/${formlistId}/${setAssesInfoId}`)
       .then((res: any) => {
         const payload = res?.payload
         if (Array.isArray(payload)) {
@@ -88,17 +85,13 @@ const WorkloadEvaluationService = {
   },
 
   saveDraft: (
-    accessToken: string,
     evaluationId: number,
     body: SaveDraftRequest
   ): Promise<void> => {
-    return http.put(`/workload_evaluation/${evaluationId}`, body, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+    return http.put(`/workload_evaluation/${evaluationId}`, body)
   },
 
   submitEvaluation: (
-    accessToken: string,
     evaluationId: number
   ): Promise<{
     evaluation_id: number
@@ -108,21 +101,16 @@ const WorkloadEvaluationService = {
     form_finalized: boolean
   }> => {
     return http
-      .post(`/workload_evaluation/${evaluationId}/submit`, {}, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      })
+      .post(`/workload_evaluation/${evaluationId}/submit`, {})
       .then((res: any) => res.payload?.[0] ?? res.payload)
   },
 
   getAssignedWorkloadGroup: (
-    accessToken: string,
     asUserId: number,
     roundListId: number
   ): Promise<{ workload_group_id: number; workload_group_name: string } | null> => {
     return http
-      .get(`/workload_evaluation/assigned_group/${asUserId}/${roundListId}`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      })
+      .get(`/workload_evaluation/assigned_group/${asUserId}/${roundListId}`)
       .then((res: any) => {
         const payload = res?.payload
         if (Array.isArray(payload)) {

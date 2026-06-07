@@ -72,54 +72,33 @@ export interface PerformanceSnapshot {
 
 const PerformanceService = {
   // ดึงรายการสมรรถนะทั้งหมด
-  getAllCompetencies: (accessToken: string): Promise<ResponsePayload<Competency>> => {
-    return http.get('/performance/competencies', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    })
+  getAllCompetencies: (): Promise<ResponsePayload<Competency>> => {
+    return http.get('/performance/competencies')
   },
 
   // ดึงรายการสมรรถนะเดียว
-  getOneCompetency: (competency_id: number, accessToken: string): Promise<ResponsePayload<Competency>> => {
-    return http.get(`/performance/competencies/${competency_id}`, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    })
+  getOneCompetency: (competency_id: number): Promise<ResponsePayload<Competency>> => {
+    return http.get(`/performance/competencies/${competency_id}`)
   },
 
   // ดึงระดับสมรรถนะที่คาดหวังทั้งหมด
-  getAllExpectedLevels: (accessToken: string): Promise<ResponsePayload<ExpectedLevel>> => {
-    return http.get('/performance/expected-levels', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    })
+  getAllExpectedLevels: (): Promise<ResponsePayload<ExpectedLevel>> => {
+    return http.get('/performance/expected-levels')
   },
 
   // ดึงระดับสมรรถนะที่คาดหวังตามตำแหน่ง
   getExpectedLevelsByPosition: (
-    position_id: number,
-    accessToken: string
+    position_id: number
   ): Promise<ResponsePayload<ExpectedLevel>> => {
-    return http.get(`/performance/expected-levels/position/${position_id}`, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    })
+    return http.get(`/performance/expected-levels/position/${position_id}`)
   },
 
   // ดึงข้อมูลฟอร์มการประเมินสมรรถนะ (พร้อมข้อมูลที่คาดหวัง)
   getPerformanceEvaluationForm: (
     formlist_id: number,
-    u_id: number,
-    accessToken: string
+    u_id: number
   ): Promise<ResponsePayload<PerformanceEvaluationFormData>> => {
     return http.get(`/performance/evaluation/formlist/${formlist_id}`, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
       params: {
         u_id,
       },
@@ -128,54 +107,33 @@ const PerformanceService = {
 
   // ดึงข้อมูลการประเมินสมรรถนะตาม formlist_id
   getPerformanceEvaluation: (
-    formlist_id: number,
-    accessToken: string
+    formlist_id: number
   ): Promise<ResponsePayload<PerformanceEvaluation>> => {
-    return http.get(`/performance/evaluation/formlist/${formlist_id}/data`, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    })
+    return http.get(`/performance/evaluation/formlist/${formlist_id}/data`)
   },
 
   // ดึงข้อมูลการประเมินสมรรถนะตาม user และ round
   getPerformanceEvaluationByUserAndRound: (
     u_id: number,
-    round_list_id: number,
-    accessToken: string
+    round_list_id: number
   ): Promise<ResponsePayload<PerformanceEvaluation>> => {
-    return http.get(`/performance/evaluation/user/${u_id}/round/${round_list_id}`, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    })
+    return http.get(`/performance/evaluation/user/${u_id}/round/${round_list_id}`)
   },
 
   // เพิ่มหรืออัปเดตข้อมูลการประเมินสมรรถนะ (รายการเดียว)
   addOrUpdatePerformanceEvaluation: (
-    data: PerformanceEvaluationRequest,
-    accessToken: string
+    data: PerformanceEvaluationRequest
   ): Promise<ResponsePayload<any>> => {
-    return http.post('/performance/evaluation', data, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    })
+    return http.post('/performance/evaluation', data)
   },
 
   // เพิ่มหรืออัปเดตข้อมูลการประเมินสมรรถนะ (หลายรายการ)
   addOrUpdatePerformanceEvaluationBulk: (
-    evaluations: PerformanceEvaluationRequest[],
-    accessToken: string
+    evaluations: PerformanceEvaluationRequest[]
   ): Promise<ResponsePayload<any>> => {
     return http.post(
       '/performance/evaluation/bulk',
-      { evaluations },
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      }
+      { evaluations }
     )
   },
 
@@ -185,27 +143,18 @@ const PerformanceService = {
       competency_id: number
       position_id: number
       expected_level: number
-    },
-    accessToken: string
+    }
   ): Promise<ResponsePayload<any>> => {
-    return http.post('/performance/expected-level', data, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    })
+    return http.post('/performance/expected-level', data)
   },
 
   // ดึงข้อมูล snapshot performance evaluation
   getPerformanceSnapshot: (
     formlist_id: number,
     u_id: number,
-    round_list_id: number,
-    accessToken: string
+    round_list_id: number
   ): Promise<ResponsePayload<PerformanceSnapshot | null>> => {
     return http.get('/performance/snapshot', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
       params: {
         formlist_id,
         u_id,

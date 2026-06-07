@@ -208,8 +208,7 @@ export default function WorkloadDashboard() {
             year: '',
             sort: 'date_start',
             order: 'desc',
-          },
-          session.accessToken
+          }
         )
 
         const payload = Array.isArray(response.payload)
@@ -277,8 +276,7 @@ export default function WorkloadDashboard() {
         try {
           const formlistRes = await WorkloadFormServices.getFormlistByUserAndRound(
             userId,
-            selectedRoundId,
-            session.accessToken
+            selectedRoundId
           )
           const rawPayload = (formlistRes as any)?.payload
           formlistPayload = Array.isArray(rawPayload) ? rawPayload[0] : rawPayload
@@ -294,8 +292,7 @@ export default function WorkloadDashboard() {
         try {
           const accessRes = await SetAssessorServices.checkUserAccessToRound(
             Number(userId),
-            selectedRoundId,
-            session.accessToken
+            selectedRoundId
           )
           isAssigned = !!(accessRes as any)?.payload
         } catch (accessCheckErr) {
@@ -314,7 +311,6 @@ export default function WorkloadDashboard() {
         if (isAssigned) {
           try {
             assignedUserInfo = await WorkloadEvaluationService.getAssignedWorkloadGroup(
-              session.accessToken,
               userId,
               selectedRoundId
             )
@@ -330,8 +326,7 @@ export default function WorkloadDashboard() {
         if (workloadGroupId) {
           try {
             const res = await QuantityWorkloadServices.getQuantityWorkloadByGroupId(
-              workloadGroupId,
-              session.accessToken
+              workloadGroupId
             )
             quantityCriteriaPayload = (res as any)?.payload || []
           } catch (err) {
@@ -440,7 +435,7 @@ export default function WorkloadDashboard() {
         } else {
           // กรณีรอบใหม่ยังไม่มีฟอร์ม ดึงหัวข้อหลักมาแสดงกราฟเปล่า
           try {
-            const mainTasksRes: any = await MainTaskServices.getAllMainTasks(session.accessToken, {
+            const mainTasksRes: any = await MainTaskServices.getAllMainTasks({
               page: 1, limit: 20, sort: 'task_id', order: 'asc'
             } as any)
             const mainTasks = Array.isArray(mainTasksRes?.payload) ? mainTasksRes.payload : (Array.isArray(mainTasksRes?.data) ? mainTasksRes.data : [])
@@ -480,7 +475,7 @@ export default function WorkloadDashboard() {
             let evaluations: any[] = []
 
             try {
-              const snapshotRes = await PerformanceService.getPerformanceSnapshot(formlistId, userId!, selectedRoundId, session.accessToken)
+              const snapshotRes = await PerformanceService.getPerformanceSnapshot(formlistId, userId!, selectedRoundId)
               const payload = snapshotRes?.payload
               const snapshotData = (payload && !Array.isArray(payload)) ? payload : (Array.isArray(payload) && payload.length > 0 ? payload[0] : null)
 
@@ -496,9 +491,9 @@ export default function WorkloadDashboard() {
             if (evaluations.length === 0) {
               try {
                 const [evalsRes, competencyRes, allExpectedRes] = await Promise.all([
-                  PerformanceService.getPerformanceEvaluation(formlistId, session.accessToken),
-                  PerformanceService.getAllCompetencies(session.accessToken),
-                  PerformanceService.getAllExpectedLevels(session.accessToken)
+                  PerformanceService.getPerformanceEvaluation(formlistId),
+                  PerformanceService.getAllCompetencies(),
+                  PerformanceService.getAllExpectedLevels()
                 ])
 
                 const rawEvals = Array.isArray(evalsRes?.payload) ? evalsRes.payload : []
@@ -527,8 +522,8 @@ export default function WorkloadDashboard() {
 
             if (evaluations.length > 0) {
               const [competencyRes, averages] = await Promise.all([
-                PerformanceService.getAllCompetencies(session.accessToken),
-                PerformanceEvaluationAssessmentService.getAverageAssessedLevels(session.accessToken, formlistId)
+                PerformanceService.getAllCompetencies(),
+                PerformanceEvaluationAssessmentService.getAverageAssessedLevels(formlistId)
               ])
 
               const competencies = Array.isArray(competencyRes?.payload) ? competencyRes.payload : []
@@ -606,7 +601,7 @@ export default function WorkloadDashboard() {
           } else {
             // กรณีรอบใหม่ยังไม่มีฟอร์ม ดึงสมรรถนะมาแสดงกราฟเปล่า
             try {
-              const competencyRes = await PerformanceService.getAllCompetencies(session.accessToken)
+              const competencyRes = await PerformanceService.getAllCompetencies()
               const competencies = Array.isArray(competencyRes?.payload) ? competencyRes.payload : []
               competencies.forEach((c: any) => {
                 performanceComparison.push({
@@ -722,8 +717,8 @@ export default function WorkloadDashboard() {
 
       // 1. ดึงข้อมูลเบื้องต้น
       const [termsRes, roundsRes, formlistResponse] = await Promise.all([
-        WorkloadFormServices.getTerms(session.accessToken),
-        SetAssessorServices.getAllRounds(session.accessToken),
+        WorkloadFormServices.getTerms(),
+        SetAssessorServices.getAllRounds(),
         SnapshotService.getFormlistId(userId, selectedRoundId)
       ])
 
@@ -739,7 +734,7 @@ export default function WorkloadDashboard() {
       const status = formlistResponse.payload[0].status
 
       // 2. ดึงโครงสร้างหลัก (Master)
-      const mainTasksRes: any = await MainTaskServices.getAllMainTasks(session.accessToken, {
+      const mainTasksRes: any = await MainTaskServices.getAllMainTasks({
         page: 1, limit: 100, sort: 'task_id', order: 'asc'
       } as any)
       const mainTasks = Array.isArray(mainTasksRes?.payload) ? mainTasksRes.payload : (Array.isArray(mainTasksRes?.data) ? mainTasksRes.data : [])
@@ -747,7 +742,7 @@ export default function WorkloadDashboard() {
       const masterTasks: Task[] = []
       for (const mt of mainTasks) {
         try {
-          const subRes: any = await SubTaskServices.getSubTasksByTask(mt.task_id, session.accessToken)
+          const subRes: any = await SubTaskServices.getSubTasksByTask(mt.task_id)
           const subtasksArr = Array.isArray(subRes?.payload) ? subRes.payload : (Array.isArray(subRes) ? subRes : [])
           const subtasksMap: { [key: number]: Subtask } = {}
           for (const st of subtasksArr) {
@@ -818,7 +813,7 @@ export default function WorkloadDashboard() {
       }
 
       // 5. ดึง Performance Snapshot รายละเอียด
-      const perfSnapshotRes = await PerformanceService.getPerformanceSnapshot(formlist_id, userId, selectedRoundId, session.accessToken)
+      const perfSnapshotRes = await PerformanceService.getPerformanceSnapshot(formlist_id, userId, selectedRoundId)
       const performanceSnapshot = (perfSnapshotRes?.payload && !Array.isArray(perfSnapshotRes.payload))
         ? perfSnapshotRes.payload
         : (Array.isArray(perfSnapshotRes?.payload) && perfSnapshotRes.payload.length > 0 ? perfSnapshotRes.payload[0] : null)

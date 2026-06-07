@@ -140,7 +140,7 @@ export default function EditProfile() {
 
       try {
 
-        const response = await AuthService.UpdateProfile(session?.accessToken as string, formData)
+        const response = await AuthService.UpdateProfile(formData)
 
         if (response.success) {
           console.log('Profile updated successfully:', response.payload)

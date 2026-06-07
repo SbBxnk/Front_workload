@@ -90,7 +90,6 @@ export interface CreateSetAssessorInfoMultipleRequest {
 const SetAssessorServices = {
   // Round List APIs
   getAllRoundLists: (
-    accessToken: string,
     params?: {
       search?: string
       page?: number
@@ -101,9 +100,6 @@ const SetAssessorServices = {
     }
   ): Promise<ResponsePayload<RoundList>> => {
     return http.get('/set_assessor_round', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
       params: {
         search: params?.search || '',
         page: params?.page || 1,
@@ -115,49 +111,34 @@ const SetAssessorServices = {
     })
   },
 
-  getRoundListById: (roundListId: number, accessToken: string): Promise<ResponsePayload<RoundList>> => {
-    return http.get(`/set_assessor_round/${roundListId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+  getRoundListById: (roundListId: number): Promise<ResponsePayload<RoundList>> => {
+    return http.get(`/set_assessor_round/${roundListId}`)
   },
 
   createRoundList: (
-    data: CreateRoundListRequest,
-    accessToken: string
+    data: CreateRoundListRequest
   ): Promise<ResponsePayload<RoundList>> => {
-    return http.post('/set_assessor_round/add', data, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+    return http.post('/set_assessor_round/add', data)
   },
 
   updateRoundList: (
     roundListId: number,
-    data: UpdateRoundListRequest,
-    accessToken: string
+    data: UpdateRoundListRequest
   ): Promise<ResponsePayload<RoundList>> => {
-    return http.put(`/set_assessor_round/update/${roundListId}`, data, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+    return http.put(`/set_assessor_round/update/${roundListId}`, data)
   },
 
-  deleteRoundList: (roundListId: number, accessToken: string): Promise<ResponsePayload<any>> => {
-    return http.delete(`/set_assessor_round/delete/${roundListId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+  deleteRoundList: (roundListId: number): Promise<ResponsePayload<any>> => {
+    return http.delete(`/set_assessor_round/delete/${roundListId}`)
   },
 
   // Set Assessor List APIs
-  getAllSetAssessorLists: (accessToken: string): Promise<ResponsePayload<SetAssessorList>> => {
-    return http.get('/set_assessor_list', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    })
+  getAllSetAssessorLists: (): Promise<ResponsePayload<SetAssessorList>> => {
+    return http.get('/set_assessor_list')
   },
 
   getSetAssessorListByRound: (
     roundListId: number,
-    accessToken: string,
     params?: {
       search?: string
       page?: number
@@ -168,7 +149,6 @@ const SetAssessorServices = {
     }
   ): Promise<ResponsePayload<SetAssessorList>> => {
     return http.get(`/set_assessor_list/${roundListId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
       params: {
         search: params?.search || '',
         page: params?.page || 1,
@@ -181,33 +161,24 @@ const SetAssessorServices = {
   },
 
   createSetAssessorList: (
-    data: CreateSetAssessorListRequest,
-    accessToken: string
+    data: CreateSetAssessorListRequest
   ): Promise<ResponsePayload<SetAssessorList>> => {
-    return http.post('/set_assessor_list/add', data, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+    return http.post('/set_assessor_list/add', data)
   },
 
   createSetAssessorListMultiple: (
-    data: CreateSetAssessorListMultipleRequest,
-    accessToken: string
+    data: CreateSetAssessorListMultipleRequest
   ): Promise<ResponsePayload<SetAssessorList>> => {
-    return http.post('/set_assessor_list/add_multiple', data, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+    return http.post('/set_assessor_list/add_multiple', data)
   },
 
-  deleteSetAssessorList: (setAssesListId: number, accessToken: string): Promise<ResponsePayload<any>> => {
-    return http.delete(`/set_assessor_list/delete/${setAssesListId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+  deleteSetAssessorList: (setAssesListId: number): Promise<ResponsePayload<any>> => {
+    return http.delete(`/set_assessor_list/delete/${setAssesListId}`)
   },
 
   // Set Assessor Info APIs
   getSetAssessorInfo: (
     setAssesListId: number,
-    accessToken: string,
     params?: {
       search?: string
       page?: number
@@ -218,7 +189,6 @@ const SetAssessorServices = {
     }
   ): Promise<ResponsePayload<SetAssessorInfo>> => {
     return http.get(`/set_assessor_info/${setAssesListId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
       params: {
         search: params?.search || '',
         page: params?.page || 1,
@@ -231,103 +201,73 @@ const SetAssessorServices = {
   },
 
   getAssesseeBySetAssesListId: (
-    setAssesListId: number,
-    accessToken: string
+    setAssesListId: number
   ): Promise<ResponsePayload<AssesseeSummary>> => {
-    return http.get(`/assessee/${setAssesListId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+    return http.get(`/assessee/${setAssesListId}`)
   },
 
   createSetAssessorInfo: (
-    data: CreateSetAssessorInfoRequest,
-    accessToken: string
+    data: CreateSetAssessorInfoRequest
   ): Promise<ResponsePayload<SetAssessorInfo>> => {
-    return http.post('/set_assessor_info/add', data, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+    return http.post('/set_assessor_info/add', data)
   },
 
   createSetAssessorInfoMultiple: (
-    data: CreateSetAssessorInfoMultipleRequest,
-    accessToken: string
+    data: CreateSetAssessorInfoMultipleRequest
   ): Promise<ResponsePayload<SetAssessorInfo>> => {
-    return http.post('/set_assessor_info/add_multiple', data, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+    return http.post('/set_assessor_info/add_multiple', data)
   },
 
-  deleteSetAssessorInfo: (setAssesInfoId: number, accessToken: string): Promise<ResponsePayload<any>> => {
-    return http.delete(`/set_assessor_info/delete/${setAssesInfoId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+  deleteSetAssessorInfo: (setAssesInfoId: number): Promise<ResponsePayload<any>> => {
+    return http.delete(`/set_assessor_info/delete/${setAssesInfoId}`)
   },
 
   // รายชื่อผู้ใช้ที่เลือกเป็นผู้รับการประเมินได้ในรอบนี้ (backend ตอบ { status, data })
   getAssessUsers: (
-    roundListId: number,
-    accessToken: string
+    roundListId: number
   ): Promise<{ status: boolean; data: any[] }> => {
-    return http.get(`/as_user/${roundListId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+    return http.get(`/as_user/${roundListId}`)
   },
 
   // เพิ่ม workload form แบบ bulk หลังกำหนดผู้รับการประเมิน
   addBulkWorkloadForm: (
-    data: { set_asses_list_id: number; status_id: number }[],
-    accessToken: string
+    data: { set_asses_list_id: number; status_id: number }[]
   ): Promise<any> => {
-    return http.post('/workload_form/add_bulk', data, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+    return http.post('/workload_form/add_bulk', data)
   },
 
   // Other APIs
-  getAssessorOfCurrentYear: (roundListId: number, accessToken: string): Promise<ResponsePayload<any>> => {
-    return http.get(`/set_assessor/${roundListId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+  getAssessorOfCurrentYear: (roundListId: number): Promise<ResponsePayload<any>> => {
+    return http.get(`/set_assessor/${roundListId}`)
   },
 
   // checkIsAssessor function removed - use AssessorService.checkAssessor instead
 
-  getAssignedExaminees: (roundListId: number, exUserId: number, accessToken: string): Promise<ResponsePayload<any>> => {
-    return http.get(`/set_assessor/assigned_examinees/${roundListId}/${exUserId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+  getAssignedExaminees: (roundListId: number, exUserId: number): Promise<ResponsePayload<any>> => {
+    return http.get(`/set_assessor/assigned_examinees/${roundListId}/${exUserId}`)
   },
 
   // ดึงข้อมูลผู้รับการประเมินจาก set_asses_list_id
-  // getAssesseeBySetAssesListId: (setAssesListId: number, accessToken: string): Promise<ResponsePayload<any>> => {
-  //   return http.get(`/assessee/${setAssesListId}`, {
-  //     headers: { Authorization: `Bearer ${accessToken}` },
-  //   })
+  // getAssesseeBySetAssesListId: (setAssesListId: number): Promise<ResponsePayload<any>> => {
+  //   return http.get(`/assessee/${setAssesListId}`)
   // },
 
   // ดึงรายชื่อผู้ใช้ที่มีตำแหน่งบริหาร (สำหรับแต่งตั้งผู้ประเมิน)
-  getAllExUsers: (setAssesListId: number, accessToken: string): Promise<ResponsePayload<any>> => {
-    return http.get(`/ex_user/?set_asses_list_id=${setAssesListId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+  getAllExUsers: (setAssesListId: number): Promise<ResponsePayload<any>> => {
+    return http.get(`/ex_user/?set_asses_list_id=${setAssesListId}`)
   },
 
   // ดึงข้อมูลรอบการประเมินทั้งหมด
-  getAllRounds: (accessToken: string): Promise<ResponsePayload<RoundList>> => {
-    return http.get('/set_assessor_round', {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+  getAllRounds: (): Promise<ResponsePayload<RoundList>> => {
+    return http.get('/set_assessor_round')
   },
 
   // ตรวจสอบว่าผู้ใช้มีสิทธิ์เข้าถึงรอบนี้หรือไม่
   checkUserAccessToRound: (
     as_u_id: number,
-    round_list_id: number,
-    accessToken: string
+    round_list_id: number
   ): Promise<ResponsePayload<any>> => {
-    return http.get(`/check_user_access/${as_u_id}/${round_list_id}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+    return http.get(`/check_user_access/${as_u_id}/${round_list_id}`)
   },
 
 }

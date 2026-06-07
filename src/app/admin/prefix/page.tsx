@@ -188,7 +188,6 @@ function PrefixTable() {
       setData([])
       try {
         const response = await PrefixServices.getAllPrefixes(
-          session.accessToken,
           {
             search: params.search || '',
             page: params.page ?? 1,
@@ -285,8 +284,7 @@ function PrefixTable() {
     try {
       if (!session?.accessToken) throw new Error('No access token')
       const response = await PrefixServices.createPrefix(
-        { prefix_name },
-        session.accessToken
+        { prefix_name }
       )
 
       if (response && (response as any).status === true) {
@@ -329,7 +327,7 @@ function PrefixTable() {
     setLoading(true)
     try {
       if (!session?.accessToken) throw new Error('No access token')
-      await PrefixServices.deletePrefix(prefix_id, session.accessToken)
+      await PrefixServices.deletePrefix(prefix_id)
 
       // Data will be refetched automatically by useEffect
 
@@ -365,8 +363,7 @@ function PrefixTable() {
       if (!session?.accessToken) throw new Error('No access token')
       const response = await PrefixServices.updatePrefix(
         prefix_id,
-        { prefix_name },
-        session.accessToken
+        { prefix_name }
       )
 
       if (response && (response as any).status === true) {

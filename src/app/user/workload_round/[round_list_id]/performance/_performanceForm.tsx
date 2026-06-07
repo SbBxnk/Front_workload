@@ -82,8 +82,7 @@ export default function PerformanceForm({
         setLoading(true)
         const response = await PerformanceService.getPerformanceEvaluationForm(
           formlist_id,
-          userId,
-          session.accessToken
+          userId
         )
 
         if (response.success && response.payload) {
@@ -215,8 +214,7 @@ export default function PerformanceForm({
       }
 
       const response = await PerformanceService.addOrUpdatePerformanceEvaluationBulk(
-        evaluations,
-        session?.accessToken || ''
+        evaluations
       )
 
       if (response.success) {

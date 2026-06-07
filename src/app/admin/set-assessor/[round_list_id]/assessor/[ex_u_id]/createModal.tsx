@@ -54,8 +54,7 @@ export default function CreateModal({
 
     try {
       const response = await SetAssessorServices.getAllExUsers(
-        formData.set_asses_list_id,
-        headers.Authorization?.replace('Bearer ', '') || ''
+        formData.set_asses_list_id
       )
 
       // Backend returns { status: true, data: result }

@@ -69,7 +69,6 @@ export default function Component2Content({
 
         try {
             const data = await PerformanceEvaluationAssessmentService.getEvaluationAssessment(
-                accessToken,
                 Number(formlistIdParam),
                 Number(setAssesInfoIdParam)
             )
@@ -171,7 +170,6 @@ export default function Component2Content({
                 }
 
                 await PerformanceEvaluationAssessmentService.saveDraft(
-                    accessToken,
                     evaluationAssessment.evaluation_assessment.evaluation_assessment_id,
                     payload
                 )
@@ -346,7 +344,6 @@ export default function Component2Content({
             await saveDraft({ force: true })
 
             await PerformanceEvaluationAssessmentService.submitEvaluationAssessment(
-                accessToken,
                 evaluationAssessmentId
             )
 

@@ -20,11 +20,8 @@ export interface UpdateCompetencyRequest {
 }
 
 const CompetencyServices = {
-  getAllCompetencies: (accessToken: string, param?: CompetencySearchParams): Promise<ResponsePayload<Competency>> => {
+  getAllCompetencies: (param?: CompetencySearchParams): Promise<ResponsePayload<Competency>> => {
     return http.get('/competency', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
       params: {
         search: param?.search,
         page: param?.page,
@@ -36,34 +33,24 @@ const CompetencyServices = {
   },
 
   createCompetency: (
-    data: CreateCompetencyRequest,
-    accessToken: string
+    data: CreateCompetencyRequest
   ): Promise<Competency> => {
-    return http.post('/competency/add', data, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+    return http.post('/competency/add', data)
   },
 
   updateCompetency: (
     competencyId: number,
-    data: UpdateCompetencyRequest,
-    accessToken: string
+    data: UpdateCompetencyRequest
   ): Promise<Competency> => {
-    return http.put(`/competency/update/${competencyId}`, data, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+    return http.put(`/competency/update/${competencyId}`, data)
   },
 
-  deleteCompetency: (competencyId: number, accessToken: string): Promise<void> => {
-    return http.delete(`/competency/delete/${competencyId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+  deleteCompetency: (competencyId: number): Promise<void> => {
+    return http.delete(`/competency/delete/${competencyId}`)
   },
 
-  getCompetencyById: (competencyId: number, accessToken: string): Promise<Competency> => {
-    return http.get(`/competency/${competencyId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+  getCompetencyById: (competencyId: number): Promise<Competency> => {
+    return http.get(`/competency/${competencyId}`)
   },
 }
 

@@ -38,7 +38,7 @@ function SelectPersonalType({
           throw new Error('No access token available')
         }
 
-        const response = await DropdownService.getPersonalTypes(session.accessToken)
+        const response = await DropdownService.getPersonalTypes()
         
         if (response.success && response.payload) {
           setPersonalTypes(response.payload)

@@ -120,7 +120,6 @@ function CourseTable() {
       }
 
       const response = await CourseServices.getAllCourses(
-        session.accessToken,
         {
           search,
           page: page ?? 1,
@@ -262,8 +261,7 @@ function CourseTable() {
     try {
       if (!session?.accessToken) throw new Error('No access token')
       const response = await CourseServices.createCourse(
-        { course_name, branch_id },
-        session.accessToken
+        { course_name, branch_id }
       )
 
       if (response && (response as any).status === true) {
@@ -309,7 +307,7 @@ function CourseTable() {
     setLoading(true)
     try {
       if (!session?.accessToken) throw new Error('No access token')
-      await CourseServices.deleteCourse(course_id, session.accessToken)
+      await CourseServices.deleteCourse(course_id)
 
       // Reset to page 1 and fetch new data
       setPage(0)
@@ -359,8 +357,7 @@ function CourseTable() {
       if (!session?.accessToken) throw new Error('No access token')
       const response = await CourseServices.updateCourse(
         course_id,
-        { course_name, branch_id },
-        session.accessToken
+        { course_name, branch_id }
       )
 
       if (response && (response as any).status === true) {

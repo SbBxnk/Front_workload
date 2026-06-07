@@ -50,7 +50,7 @@ export default function CreateModal({
 
     const fetchPrefixes = async () => {
       try {
-        const resPrefix = await PrefixServices.getAllPrefixes(session?.accessToken as string,
+        const resPrefix = await PrefixServices.getAllPrefixes(
           {
             search: '',
             page: 1,
@@ -69,8 +69,7 @@ export default function CreateModal({
     const fetchUsers = async () => {
       try {
         const resUsers = await SetAssessorServices.getAssessUsers(
-          formData.round_list_id,
-          session?.accessToken ?? ''
+          formData.round_list_id
         )
         if (resUsers.status) {
           const processedUsers = resUsers.data || []

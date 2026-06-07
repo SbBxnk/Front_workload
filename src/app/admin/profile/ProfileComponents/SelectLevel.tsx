@@ -38,7 +38,7 @@ function SelectLevel({
           throw new Error('No access token available')
         }
 
-        const response = await DropdownService.getUserLevels(session.accessToken)
+        const response = await DropdownService.getUserLevels()
         
         if (response.success && response.payload) {
           setLevels(response.payload)

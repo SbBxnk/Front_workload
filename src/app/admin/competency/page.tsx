@@ -124,7 +124,6 @@ function CompetencyTable() {
       setData([])
       try {
         const response = await CompetencyServices.getAllCompetencies(
-          session.accessToken,
           {
             search: params.search || '',
             page: params.page ?? 1,
@@ -225,8 +224,7 @@ function CompetencyTable() {
     try {
       if (!session?.accessToken) throw new Error('No access token')
       const response = await CompetencyServices.createCompetency(
-        { competency_name, competency_order },
-        session.accessToken
+        { competency_name, competency_order }
       )
 
       if (response && (response as any).status === true) {
@@ -280,7 +278,7 @@ function CompetencyTable() {
     setLoading(true)
     try {
       if (!session?.accessToken) throw new Error('No access token')
-      await CompetencyServices.deleteCompetency(competency_id, session.accessToken)
+      await CompetencyServices.deleteCompetency(competency_id)
 
       // Close modal first
       const modal = document.getElementById('modal-delete') as HTMLInputElement
@@ -338,8 +336,7 @@ function CompetencyTable() {
       if (!session?.accessToken) throw new Error('No access token')
       const response = await CompetencyServices.updateCompetency(
         competency_id,
-        { competency_name, competency_order },
-        session.accessToken
+        { competency_name, competency_order }
       )
 
       if (response && (response as any).status === true) {

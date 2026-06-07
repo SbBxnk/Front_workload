@@ -85,8 +85,7 @@ export default function CreatePersonal() {
     }
     try {
       const response = await UserServices.getUserById(
-        Number(userId),
-        session.accessToken
+        Number(userId)
       )
       if (response.payload) {
         const data = Array.isArray(response.payload)
@@ -111,7 +110,7 @@ export default function CreatePersonal() {
 
     try {
       // Load prefixes
-      const prefixResponse = await PrefixServices.getAllPrefixes(session.accessToken, {
+      const prefixResponse = await PrefixServices.getAllPrefixes({
         search: '',
         page: 1,
         limit: 100,
@@ -123,7 +122,7 @@ export default function CreatePersonal() {
       }
 
       // Load positions
-      const positionResponse = await PositionServices.getAllPositions(session.accessToken, {
+      const positionResponse = await PositionServices.getAllPositions({
         search: '',
         page: 1,
         limit: 100,
@@ -135,7 +134,7 @@ export default function CreatePersonal() {
       }
 
       // Load ex positions
-      const exPositionResponse = await ExPositionServices.getAllExpositions(session.accessToken, {
+      const exPositionResponse = await ExPositionServices.getAllExpositions({
         search: '',
         page: 1,
         limit: 100,
@@ -147,7 +146,7 @@ export default function CreatePersonal() {
       }
 
       // Load personal types
-      const personalTypeResponse = await PersonaltypeServices.getAllPersonalTypes(session.accessToken, {
+      const personalTypeResponse = await PersonaltypeServices.getAllPersonalTypes({
         search: '',
         page: 1,
         limit: 100,
@@ -171,7 +170,7 @@ export default function CreatePersonal() {
       }
 
       // Load all courses
-      const courseResponse = await CourseServices.getAllCoursesSimple(session.accessToken)
+      const courseResponse = await CourseServices.getAllCoursesSimple()
       if (courseResponse.success && courseResponse.payload) {
         setCourses(Array.isArray(courseResponse.payload) ? courseResponse.payload : [])
       } else {
@@ -179,7 +178,7 @@ export default function CreatePersonal() {
       }
 
       // Load user levels
-      const userLevelResponse = await UserLevelServices.getAllUserLevels(session.accessToken)
+      const userLevelResponse = await UserLevelServices.getAllUserLevels()
       if (userLevelResponse.success && userLevelResponse.payload) {
         setUserLevels(Array.isArray(userLevelResponse.payload) ? userLevelResponse.payload : [])
       } else {
@@ -378,8 +377,7 @@ export default function CreatePersonal() {
 
       const response = await UserServices.updateUser(
         Number(userId),
-        formDataToSend,
-        session.accessToken
+        formDataToSend
       )
 
       console.log('Update response:', response)

@@ -10,11 +10,10 @@ export interface UpdatePrefixRequest {
 }
 
 const PrefixServices = {
-  getAllPrefixes: ( accessToken: string, param: PrefixSearchParams ): Promise<ResponsePayload<Prefix>> => {
+  getAllPrefixes: (
+    param: PrefixSearchParams
+  ): Promise<ResponsePayload<Prefix>> => {
     return http.get('/prefix', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
       params: {
         search: param.search,
         page: param.page,
@@ -25,35 +24,23 @@ const PrefixServices = {
     })
   },
 
-  createPrefix: (
-    data: CreatePrefixRequest,
-    accessToken: string
-  ): Promise<Prefix> => {
-    return http.post('/prefix/add', data, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+  createPrefix: (data: CreatePrefixRequest): Promise<Prefix> => {
+    return http.post('/prefix/add', data)
   },
 
   updatePrefix: (
     prefixId: number,
-    data: UpdatePrefixRequest,
-    accessToken: string
+    data: UpdatePrefixRequest
   ): Promise<Prefix> => {
-    return http.put(`/prefix/update/${prefixId}`, data, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+    return http.put(`/prefix/update/${prefixId}`, data)
   },
 
-  deletePrefix: (prefixId: number, accessToken: string): Promise<void> => {
-    return http.delete(`/prefix/delete/${prefixId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+  deletePrefix: (prefixId: number): Promise<void> => {
+    return http.delete(`/prefix/delete/${prefixId}`)
   },
 
-  getPrefixById: (prefixId: number, accessToken: string): Promise<Prefix> => {
-    return http.get(`/prefix/${prefixId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+  getPrefixById: (prefixId: number): Promise<Prefix> => {
+    return http.get(`/prefix/${prefixId}`)
   },
 }
 

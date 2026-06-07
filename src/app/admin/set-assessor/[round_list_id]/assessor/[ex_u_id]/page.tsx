@@ -64,8 +64,7 @@ export default function AsDetailsPage() {
       }
       
       const response = await SetAssessorServices.getAllExUsers(
-        set_asses_list_id,
-        accessToken
+        set_asses_list_id
       )
       
       console.log('checkAvailableExaminers response:', response)
@@ -225,13 +224,11 @@ export default function AsDetailsPage() {
       setError(null)
       setAssessors([])
 
-      const accessToken = headers.Authorization?.replace('Bearer ', '') || ''
-
       // ดึงข้อมูล exposition, assessee info และ assessor info พร้อมกัน
       const [resExposition, resAssesseeInfo, resAssesDetail] = await Promise.all([
-        ExpositionServices.getAllExpositions(accessToken),
-        SetAssessorServices.getAssesseeBySetAssesListId(set_asses_list_id, accessToken),
-        SetAssessorServices.getSetAssessorInfo(set_asses_list_id, accessToken, {
+        ExpositionServices.getAllExpositions(),
+        SetAssessorServices.getAssesseeBySetAssesListId(set_asses_list_id),
+        SetAssessorServices.getSetAssessorInfo(set_asses_list_id, {
           search,
           limit: limit ?? 10,
           page: page ?? 1,
@@ -552,8 +549,7 @@ export default function AsDetailsPage() {
 
       // เพิ่มผู้ประเมินแบบ multiple
       await SetAssessorServices.createSetAssessorInfoMultiple(
-        dataToSubmit,
-        headers.Authorization?.replace('Bearer ', '') || ''
+        dataToSubmit
       )
 
       setFormData({
@@ -594,10 +590,8 @@ export default function AsDetailsPage() {
     e.preventDefault()
     setLoading(true)
     try {
-      const accessToken = headers.Authorization?.replace('Bearer ', '') || ''
       await SetAssessorServices.deleteSetAssessorInfo(
-        set_asses_info_id,
-        accessToken
+        set_asses_info_id
       )
       
       // Refresh data

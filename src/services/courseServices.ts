@@ -20,11 +20,8 @@ export interface UpdateCourseRequest {
 }
 
 const CourseServices = {
-  getAllCourses: (accessToken: string, param?: CourseSearchParams): Promise<ResponsePayload<Course>> => {
+  getAllCourses: (param?: CourseSearchParams): Promise<ResponsePayload<Course>> => {
     return http.get('/course', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
       params: {
         search: param?.search,
         page: param?.page,
@@ -36,46 +33,32 @@ const CourseServices = {
   },
 
   createCourse: (
-    data: CreateCourseRequest,
-    accessToken: string
+    data: CreateCourseRequest
   ): Promise<Course> => {
-    return http.post('/course/add', data, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+    return http.post('/course/add', data)
   },
 
   updateCourse: (
     courseId: number,
-    data: UpdateCourseRequest,
-    accessToken: string
+    data: UpdateCourseRequest
   ): Promise<Course> => {
-    return http.put(`/course/update/${courseId}`, data, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+    return http.put(`/course/update/${courseId}`, data)
   },
 
-  deleteCourse: (courseId: number, accessToken: string): Promise<void> => {
-    return http.delete(`/course/delete/${courseId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+  deleteCourse: (courseId: number): Promise<void> => {
+    return http.delete(`/course/delete/${courseId}`)
   },
 
-  getCourseById: (courseId: number, accessToken: string): Promise<Course> => {
-    return http.get(`/course/${courseId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+  getCourseById: (courseId: number): Promise<Course> => {
+    return http.get(`/course/${courseId}`)
   },
 
-  getCoursesByBranch: (branchId: number, accessToken: string): Promise<ResponsePayload<Course>> => {
-    return http.get(`/course/branch/${branchId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+  getCoursesByBranch: (branchId: number): Promise<ResponsePayload<Course>> => {
+    return http.get(`/course/branch/${branchId}`)
   },
 
-  getAllCoursesSimple: (accessToken: string): Promise<ResponsePayload<Course>> => {
-    return http.get('/course/simple', {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+  getAllCoursesSimple: (): Promise<ResponsePayload<Course>> => {
+    return http.get('/course/simple')
   }
 }
 

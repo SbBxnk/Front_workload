@@ -43,7 +43,7 @@ function QuantityWorkloadMatrixTable() {
     const fetchMainTasks = async () => {
       if (!session?.accessToken) return
       try {
-        const response = await MainTaskServices.getAllMainTasks(session.accessToken, {
+        const response = await MainTaskServices.getAllMainTasks({
           search: '',
           limit: 1000,
           page: 1,
@@ -65,7 +65,7 @@ function QuantityWorkloadMatrixTable() {
     const fetchWorkloadGroups = async () => {
       if (!session?.accessToken) return
       try {
-        const response = await WorkloadGroupServices.getAllWorkloadGroups(session.accessToken, {
+        const response = await WorkloadGroupServices.getAllWorkloadGroups({
           search: '',
           limit: 1000,
           page: 1,
@@ -88,7 +88,7 @@ function QuantityWorkloadMatrixTable() {
       if (!session?.accessToken) return
       setLoading(true)
       try {
-        const response = await QuantityWorkloadServices.getAllQuantityWorkloads(session.accessToken, {
+        const response = await QuantityWorkloadServices.getAllQuantityWorkloads({
           search: '',
           limit: 10000,
         page: 1,
@@ -154,7 +154,6 @@ function QuantityWorkloadMatrixTable() {
     if (!session?.accessToken) return
     
     setLoading(true)
-    const accessToken = session.accessToken
     const updates: Array<{
       task_id: number
       workload_group_id: number
@@ -189,7 +188,7 @@ function QuantityWorkloadMatrixTable() {
     try {
       // Delete items that were cleared
       const deletePromises = deletions.map((del) =>
-        QuantityWorkloadServices.deleteQuantityWorkload(del.quantity_workload_id, accessToken)
+        QuantityWorkloadServices.deleteQuantityWorkload(del.quantity_workload_id)
       )
       
       // Save all updates
@@ -201,8 +200,7 @@ function QuantityWorkloadMatrixTable() {
               task_id: update.task_id,
               workload_group_id: update.workload_group_id,
               quantity_workload_hours: update.quantity_workload_hours
-            },
-            accessToken
+            }
           )
         } else {
           // Update existing
@@ -212,8 +210,7 @@ function QuantityWorkloadMatrixTable() {
               task_id: update.task_id,
               workload_group_id: update.workload_group_id,
               quantity_workload_hours: update.quantity_workload_hours
-            },
-            accessToken
+            }
           )
         }
       })

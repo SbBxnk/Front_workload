@@ -119,15 +119,15 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
           setAssessorResponse
         ] = await Promise.allSettled([
           // ตรวจสอบสิทธิ์การเข้าถึง
-          SetAssessorServices.checkUserAccessToRound(userId, parseInt(round_list_id), session.accessToken),
+          SetAssessorServices.checkUserAccessToRound(userId, parseInt(round_list_id)),
           // ตรวจสอบ workload group
-          WorkloadFormServices.checkWorkloadGroup(userId, parseInt(round_list_id), session.accessToken),
+          WorkloadFormServices.checkWorkloadGroup(userId, parseInt(round_list_id)),
           // ตรวจสอบสถานะฟอร์ม
-          WorkloadFormServices.checkWorkloadFormStatus(userId, parseInt(round_list_id), session.accessToken),
+          WorkloadFormServices.checkWorkloadFormStatus(userId, parseInt(round_list_id)),
           // ดึงข้อมูล terms
-          WorkloadFormServices.getTerms(session.accessToken),
+          WorkloadFormServices.getTerms(),
           // ดึงข้อมูล workload groups
-          WorkloadGroupServices.getAllWorkloadGroups(session.accessToken, {
+          WorkloadGroupServices.getAllWorkloadGroups({
             search: '',
             page: 1,
             limit: 1000,
@@ -135,7 +135,7 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
             order: 'asc'
           }),
           // ดึงข้อมูล set assessor round
-          SetAssessorServices.getAllRoundLists(session.accessToken, {
+          SetAssessorServices.getAllRoundLists({
             search: '',
             page: 1,
             limit: 1000,
@@ -556,8 +556,7 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
                       const resp = await WorkloadFormServices.selectWorkloadFormGroup(
                         user.id,
                         group.workload_group_id,
-                        currentRound.round_list_id,
-                        session?.accessToken || ''
+                        currentRound.round_list_id
                       )
                       if (resp.status) {
                         setWorkloadGroupInfo({

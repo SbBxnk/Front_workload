@@ -147,7 +147,7 @@ function SetAssessor() {
 
       const decoded: DecodedToken = jwtDecode(session.accessToken)
 
-      const response = await AssessorServices.checkRound(queryParams, session.accessToken)
+      const response = await AssessorServices.checkRound(queryParams)
 
       let roundsData: RoundList[] = []
       if (response.payload && Array.isArray(response.payload)) {
@@ -159,8 +159,7 @@ function SetAssessor() {
             try {
               const assesseesResponse = await AssesseeService.getAssesseesByRound(
                 decoded.id,
-                round.round_list_id,
-                session.accessToken as string
+                round.round_list_id
               )
               const totalAssessees = assesseesResponse.meta?.total_rows ?? assesseesResponse.payload?.length ?? 0
               return {

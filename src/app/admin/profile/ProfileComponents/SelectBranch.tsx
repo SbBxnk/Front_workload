@@ -38,7 +38,7 @@ function SelectBranch({
           throw new Error('No access token available')
         }
 
-        const response = await DropdownService.getBranches(session.accessToken)
+        const response = await DropdownService.getBranches()
         
         if (response.success && response.payload) {
           setBranches(response.payload)

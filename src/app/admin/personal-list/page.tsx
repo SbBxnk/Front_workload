@@ -394,7 +394,7 @@ function PersonalListTable() {
         throw new Error('No access token')
       }
 
-      const response = await UserServices.getAllUsers(session.accessToken, {
+      const response = await UserServices.getAllUsers({
         search,
         page: page ?? 1,
         limit: limit ?? 10,
@@ -632,7 +632,7 @@ function PersonalListTable() {
     setLoading(true)
     try {
       if (!session?.accessToken) throw new Error('No access token')
-      await UserServices.deleteUser(userId, session.accessToken)
+      await UserServices.deleteUser(userId)
 
       getUsers(
         params.search || '',
@@ -679,8 +679,7 @@ function PersonalListTable() {
       if (!session?.accessToken) throw new Error('No access token')
       const response = await UserServices.updateUser(
         userId,
-        userData as any,
-        session.accessToken
+        userData as any
       )
 
       if (response && (response as any).status === true) {
@@ -773,7 +772,7 @@ function PersonalListTable() {
       await new Promise(resolve => setTimeout(resolve, 3000))
 
       // Call the export API
-      const blob = await UserServices.exportUsersToExcel(session.accessToken, params)
+      const blob = await UserServices.exportUsersToExcel(params)
       
       // Create download link
       const url = window.URL.createObjectURL(blob)

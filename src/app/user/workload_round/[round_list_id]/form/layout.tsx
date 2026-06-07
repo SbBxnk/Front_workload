@@ -127,8 +127,7 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
           
           const response = await WorkloadFormServices.checkWorkloadGroup(
             Number(userId),
-            Number(roundId),
-            session?.accessToken ?? ''
+            Number(roundId)
           )
 
           const workloadGroupData = response.data[0] || null
@@ -158,8 +157,7 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
         try {
           const response = await SetAssessorServices.checkUserAccessToRound(
             userId,
-            roundId,
-            session.accessToken
+            roundId
           )
 
           if (response.success) {
@@ -184,7 +182,7 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
     const checkFormStatus = async () => {
       if (userId && roundId && session?.accessToken) {
         try {
-          const response = await WorkloadFormServices.checkWorkloadFormStatus(userId, roundId, session.accessToken)
+          const response = await WorkloadFormServices.checkWorkloadFormStatus(userId, roundId)
           if (response.success) {
             if (response.payload === null) {
               // ยังไม่มีข้อมูล workload form ในระบบ
@@ -214,7 +212,7 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
       setLoading(true)
       try {
         
-        const responseWorkloadGroups = await WorkloadGroupServices.getAllWorkloadGroups(session?.accessToken || '', {
+        const responseWorkloadGroups = await WorkloadGroupServices.getAllWorkloadGroups({
           search: '',
           page: 1,
           limit: 1000,
@@ -222,7 +220,7 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
           order: 'asc'
         })
         
-        const responseRounds = await SetAssessorServices.getAllRounds(session?.accessToken || '')
+        const responseRounds = await SetAssessorServices.getAllRounds()
 
         const workloadGroupsData = responseWorkloadGroups.payload || []
         
@@ -285,10 +283,9 @@ function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
     try {
       // Update workload_group_id ใน tb_set_assessorlist
       const response = await WorkloadFormServices.selectWorkloadFormGroup(
-        userId, 
-        workload_group.workload_group_id, 
-        currentRound.round_list_id, 
-        session?.accessToken || ''
+        userId,
+        workload_group.workload_group_id,
+        currentRound.round_list_id
       )
 
       console.log('🔍 API Response:', response)

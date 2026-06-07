@@ -39,20 +39,13 @@ export interface DropdownUserLevel {
 
 const DropdownService = {
   // Prefix dropdown
-  getPrefixes: (accessToken: string): Promise<ResponsePayload<DropdownPrefix>> => {
-    return http.get('/prefix', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      }
-    })
+  getPrefixes: (): Promise<ResponsePayload<DropdownPrefix>> => {
+    return http.get('/prefix')
   },
 
   // Position dropdown
-  getPositions: (accessToken: string): Promise<{ status: boolean; data: DropdownPosition[] }> => {
+  getPositions: (): Promise<{ status: boolean; data: DropdownPosition[] }> => {
     return http.get('/position', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
       params: {
         limit: 100, // ดึงข้อมูลทั้งหมด
         page: 1,
@@ -70,48 +63,28 @@ const DropdownService = {
   },
 
   // Ex-Position dropdown
-  getExPositions: (accessToken: string): Promise<{ status: boolean; data: DropdownExPosition[] }> => {
-    return http.get('/ex_position', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      }
-    })
+  getExPositions: (): Promise<{ status: boolean; data: DropdownExPosition[] }> => {
+    return http.get('/ex_position')
   },
 
   // Branch dropdown
-  getBranches: (accessToken: string): Promise<ResponsePayload<DropdownBranch>> => {
-    return http.get('/branch', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      }
-    })
+  getBranches: (): Promise<ResponsePayload<DropdownBranch>> => {
+    return http.get('/branch')
   },
 
   // Course dropdown
-  getCourses: (accessToken: string): Promise<ResponsePayload<DropdownCourse>> => {
-    return http.get('/course', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      }
-    })
+  getCourses: (): Promise<ResponsePayload<DropdownCourse>> => {
+    return http.get('/course')
   },
 
   // Personal Type dropdown
-  getPersonalTypes: (accessToken: string): Promise<ResponsePayload<DropdownPersonalType>> => {
-    return http.get('/personalType', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      }
-    })
+  getPersonalTypes: (): Promise<ResponsePayload<DropdownPersonalType>> => {
+    return http.get('/personalType')
   },
 
   // User Level dropdown
-  getUserLevels: (accessToken: string): Promise<ResponsePayload<DropdownUserLevel>> => {
-    return http.get('/level', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      }
-    })
+  getUserLevels: (): Promise<ResponsePayload<DropdownUserLevel>> => {
+    return http.get('/level')
   },
 }
 

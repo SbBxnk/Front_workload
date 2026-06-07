@@ -81,7 +81,7 @@ export default function CreatePersonal() {
 
     try {
       // Load prefixes
-      const prefixResponse = await PrefixServices.getAllPrefixes(session.accessToken, {
+      const prefixResponse = await PrefixServices.getAllPrefixes({
         search: '',
         page: 1,
         limit: 100,
@@ -93,7 +93,7 @@ export default function CreatePersonal() {
       }
 
       // Load positions
-      const positionResponse = await PositionServices.getAllPositions(session.accessToken, {
+      const positionResponse = await PositionServices.getAllPositions({
         search: '',
         page: 1,
         limit: 100,
@@ -105,7 +105,7 @@ export default function CreatePersonal() {
       }
 
       // Load ex positions
-      const exPositionResponse = await ExPositionServices.getAllExpositions(session.accessToken, {
+      const exPositionResponse = await ExPositionServices.getAllExpositions({
         search: '',
         page: 1,
         limit: 100,
@@ -117,7 +117,7 @@ export default function CreatePersonal() {
       }
 
       // Load personal types
-      const personalTypeResponse = await PersonaltypeServices.getAllPersonalTypes(session.accessToken, {
+      const personalTypeResponse = await PersonaltypeServices.getAllPersonalTypes({
         search: '',
         page: 1,
         limit: 100,
@@ -141,7 +141,7 @@ export default function CreatePersonal() {
       }
 
       // Load all courses initially
-      const courseResponse = await CourseServices.getAllCoursesSimple(session.accessToken)
+      const courseResponse = await CourseServices.getAllCoursesSimple()
       if (courseResponse.success && courseResponse.payload) {
         setCourses(Array.isArray(courseResponse.payload) ? courseResponse.payload : [])
       } else {
@@ -149,7 +149,7 @@ export default function CreatePersonal() {
       }
 
       // Load user levels
-      const userLevelResponse = await UserLevelServices.getAllUserLevels(session.accessToken)
+      const userLevelResponse = await UserLevelServices.getAllUserLevels()
       if (userLevelResponse.success && userLevelResponse.payload) {
         setUserLevels(Array.isArray(userLevelResponse.payload) ? userLevelResponse.payload : [])
       } else {
@@ -166,7 +166,7 @@ export default function CreatePersonal() {
     try {
       if (!session?.accessToken || !branchId) {
         // If no branch selected, load all courses
-        const courseResponse = await CourseServices.getAllCoursesSimple(session?.accessToken || '')
+        const courseResponse = await CourseServices.getAllCoursesSimple()
         if (courseResponse.success && courseResponse.payload) {
           setCourses(Array.isArray(courseResponse.payload) ? courseResponse.payload : [])
         } else {
@@ -175,7 +175,7 @@ export default function CreatePersonal() {
         return
       }
 
-      const courseResponse = await CourseServices.getCoursesByBranch(branchId, session.accessToken)
+      const courseResponse = await CourseServices.getCoursesByBranch(branchId)
       if (courseResponse.success && courseResponse.payload) {
         setCourses(Array.isArray(courseResponse.payload) ? courseResponse.payload : [])
       } else {
@@ -319,8 +319,7 @@ export default function CreatePersonal() {
       })
 
       const response = await UserServices.createUser(
-        formDataToSend,
-        session?.accessToken ?? ''
+        formDataToSend
       )
       console.log(response)
       Swal.fire({

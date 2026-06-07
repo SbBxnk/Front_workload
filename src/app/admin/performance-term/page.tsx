@@ -43,7 +43,7 @@ function PerformanceTermMatrixTable() {
     const fetchCompetencies = async () => {
       if (!session?.accessToken) return
       try {
-        const response = await CompetencyServices.getAllCompetencies(session.accessToken, {
+        const response = await CompetencyServices.getAllCompetencies({
           limit: 1000,
           sort: 'competency_order',
           order: 'asc'
@@ -62,7 +62,7 @@ function PerformanceTermMatrixTable() {
     const fetchPositions = async () => {
       if (!session?.accessToken) return
       try {
-        const response = await PositionServices.getAllPositions(session.accessToken, {
+        const response = await PositionServices.getAllPositions({
           limit: 1000,
           sort: 'position_id',
           order: 'asc'
@@ -82,7 +82,7 @@ function PerformanceTermMatrixTable() {
       if (!session?.accessToken) return
       setLoading(true)
       try {
-        const response = await PerformanceTermServices.getAllPerformanceTerms(session.accessToken, {
+        const response = await PerformanceTermServices.getAllPerformanceTerms({
           limit: 10000,
           sort: 'competency_order',
           order: 'asc'
@@ -145,7 +145,6 @@ function PerformanceTermMatrixTable() {
     if (!session?.accessToken) return
     
     setLoading(true)
-    const accessToken = session.accessToken
     const updates: Array<{
       competency_id: number
       position_id: number
@@ -179,7 +178,7 @@ function PerformanceTermMatrixTable() {
 
     try {
       const deletePromises = deletions.map((del) =>
-        PerformanceTermServices.deletePerformanceTerm(del.expected_level_id, accessToken)
+        PerformanceTermServices.deletePerformanceTerm(del.expected_level_id)
       )
       
       const savePromises = updates.map((update) => {
@@ -189,8 +188,7 @@ function PerformanceTermMatrixTable() {
               competency_id: update.competency_id,
               position_id: update.position_id,
               expected_level: update.expected_level
-            },
-            accessToken
+            }
           )
         } else {
           return PerformanceTermServices.updatePerformanceTerm(
@@ -199,8 +197,7 @@ function PerformanceTermMatrixTable() {
               competency_id: update.competency_id,
               position_id: update.position_id,
               expected_level: update.expected_level
-            },
-            accessToken
+            }
           )
         }
       })

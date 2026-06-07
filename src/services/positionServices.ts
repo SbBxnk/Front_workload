@@ -20,11 +20,10 @@ export interface UpdatePositionRequest {
 }
 
 const PositionServices = {
-  getAllPositions: (accessToken: string, param?: PositionSearchParams): Promise<ResponsePayload<Position>> => {
+  getAllPositions: (
+    param?: PositionSearchParams
+  ): Promise<ResponsePayload<Position>> => {
     return http.get('/position', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
       params: {
         search: param?.search,
         page: param?.page,
@@ -35,35 +34,23 @@ const PositionServices = {
     })
   },
 
-  createPosition: (
-    data: CreatePositionRequest,
-    accessToken: string
-  ): Promise<Position> => {
-    return http.post('/position/add', data, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+  createPosition: (data: CreatePositionRequest): Promise<Position> => {
+    return http.post('/position/add', data)
   },
 
   updatePosition: (
     positionId: number,
-    data: UpdatePositionRequest,
-    accessToken: string
+    data: UpdatePositionRequest
   ): Promise<Position> => {
-    return http.put(`/position/update/${positionId}`, data, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+    return http.put(`/position/update/${positionId}`, data)
   },
 
-  deletePosition: (positionId: number, accessToken: string): Promise<void> => {
-    return http.delete(`/position/delete/${positionId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+  deletePosition: (positionId: number): Promise<void> => {
+    return http.delete(`/position/delete/${positionId}`)
   },
 
-  getPositionById: (positionId: number, accessToken: string): Promise<Position> => {
-    return http.get(`/position/${positionId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+  getPositionById: (positionId: number): Promise<Position> => {
+    return http.get(`/position/${positionId}`)
   },
 }
 

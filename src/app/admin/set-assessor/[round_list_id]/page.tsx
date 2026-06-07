@@ -180,12 +180,11 @@ export default function ExDetailsPage() {
 
       // Fetch all data in parallel
       const [resExposition, resRoundTitle, resUsers, resAssessors] = await Promise.all([
-        ExpositionServices.getAllExpositions(session.accessToken),
-        SetAssessorServices.getRoundListById(Number(Array.isArray(round_list_id) ? round_list_id[0] : round_list_id), session.accessToken),
-        SetAssessorServices.getAssessUsers(Number(Array.isArray(round_list_id) ? round_list_id[0] : round_list_id), session.accessToken),
+        ExpositionServices.getAllExpositions(),
+        SetAssessorServices.getRoundListById(Number(Array.isArray(round_list_id) ? round_list_id[0] : round_list_id)),
+        SetAssessorServices.getAssessUsers(Number(Array.isArray(round_list_id) ? round_list_id[0] : round_list_id)),
         SetAssessorServices.getSetAssessorListByRound(
           Number(Array.isArray(round_list_id) ? round_list_id[0] : round_list_id),
-          session.accessToken,
           {
             search,
             page: page ?? 1,
@@ -239,8 +238,7 @@ export default function ExDetailsPage() {
         for (const assessor of assessorsData) {
           try {
             const assessorInfoResponse = await SetAssessorServices.getSetAssessorInfo(
-              assessor.set_asses_list_id,
-              session.accessToken
+              assessor.set_asses_list_id
             )
             if (
               assessorInfoResponse.payload &&
@@ -670,8 +668,7 @@ export default function ExDetailsPage() {
       // อัปเดต status ในฐานข้อมูล
       await WorkloadFormServices.updateWorkloadFormStatus(
         set_asses_list_id,
-        newStatus,
-        session.accessToken
+        newStatus
       )
 
       // อัปเดต state ของ checkbox
@@ -757,8 +754,7 @@ export default function ExDetailsPage() {
       // อัปเดต status แบบ bulk ในฐานข้อมูล
       await WorkloadFormServices.updateWorkloadFormStatusBulk(
         allAssessorIds,
-        newStatus,
-        session.accessToken
+        newStatus
       )
 
       // อัปเดต state ของ checkbox ทั้งหมด
@@ -831,8 +827,7 @@ export default function ExDetailsPage() {
     for (const assessor of assessors) {
       try {
         const response = await WorkloadFormServices.getAssessorFormStatus(
-          assessor.set_asses_list_id,
-          session.accessToken
+          assessor.set_asses_list_id
         )
         
         if (response.success && response.payload && response.payload.length > 0) {
@@ -862,8 +857,7 @@ export default function ExDetailsPage() {
     for (const assessor of assessors) {
       try {
         const response = await WorkloadFormServices.getAssessorFormStatus(
-          assessor.set_asses_list_id,
-          session.accessToken
+          assessor.set_asses_list_id
         )
         
         if (response.success && response.payload && response.payload.length > 0) {
@@ -909,12 +903,11 @@ export default function ExDetailsPage() {
         as_u_id: FormData.as_u_id,
       }
 
-      const createResponse = await SetAssessorServices.createSetAssessorListMultiple(dataToSubmit, session.accessToken)
+      const createResponse = await SetAssessorServices.createSetAssessorListMultiple(dataToSubmit)
 
       // Get the latest assessor list to find the maximum set_asses_list_id
       const response = await SetAssessorServices.getSetAssessorListByRound(
-        Number(Array.isArray(round_list_id) ? round_list_id[0] : round_list_id),
-        session.accessToken
+        Number(Array.isArray(round_list_id) ? round_list_id[0] : round_list_id)
       )
 
       if (response.success && response.payload && Array.isArray(response.payload)) {
@@ -932,8 +925,7 @@ export default function ExDetailsPage() {
         for (const assessor of dataAssesDetail) {
           try {
             const assessorInfoResponse = await SetAssessorServices.getSetAssessorInfo(
-              assessor.set_asses_list_id,
-              session.accessToken
+              assessor.set_asses_list_id
             )
             if (
               assessorInfoResponse.payload &&
@@ -972,8 +964,7 @@ export default function ExDetailsPage() {
             // ส่งข้อมูลแบบ bulk
             try {
               await SetAssessorServices.addBulkWorkloadForm(
-                workloadFormDataArray,
-                session.accessToken
+                workloadFormDataArray
               )
             } catch (error) {
               console.error('❌ Workload form bulk insert failed:', error)
@@ -990,8 +981,7 @@ export default function ExDetailsPage() {
       // อัปเดตรายชื่อผู้ใช้ที่สามารถเลือกได้
       try {
         const resUsers = await SetAssessorServices.getAssessUsers(
-          Number(round_list_id),
-          session.accessToken
+          Number(round_list_id)
         )
         if (resUsers.status) {
           const processedUsers = resUsers.data || []
@@ -1061,7 +1051,7 @@ export default function ExDetailsPage() {
     e.preventDefault()
     setLoading(true)
     try {
-      await SetAssessorServices.deleteSetAssessorList(set_asses_list_id, session.accessToken)
+      await SetAssessorServices.deleteSetAssessorList(set_asses_list_id)
       await fetchAllData(
         params.search || '',
         params.limit,

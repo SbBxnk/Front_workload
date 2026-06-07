@@ -95,13 +95,11 @@ export default function AssessmentComponentSelectionPage() {
 
         try {
             const data = await WorkloadEvaluationService.getEvaluation(
-                session.accessToken as string,
                 Number(formlistIdParam),
                 Number(setAssesInfoIdParam)
             )
 
             const evaluationPayload = Array.isArray(data) ? data[0] : data
-            const accessToken = session.accessToken as string
             const setAssesListId = evaluationPayload.evaluation.set_asses_list_id
             const roundListId = evaluationPayload.evaluation.round_list_id
 
@@ -109,7 +107,7 @@ export default function AssessmentComponentSelectionPage() {
 
             if (setAssesListId) {
                 fetchPromises.push(
-                    SetAssessorServices.getAssesseeBySetAssesListId(setAssesListId, accessToken)
+                    SetAssessorServices.getAssesseeBySetAssesListId(setAssesListId)
                         .then((response) => {
                             const payload = Array.isArray(response.payload) ? response.payload[0] : response.payload
                             setAssesseeInfo(payload ?? null)
@@ -125,7 +123,7 @@ export default function AssessmentComponentSelectionPage() {
 
             if (roundListId) {
                 fetchPromises.push(
-                    SetAssessorServices.getRoundListById(roundListId, accessToken)
+                    SetAssessorServices.getRoundListById(roundListId)
                         .then((response) => {
                             const payload = Array.isArray(response.payload) ? response.payload[0] : response.payload
                             setRoundInfo(payload ?? null)

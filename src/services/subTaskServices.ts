@@ -12,11 +12,8 @@ export interface UpdateSubTaskRequest {
 }
 
 const SubTaskServices = {
-  getAllSubTasks: ( accessToken: string, param: SubTaskSearchParams ): Promise<ResponsePayload<SubTask>> => {
+  getAllSubTasks: ( param: SubTaskSearchParams ): Promise<ResponsePayload<SubTask>> => {
     return http.get('/subtask', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
       params: {
         search: param.search,
         page: param.page,
@@ -28,43 +25,31 @@ const SubTaskServices = {
   },
 
   createSubTask: (
-    data: CreateSubTaskRequest,
-    accessToken: string
+    data: CreateSubTaskRequest
   ): Promise<SubTask> => {
-    return http.post('/subtask/add', data, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+    return http.post('/subtask/add', data)
   },
 
   updateSubTask: (
     subtaskId: number,
-    data: UpdateSubTaskRequest,
-    accessToken: string
+    data: UpdateSubTaskRequest
   ): Promise<SubTask> => {
-    return http.put(`/subtask/update/${subtaskId}`, data, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+    return http.put(`/subtask/update/${subtaskId}`, data)
   },
 
-  deleteSubTask: (subtaskId: number, accessToken: string): Promise<void> => {
-    return http.delete(`/subtask/delete/${subtaskId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+  deleteSubTask: (subtaskId: number): Promise<void> => {
+    return http.delete(`/subtask/delete/${subtaskId}`)
   },
 
-  getSubTaskById: (subtaskId: number, accessToken: string): Promise<SubTask> => {
-    return http.get(`/subtask/${subtaskId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+  getSubTaskById: (subtaskId: number): Promise<SubTask> => {
+    return http.get(`/subtask/${subtaskId}`)
   },
 
   getSubTasksByTask: (
     taskId: number,
-    accessToken: string,
     params?: { sort?: string; order?: string; limit?: number }
   ): Promise<SubTask[]> => {
     return http.get(`/subtask/task/${taskId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
       params,
     })
   },

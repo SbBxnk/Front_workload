@@ -209,7 +209,7 @@ export const handleExportPDFEvaluatedWithLinks = async (params: ExportPDFParams)
 
       if (params.session?.accessToken) {
 
-        const response = await SetAssessorServices.getAllRounds(params.session.accessToken)
+        const response = await SetAssessorServices.getAllRounds()
 
         if (response.success && response.payload && Array.isArray(response.payload)) {
 
@@ -291,8 +291,6 @@ export const handleExportPDFEvaluatedWithLinks = async (params: ExportPDFParams)
 
             params.roundId,
 
-            params.session.accessToken,
-
             {}
 
           )
@@ -353,7 +351,7 @@ export const handleExportPDFEvaluatedWithLinks = async (params: ExportPDFParams)
 
       if (params.session?.accessToken) {
 
-        const groupsResponse = await WorkloadGroupServices.getAllWorkloadGroups(params.session.accessToken, {
+        const groupsResponse = await WorkloadGroupServices.getAllWorkloadGroups({
 
           search: '',
 
@@ -2437,7 +2435,7 @@ export const handleExportPDFEvaluatedWithLinks = async (params: ExportPDFParams)
 
       if (params.session?.accessToken) {
         try {
-          const expectedLevelsRes = await PerformanceService.getAllExpectedLevels(params.session.accessToken)
+          const expectedLevelsRes = await PerformanceService.getAllExpectedLevels()
           if (expectedLevelsRes.success && expectedLevelsRes.payload) {
             expectedLevels = Array.isArray(expectedLevelsRes.payload) ? expectedLevelsRes.payload : [expectedLevelsRes.payload]
           }
@@ -2509,7 +2507,6 @@ export const handleExportPDFEvaluatedWithLinks = async (params: ExportPDFParams)
             const formlistId = formlistResp.payload[0].formlist_id
             try {
               averageAssessedLevels = await PerformanceEvaluationAssessmentService.getAverageAssessedLevels(
-                params.session.accessToken,
                 formlistId
               )
             } catch (err) {

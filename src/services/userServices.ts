@@ -53,11 +53,8 @@ export interface UpdateUserRequest {
 }
 
 const UserServices = {
-  getAllUsers: (accessToken: string, param: UserSearchParams): Promise<ResponsePayload<Personal>> => {
+  getAllUsers: (param: UserSearchParams): Promise<ResponsePayload<Personal>> => {
     return http.get('/user', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
       params: {
         search: param.search,
         position_name: param.position_name,
@@ -74,44 +71,32 @@ const UserServices = {
   },
 
   createUser: (
-    data: CreateUserRequest | FormData,
-    accessToken: string
+    data: CreateUserRequest | FormData
   ): Promise<ResponsePayload<Personal>> => {
-    return http.post('/user/add', data, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+    return http.post('/user/add', data)
   },
 
   updateUser: (
     userId: number,
-    data: UpdateUserRequest | FormData,
-    accessToken: string
+    data: UpdateUserRequest | FormData
   ): Promise<ResponsePayload<Personal>> => {
     return http.patch(`/user/update/${userId}`, data, {
-      headers: { 
-        Authorization: `Bearer ${accessToken}`,
+      headers: {
         ...(data instanceof FormData ? {} : { 'Content-Type': 'application/json' })
       },
     })
   },
 
-  deleteUser: (userId: number, accessToken: string): Promise<ResponsePayload<void>> => {
-    return http.delete(`/user/delete/${userId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+  deleteUser: (userId: number): Promise<ResponsePayload<void>> => {
+    return http.delete(`/user/delete/${userId}`)
   },
 
-  getUserById: (userId: number, accessToken: string): Promise<ResponsePayload<Personal>> => {
-    return http.get(`/user/${userId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+  getUserById: (userId: number): Promise<ResponsePayload<Personal>> => {
+    return http.get(`/user/${userId}`)
   },
 
-  exportUsersToExcel: (accessToken: string, params: UserSearchParams): Promise<Blob> => {
+  exportUsersToExcel: (params: UserSearchParams): Promise<Blob> => {
     return http.get('/user/export', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
       params: {
         search: params.search,
         position_name: params.position_name,

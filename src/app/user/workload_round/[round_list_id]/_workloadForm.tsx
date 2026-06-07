@@ -246,7 +246,7 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
       try {
         if (!session?.accessToken) return
         // ดึงภาระงานหลักทั้งหมด (หน้าแรกและ limit สูง ๆ เพื่อครอบคลุมทั้งหมด)
-        const mainTasksRes: any = await MainTaskServices.getAllMainTasks(session.accessToken, {
+        const mainTasksRes: any = await MainTaskServices.getAllMainTasks({
           search: '',
           page: 1,
           limit: 100,
@@ -264,7 +264,7 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
 
         for (const mt of mainTasks) {
           try {
-            const subRes: any = await SubTaskServices.getSubTasksByTask(mt.task_id, session.accessToken)
+            const subRes: any = await SubTaskServices.getSubTasksByTask(mt.task_id)
             const subtasksArr = Array.isArray(subRes?.payload) ? subRes.payload : Array.isArray(subRes) ? subRes : []
             const subtasksMap: { [key: number]: Subtask } = {}
             for (const st of subtasksArr) {
@@ -434,8 +434,7 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
             try {
               const response = await WorkloadFormServices.getWorkloadItems(
                 Number(userId),
-                Number(roundId),
-                session?.accessToken ?? ''
+                Number(roundId)
               )
 
               if (response.success && response.payload) {
@@ -465,8 +464,7 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
       if (!formlistResponse.success || !formlistResponse.payload) {
         const response = await WorkloadFormServices.getWorkloadItems(
           Number(userId),
-          Number(roundId),
-          session?.accessToken ?? ''
+          Number(roundId)
         )
 
         if (response.success && response.payload) {
@@ -584,8 +582,7 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
           try {
             const response = await WorkloadFormServices.getWorkloadItems(
               Number(userId),
-              Number(roundId),
-              session?.accessToken ?? ''
+              Number(roundId)
             )
 
             if (response.success && response.payload) {
@@ -625,8 +622,7 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
         try {
           const response = await WorkloadFormServices.getWorkloadItems(
             Number(userId),
-            Number(roundId),
-            session?.accessToken ?? ''
+            Number(roundId)
           )
 
           if (response.success && response.payload) {
@@ -708,8 +704,8 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
         // ดึงข้อมูล expected levels และ competencies เสมอ
         try {
           const [competenciesRes, expectedLevelsRes] = await Promise.all([
-            PerformanceService.getAllCompetencies(session.accessToken),
-            PerformanceService.getAllExpectedLevels(session.accessToken)
+            PerformanceService.getAllCompetencies(),
+            PerformanceService.getAllExpectedLevels()
           ])
 
           if (competenciesRes.success && competenciesRes.payload) {
@@ -745,8 +741,7 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
             const snapshotResponse = await PerformanceService.getPerformanceSnapshot(
               formlist_id,
               userId,
-              roundId,
-              session.accessToken
+              roundId
             )
 
             if (snapshotResponse.success && snapshotResponse.payload) {
@@ -795,12 +790,11 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
           const [formResponse, evaluationsResponse, competenciesRes, expectedLevelsRes] = await Promise.all([
             PerformanceService.getPerformanceEvaluationForm(
               formlist_id,
-              userId,
-              session.accessToken
+              userId
             ),
-            PerformanceService.getPerformanceEvaluation(formlist_id, session.accessToken),
-            PerformanceService.getAllCompetencies(session.accessToken),
-            PerformanceService.getAllExpectedLevels(session.accessToken)
+            PerformanceService.getPerformanceEvaluation(formlist_id),
+            PerformanceService.getAllCompetencies(),
+            PerformanceService.getAllExpectedLevels()
           ])
 
           // เก็บข้อมูล evaluations
@@ -849,8 +843,8 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
           // ถ้าไม่มี formlist ให้ดึงเฉพาะ competencies และ expected levels
           try {
             const [competenciesRes, expectedLevelsRes] = await Promise.all([
-              PerformanceService.getAllCompetencies(session.accessToken),
-              PerformanceService.getAllExpectedLevels(session.accessToken)
+              PerformanceService.getAllCompetencies(),
+              PerformanceService.getAllExpectedLevels()
             ])
 
             if (competenciesRes.success && competenciesRes.payload) {
@@ -882,10 +876,9 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
           const [formResponse, evaluationsResponse] = await Promise.all([
             PerformanceService.getPerformanceEvaluationForm(
               formlist_id,
-              userId,
-              session.accessToken
+              userId
             ),
-            PerformanceService.getPerformanceEvaluation(formlist_id, session.accessToken)
+            PerformanceService.getPerformanceEvaluation(formlist_id)
           ])
 
           // เก็บข้อมูล evaluations
@@ -910,7 +903,7 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
       if (!roundId || !session?.accessToken) return
 
       try {
-        const response = await SetAssessorServices.getAllRounds(session.accessToken)
+        const response = await SetAssessorServices.getAllRounds()
 
         if (response.success && response.payload && Array.isArray(response.payload)) {
           const rounds = response.payload as any[]

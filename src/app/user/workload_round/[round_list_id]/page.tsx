@@ -55,8 +55,7 @@ export default function ExpositionSelection() {
                 // ตรวจสอบ workload group ของผู้ใช้ผ่าน service
                 const workloadGroupResponse = await WorkloadFormServices.checkWorkloadGroup(
                     user.id,
-                    parseInt(round_list_id),
-                    session.accessToken
+                    parseInt(round_list_id)
                 )
                 setWorkloadGroupInfo({
                     workload_group_id: workloadGroupResponse.data?.[0]?.workload_group_id || null,
@@ -67,8 +66,7 @@ export default function ExpositionSelection() {
                 try {
                     const formStatusResponse = await WorkloadFormServices.checkWorkloadFormStatus(
                         user.id,
-                        parseInt(round_list_id),
-                        session.accessToken
+                        parseInt(round_list_id)
                     )
 
                     // API response มีโครงสร้าง: { success: true, payload: [{ status: 1 }] }
@@ -136,8 +134,7 @@ export default function ExpositionSelection() {
             // 1. อัปเดต status จาก 0 เป็น 1 (API เดิม)
             const updateStatusResponse = await WorkloadFormServices.updateWorkloadFormStatus(
                 set_asses_list_id, // ใช้ set_asses_list_id แทน formlist_id
-                1, // status = 1 (ส่งแล้ว)
-                session?.accessToken || ''
+                1 // status = 1 (ส่งแล้ว)
             )
 
             if (!updateStatusResponse.success) {

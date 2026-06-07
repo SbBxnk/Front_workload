@@ -49,13 +49,11 @@ class AssesseeService {
    * ดึงรายการผู้ใช้ที่ต้องตรวจในรอบการประเมินเฉพาะ
    * @param ex_u_id - ID ของผู้ประเมิน
    * @param round_list_id - ID ของรอบการประเมิน
-   * @param accessToken - Access token สำหรับ authentication
    * @returns Promise<Assessee[]>
    */
   static async getAssesseesByRound(
     ex_u_id: number,
     round_list_id: number,
-    accessToken: string,
     params?: {
       page?: number
       limit?: number
@@ -65,7 +63,6 @@ class AssesseeService {
   ): Promise<AssesseeResponse> {
     try {
       const headers = {
-        Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       }
 

@@ -38,7 +38,7 @@ function SelectCourse({
           throw new Error('No access token available')
         }
 
-        const response = await DropdownService.getCourses(session.accessToken)
+        const response = await DropdownService.getCourses()
         
         if (response.success && response.payload) {
           setCourses(response.payload)
