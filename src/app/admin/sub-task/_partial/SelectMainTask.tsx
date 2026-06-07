@@ -1,0 +1,86 @@
+'use client'
+
+import type React from 'react'
+import { ChevronDown } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import MainTaskServices from '@/services/mainTaskServices'
+
+interface SelectMainTaskProps {
+  openDropdown: string | null
+  setOpenDropdown: React.Dispatch<React.SetStateAction<string | null>>
+  mainTaskDropdownRef: React.RefObject<HTMLDivElement>
+  handleOnChangeMainTask: (task_id: number, task_name: string) => void
+  setSelectedMainTask: React.Dispatch<React.SetStateAction<string | null>>
+  selectMainTask: string | null
+}
+
+function SelectMainTask({
+  openDropdown,
+  setOpenDropdown,
+  mainTaskDropdownRef,
+  handleOnChangeMainTask,
+  setSelectedMainTask,
+  selectMainTask,
+}: SelectMainTaskProps) {
+  const { data } = useQuery({
+    queryKey: ['maintasks', 'dropdown'],
+    queryFn: () =>
+      MainTaskServices.getAllMainTasks({
+        search: '',
+        page: 1,
+        limit: 100,
+        sort: 'task_name',
+        order: 'asc',
+      }),
+  })
+
+  const mainTasks = data?.payload ?? []
+
+  const handleSelectMainTask = (task_id: number, task_name: string) => {
+    handleOnChangeMainTask(task_id, task_name)
+    setSelectedMainTask(task_name)
+    setOpenDropdown(null)
+  }
+
+  return (
+    <div>
+      <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
+        ภาระงานหลัก
+      </label>
+      <div className="z-5 relative" ref={mainTaskDropdownRef}>
+        <button
+          type="button"
+          onClick={() =>
+            setOpenDropdown(openDropdown === 'mainTask' ? null : 'mainTask')
+          }
+          className="flex min-h-[40px] w-full items-center justify-between rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-light text-gray-600 transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
+        >
+          <span className="mr-2 flex-1 truncate">
+            {selectMainTask === null
+              ? 'เลือกภาระงานหลัก'
+              : mainTasks.find((task) => task.task_name === selectMainTask)
+                  ?.task_name || 'เลือกภาระงานหลัก'}
+          </span>
+          <ChevronDown
+            className={`h-4 w-4 text-gray-600 transition-transform duration-200 dark:text-zinc-600 ${openDropdown === 'mainTask' ? 'rotate-180' : ''}`}
+          />
+        </button>
+        {openDropdown === 'mainTask' && mainTasks.length > 0 && (
+          <div className="absolute z-10 mt-2 max-h-36 w-full min-w-[300px] overflow-y-auto rounded-md border border-gray-300 bg-white shadow-lg dark:border-zinc-600 dark:bg-zinc-900">
+            {mainTasks.map((task) => (
+              <div
+                key={task.task_id}
+                className="cursor-pointer px-4 py-2 text-sm font-light text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-zinc-800"
+                onClick={() => handleSelectMainTask(task.task_id, task.task_name)}
+              >
+                <span className="block w-full truncate">{task.task_name}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export default SelectMainTask
