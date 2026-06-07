@@ -1,36 +1,28 @@
-import axios from 'axios'
+import http from '@/utils/http'
 import type { AssessorRound, AssessorRoundResponse } from '@/Types/assessorRound'
 
-class AssessorRoundService {
+const AssessorRoundService = {
   /**
    * ดึงรอบการประเมินสำหรับผู้ประเมิน
-   * @param ex_u_id - ID ของผู้ประเมิน
-   * @returns Promise<AssessorRound[]>
+   * token แนบโดย interceptor (utils/http) อัตโนมัติ
    */
-  static async getAssessorRounds(
-    ex_u_id: number
-  ): Promise<AssessorRound[]> {
+  getAssessorRounds: async (ex_u_id: number): Promise<AssessorRound[]> => {
     try {
-      const headers = {
-        'Content-Type': 'application/json',
-      }
-
-      const response = await axios.get<AssessorRoundResponse>(
-        `${process.env.NEXT_PUBLIC_API}/assessor_rounds/${ex_u_id}`,
-        { headers }
+      const data: AssessorRoundResponse = await http.get(
+        `/assessor_rounds/${ex_u_id}`
       )
 
-      if (response.data.success) {
-        return response.data.payload || []
-      } else {
-        console.warn('No rounds found:', response.data.message)
-        return []
+      if (data.success) {
+        return data.payload || []
       }
+
+      console.warn('No rounds found:', data.message)
+      return []
     } catch (error) {
       console.error('Error fetching assessor rounds:', error)
       return []
     }
-  }
+  },
 }
 
 export default AssessorRoundService
