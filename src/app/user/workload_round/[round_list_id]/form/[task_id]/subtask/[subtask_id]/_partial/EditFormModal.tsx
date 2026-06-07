@@ -68,7 +68,7 @@ interface FilePreview {
   preview: string
 }
 
-export default function EditModal({
+export default function EditFormModal({
   form_id,
   formDetail,
   onSubmit,

@@ -7,7 +7,7 @@ interface ConfirmDeleteModalProps {
   form_id: number
 }
 
-export default function ConfirmModal({
+export default function DeleteFormModal({
   comfirmDelete,
   form_id,
 }: ConfirmDeleteModalProps) {

@@ -15,7 +15,7 @@ interface CreateModalProps {
   ) => void
 }
 
-export default function CreateModal({ onSubmit }: CreateModalProps) {
+export default function CreateFormModal({ onSubmit }: CreateModalProps) {
   const formRef = useRef<HTMLFormElement | null>(null)
   const [evidenceType, setEvidenceType] = useState<
     'link' | 'external file' | 'file in system'
