@@ -3,11 +3,14 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
+import { useDispatch, useSelector } from 'react-redux'
 import Swal from 'sweetalert2'
 import type React from 'react'
 import { jwtDecode } from 'jwt-decode'
 import axios from 'axios'
 import type { DecodedToken } from '@/Types'
+import type { AppDispatch, RootState } from '@/stores'
+import { fetchSidebar, clearSidebar } from '@/stores/features/sidebar'
 // import AssessorService from '@/services/assessorService' // ไม่ใช้แล้ว เพราะใช้ global context
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -16,6 +19,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userRole, setUserRole] = useState<string | null>(null)
   const router = useRouter()
   const { data: session, status } = useSession()
+  const dispatch = useDispatch<AppDispatch>()
+  const sidebarLoaded = useSelector((state: RootState) => state.sidebar.loaded)
 
   useEffect(() => {
     const interceptor = axios.interceptors.response.use(
@@ -28,6 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             icon: 'error',
             confirmButtonText: 'OK',
           }).then(() => {
+            dispatch(clearSidebar())
             signOut({ callbackUrl: '/login' })
           })
         }
@@ -64,13 +70,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUserRole(decodedToken.level_name)
       setIsAuthenticated(true)
       checkAuthorization(decodedToken.level_name)
+      if (!sidebarLoaded) {
+        dispatch(fetchSidebar())
+      }
     } catch (error) {
       console.error('Invalid token:', error)
+      dispatch(clearSidebar())
       signOut({ callbackUrl: '/login' })
     }
   }, [session, status])
 
   const handleTokenExpired = () => {
+    dispatch(clearSidebar())
     Swal.fire({
       title: 'เซสชันหมดอายุ',
       text: 'กรุณาเข้าสู่ระบบใหม่อีกครั้ง',

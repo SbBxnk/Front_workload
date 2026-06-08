@@ -2,6 +2,7 @@ import {
   CreateUserRequest,
   Personal,
   ResponsePayload,
+  SidebarPayload,
   UpdateUserRequest,
   UserSearchParams,
 } from '@/Types'
@@ -68,6 +69,10 @@ const UserServices = {
       },
       responseType: 'blob', // Important for file downloads
     })
+  },
+
+  getSidebar: (): Promise<{ code: number; success: boolean; payload: SidebarPayload }> => {
+    return http.get('/sidebar')
   },
 }
 
