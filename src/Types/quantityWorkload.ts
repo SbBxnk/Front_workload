@@ -7,6 +7,17 @@ export interface QuantityWorkload {
   task_name: string
 }
 
+// state ของตาราง matrix ฝั่ง client (แก้ไขทีละ cell ก่อนบันทึกรวม)
+export interface QuantityMatrixDataState {
+  [task_id: number]: {
+    [workload_group_id: number]: {
+      quantity_workload_id?: number
+      quantity_workload_hours: number | null
+      isNew?: boolean
+    }
+  }
+}
+
 export interface QuantityWorkloadSearchParams {
   search?: string
   limit?: number
