@@ -6,10 +6,8 @@ import PerformanceTermServices from '@/services/performanceTermService'
 import CompetencyServices from '@/services/competencyService'
 import PositionServices from '@/services/positionServices'
 import type {
-  Competency,
   PerformanceTerm,
   PerformanceMatrixDataState,
-  Position,
 } from '@/Types'
 
 // แปลงรายการ performance terms เป็นโครงสร้าง matrix (competency → position → ค่า)
@@ -61,27 +59,25 @@ export function usePerformanceTermList() {
       }),
   })
 
-  const competencies: Competency[] = competenciesQuery.data?.payload ?? []
-  const positions: Position[] = positionsQuery.data?.payload ?? []
-  const performanceTerms: PerformanceTerm[] =
-    performanceTermsQuery.data?.payload ?? []
-
   const sortedCompetencies = useMemo(
     () =>
-      [...competencies].sort(
+      [...(competenciesQuery.data?.payload ?? [])].sort(
         (a, b) => a.competency_order - b.competency_order
       ),
-    [competencies]
+    [competenciesQuery.data]
   )
 
   const sortedPositions = useMemo(
-    () => [...positions].sort((a, b) => a.position_id - b.position_id),
-    [positions]
+    () =>
+      [...(positionsQuery.data?.payload ?? [])].sort(
+        (a, b) => a.position_id - b.position_id
+      ),
+    [positionsQuery.data]
   )
 
   const initialMatrix = useMemo(
-    () => buildMatrix(performanceTerms),
-    [performanceTerms]
+    () => buildMatrix(performanceTermsQuery.data?.payload ?? []),
+    [performanceTermsQuery.data]
   )
 
   const isLoading =

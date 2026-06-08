@@ -4,6 +4,7 @@ import Select, {
   type StylesConfig,
 } from 'react-select'
 import { FiX } from 'react-icons/fi'
+import { ChevronDown } from 'lucide-react'
 
 interface Option {
   value: string
@@ -39,6 +40,16 @@ export default function SearchFilter<T, K extends keyof T>({
       <components.ClearIndicator {...props}>
         <FiX className="h-4 w-4 cursor-pointer text-gray-400 transition duration-200 hover:text-red-500" />
       </components.ClearIndicator>
+    )
+  }
+
+  const CustomDropdownIndicator = (props: any) => {
+    return (
+      <components.DropdownIndicator {...props}>
+        <ChevronDown
+          className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${props.selectProps.menuIsOpen ? 'rotate-180' : ''}`}
+        />
+      </components.DropdownIndicator>
     )
   }
 
@@ -86,12 +97,12 @@ export default function SearchFilter<T, K extends keyof T>({
     }),
     menu: (provided) => ({
       ...provided,
-      maxWidth: '300px', 
-      zIndex: 99999, 
+      maxWidth: '300px',
+      zIndex: 99999,
     }),
     menuPortal: (provided) => ({
       ...provided,
-      zIndex: 99999, 
+      zIndex: 99999,
     }),
     menuList: (provided) => ({
       ...provided,
@@ -118,7 +129,10 @@ export default function SearchFilter<T, K extends keyof T>({
             : null
         }
         classNamePrefix="react-select"
-        components={{ ClearIndicator: CustomClearIndicator }}
+        components={{
+          ClearIndicator: CustomClearIndicator,
+          DropdownIndicator: CustomDropdownIndicator
+        }}
         styles={customStyles}
         menuPortalTarget={document.body}
         menuPosition="fixed"

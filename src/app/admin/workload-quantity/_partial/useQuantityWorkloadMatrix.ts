@@ -6,10 +6,8 @@ import QuantityWorkloadServices from '@/services/quantityWorkloadServices'
 import MainTaskServices from '@/services/mainTaskServices'
 import WorkloadGroupServices from '@/services/workloadGroupServices'
 import type {
-  MainTask,
   QuantityMatrixDataState,
   QuantityWorkload,
-  WorkloadGroup,
 } from '@/Types'
 
 // แปลงรายการ quantity workloads เป็นโครงสร้าง matrix (งานหลัก → กลุ่มภาระงาน → ค่า)
@@ -67,28 +65,25 @@ export function useQuantityWorkloadMatrix() {
       }),
   })
 
-  const mainTasks: MainTask[] = mainTasksQuery.data?.payload ?? []
-  const workloadGroups: WorkloadGroup[] =
-    workloadGroupsQuery.data?.payload ?? []
-  const quantityWorkloads: QuantityWorkload[] =
-    quantityWorkloadsQuery.data?.payload ?? []
-
   const sortedMainTasks = useMemo(
-    () => [...mainTasks].sort((a, b) => a.task_id - b.task_id),
-    [mainTasks]
+    () =>
+      [...(mainTasksQuery.data?.payload ?? [])].sort(
+        (a, b) => a.task_id - b.task_id
+      ),
+    [mainTasksQuery.data]
   )
 
   const sortedWorkloadGroups = useMemo(
     () =>
-      [...workloadGroups].sort(
+      [...(workloadGroupsQuery.data?.payload ?? [])].sort(
         (a, b) => a.workload_group_id - b.workload_group_id
       ),
-    [workloadGroups]
+    [workloadGroupsQuery.data]
   )
 
   const initialMatrix = useMemo(
-    () => buildMatrix(quantityWorkloads),
-    [quantityWorkloads]
+    () => buildMatrix(quantityWorkloadsQuery.data?.payload ?? []),
+    [quantityWorkloadsQuery.data]
   )
 
   const isLoading =

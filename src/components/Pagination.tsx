@@ -31,7 +31,13 @@ export default function Pagination({
   rowsPerPageOptions = [5, 10, 20, 50, 100],
   showRowsPerPageSelector = false,
 }: PaginationProps) {
-  const [page, setPage] = useState(1)
+  const [page, setPage] = useState(currentPage || 1)
+
+  useEffect(() => {
+    if (currentPage !== page) {
+      setPage(currentPage)
+    }
+  }, [currentPage])
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -62,18 +68,17 @@ export default function Pagination({
         >
           {ITEMS_PER_PAGE}
         </button>
-        
+
         {isDropdownOpen && (
           <div className="absolute top-full left-0 z-10 mt-1 min-w-full rounded border border-gray-300 bg-white shadow-lg dark:border-gray-700 dark:bg-zinc-800">
             {rowsPerPageOptions.map((option) => (
               <button
                 key={option}
                 onClick={() => handleOptionClick(option)}
-                className={`w-full px-3 py-2 text-left text-sm ${
-                  option === ITEMS_PER_PAGE
+                className={`w-full px-3 py-2 text-left text-sm ${option === ITEMS_PER_PAGE
                     ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                     : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-zinc-700'
-                }`}
+                  }`}
               >
                 {option}
               </button>
@@ -111,11 +116,10 @@ export default function Pagination({
 
       <div className="flex items-center gap-2">
         <button
-          className={`rounded-full p-2 ${
-            page <= 1
+          className={`rounded-full p-2 ${page <= 1
               ? 'cursor-default text-gray-400'
               : 'cursor-pointer text-gray-600 hover:bg-gray-200'
-          }`}
+            }`}
           style={{
             color: page <= 1 ? '#9ca3af' : '#4b5563',
             backgroundColor: 'transparent'
@@ -126,11 +130,10 @@ export default function Pagination({
           <MdKeyboardDoubleArrowLeft size={24} />
         </button>
         <button
-          className={`rounded-full p-2 ${
-            page <= 1
+          className={`rounded-full p-2 ${page <= 1
               ? 'cursor-default text-gray-400'
               : 'cursor-pointer text-gray-600 hover:bg-gray-200'
-          }`}
+            }`}
           onClick={() => changePage(page - 1)}
           disabled={page <= 1}
         >
@@ -143,11 +146,10 @@ export default function Pagination({
         </span>
 
         <button
-          className={`rounded-full p-2 ${
-            page >= totalPages
+          className={`rounded-full p-2 ${page >= totalPages
               ? 'cursor-default text-gray-400 dark:text-white'
               : 'cursor-pointer text-gray-600 hover:bg-gray-200 dark:text-white'
-          }`}
+            }`}
           onClick={() => changePage(page + 1)}
           disabled={page >= totalPages}
         >
@@ -155,11 +157,10 @@ export default function Pagination({
         </button>
 
         <button
-          className={`rounded-full p-2 ${
-            page >= totalPages
+          className={`rounded-full p-2 ${page >= totalPages
               ? 'cursor-default text-gray-400 dark:text-white'
               : 'cursor-pointer text-gray-600 hover:bg-gray-200 dark:text-white'
-          }`}
+            }`}
           onClick={() => changePage(totalPages)}
           disabled={page >= totalPages}
         >

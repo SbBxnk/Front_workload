@@ -31,6 +31,7 @@ import {
   CheckSquare,
   BicepsFlexed,
   Sheet,
+  ShieldCheck,
 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useAssessor } from '@/hooks/useAssessor'
@@ -62,7 +63,8 @@ const adminMenuItems = [
     title: 'หน้าหลัก',
     items: [
       { id: 1, label: 'แดชบอร์ด', icon: LayoutDashboard, href: '/admin' },
-      { id: 2, label: 'ข้อมูลส่วนตัว', icon: User, href: '/admin/profile' },
+      { id: 2, label: 'บันทึกการตรวจสอบ', icon: ShieldCheck, href: '/admin/audit-logs' },
+      { id: 3, label: 'ข้อมูลส่วนตัว', icon: User, href: '/admin/profile' },
     ],
   },
   // {
@@ -311,20 +313,20 @@ export default function Sidebar({ OpenSidebar, setOpenSidebar }: SidebarProps) {
                           window.innerWidth < 768 && setOpenSidebar(false)
                         }
                         className={`ransition-colors my-2 flex cursor-pointer items-center overflow-hidden rounded-md border-2 py-1 pl-3 pr-4 text-sm font-light ${pathname === item.href ||
-                            (item.href !== '/admin' &&
-                              item.href !== '/user' &&
-                              pathname.startsWith(`${item.href}/`))
-                            ? 'bg-business1 text-white dark:border-white dark:text-white'
-                            : 'border-transparent text-gray-400 hover:text-business1 dark:hover:text-white'
+                          (item.href !== '/admin' &&
+                            item.href !== '/user' &&
+                            pathname.startsWith(`${item.href}/`))
+                          ? 'bg-business1 text-white dark:border-white dark:text-white'
+                          : 'border-transparent text-gray-400 hover:text-business1 dark:hover:text-white'
                           }`}
                       >
                         <item.icon
                           className={`my-1 h-5 w-5 min-w-[20px] ${pathname === item.href ||
-                              (item.href !== '/admin' &&
-                                item.href !== '/user' &&
-                                pathname.startsWith(`${item.href}/`))
-                              ? 'text-white dark:text-white'
-                              : ''
+                            (item.href !== '/admin' &&
+                              item.href !== '/user' &&
+                              pathname.startsWith(`${item.href}/`))
+                            ? 'text-white dark:text-white'
+                            : ''
                             }`}
                         />
                         <span
