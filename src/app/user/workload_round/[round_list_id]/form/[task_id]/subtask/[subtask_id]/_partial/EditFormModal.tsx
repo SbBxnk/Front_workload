@@ -3,70 +3,19 @@
 import type React from 'react'
 import { useState, useEffect, useRef } from 'react'
 import { useDropzone } from 'react-dropzone'
-import {
-  X,
-  Link,
-  Upload,
-  CalendarClock,
-  ImageIcon,
-  FileText,
-  Plus,
-} from 'lucide-react'
+import { CalendarClock } from 'lucide-react'
 
-interface FileData {
-  file_name: string
-  size: number
-  form_id: number
-  fileinfo_id?: number // แก้ไขชื่อฟิลด์ให้ตรงกับฐานข้อมูล
-}
-
-interface LinkData {
-  link_id?: number
-  link_path: string
-  link_name: string
-  form_id?: number
-}
-
-interface FormData {
-  form_id: number
-  form_title: string
-  description: string
-  quality: number
-  workload: number
-  file_type: 'link' | 'external file' | 'file in system'
-  link?: string
-  link_name?: string
-  links?: LinkData[]
-  files?: FileData[]
-}
-
-interface EditModalProps {
-  form_id: number | null
-  formDetail: FormData | null
-  onSubmit: (
-    form_id: number,
-    event: React.FormEvent<HTMLFormElement>,
-    uploadedFiles: File[],
-    links?: { link_path: string; link_name: string; link_id?: number }[],
-    fileInSystem?: string,
-    fileName?: string,
-    existingFiles?: FileData[],
-    filesToDelete?: number[]
-  ) => void
-}
-
-// เพิ่มฟังก์ชันสำหรับตรวจสอบประเภทไฟล์
-const isImageFile = (fileName: string): boolean => {
-  const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp']
-  const ext = fileName.substring(fileName.lastIndexOf('.')).toLowerCase()
-  return imageExtensions.includes(ext)
-}
-
-// เพิ่ม interface สำหรับ file preview
-interface FilePreview {
-  file: File
-  preview: string
-}
+import { isImageFile, submitEditForm } from './editFormModalHelpers'
+import type {
+  EditFormFileData,
+  EditFormFilePreview,
+  EditFormLinkData,
+  EditModalProps,
+} from './editFormModalTypes'
+import EditFormFields from './EditFormFields'
+import EditFormLinkSection from './EditFormLinkSection'
+import EditFormExternalFileSection from './EditFormExternalFileSection'
+import EditFormFileInSystemSection from './EditFormFileInSystemSection'
 
 export default function EditFormModal({
   form_id,
@@ -77,11 +26,11 @@ export default function EditFormModal({
     'link' | 'external file' | 'file in system'
   >('link')
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
-  const [filePreviews, setFilePreviews] = useState<FilePreview[]>([])
-  const [existingFiles, setExistingFiles] = useState<FileData[]>([])
+  const [filePreviews, setFilePreviews] = useState<EditFormFilePreview[]>([])
+  const [existingFiles, setExistingFiles] = useState<EditFormFileData[]>([])
   const [filesToDelete, setFilesToDelete] = useState<number[]>([])
   // เปลี่ยนจาก string เป็น array ของ links
-  const [links, setLinks] = useState<LinkData[]>([])
+  const [links, setLinks] = useState<EditFormLinkData[]>([])
   // เพิ่ม state สำหรับเก็บลิงก์ที่ต้องการลบ
   const [linksToDelete, setLinksToDelete] = useState<number[]>([])
   const [fileInSystem, setFileInSystem] = useState<string>('')
@@ -251,106 +200,21 @@ export default function EditFormModal({
     event.preventDefault()
     if (!form_id || !formDetail) return
 
-    // ตรวจสอบว่ามีไฟล์อย่างน้อย 1 ไฟล์หรือไม่ (เฉพาะกรณี file_type เป็น "external file")
-    if (evidenceType === 'external file' && uploadedFiles.length < 1) {
-      // ตรวจสอบว่ามีไฟล์เก่าหรือไม่
-      if (existingFiles.length === 0) {
-        alert('กรุณาอัปโหลดไฟล์อย่างน้อย 1 ไฟล์')
-        return
-      }
-    }
-
-    // กรองลิงก์ที่ว่างออกก่อนส่งข้อมูล
-    const nonEmptyLinks = links.filter((link) => link.link_path.trim() !== '')
-
-    // Log files that will be deleted from the database
-    if (filesToDelete.length > 0) {
-      console.log('Files to be deleted from database:', filesToDelete)
-    }
-
-    // Log links that will be deleted from the database
-    if (linksToDelete.length > 0) {
-      console.log('Links to be deleted from database:', linksToDelete)
-    }
-
-    // Log existing files that will be kept
-    console.log('Existing files to keep:', existingFiles)
-
-    // แปลง existingFiles เป็น array ของ IDs
-    const existingFileIds = existingFiles
-      .map((file) => file.fileinfo_id)
-      .filter(Boolean)
-    console.log('Existing file IDs to keep:', existingFileIds)
-
-    // Log links that will be kept or added
-    console.log('Links to keep or add:', nonEmptyLinks)
-
-    // เพิ่ม field linksToDelete ใน FormData ที่ส่งไปยัง API
-    const formData = new FormData(event.currentTarget)
-
-    // เพิ่ม links_to_delete เข้าไปใน formData
-    if (linksToDelete.length > 0) {
-      linksToDelete.forEach((linkId) => {
-        formData.append('links_to_delete', String(linkId))
-      })
-    }
-
-    // เพิ่ม existing_links เข้าไปใน formData สำหรับลิงก์ที่มีอยู่แล้ว
-    if (evidenceType === 'link') {
-      const existingLinkIds = nonEmptyLinks
-        .filter((link) => link.link_id)
-        .map((link) => link.link_id)
-        .filter(Boolean)
-
-      console.log('Existing link IDs to keep:', existingLinkIds)
-
-      if (existingLinkIds.length > 0) {
-        existingLinkIds.forEach((linkId) => {
-          formData.append('existing_links', String(linkId))
-        })
-      }
-    }
-
-    // เพิ่ม hidden input fields สำหรับ IDs ของไฟล์ที่ต้องการเก็บไว้
-    if (evidenceType === 'external file' && existingFiles.length > 0) {
-      existingFiles.forEach((file) => {
-        if (file.fileinfo_id) {
-          formData.append('existing_files', String(file.fileinfo_id))
-        }
-      })
-    }
-
-    // เพิ่ม files_to_delete เข้าไปใน formData
-    if (filesToDelete.length > 0) {
-      filesToDelete.forEach((fileId) => {
-        formData.append('files_to_delete', String(fileId))
-      })
-    }
-
-    // แสดงข้อมูลที่จะส่งไปยัง backend
-    console.log('Sending to backend:', {
+    const submitted = submitEditForm({
+      event,
       form_id,
-      uploadedFiles: uploadedFiles.map((f) => f.name),
-      links: evidenceType === 'link' ? nonEmptyLinks : undefined,
-      fileInSystem:
-        evidenceType === 'file in system' ? fileInSystem : undefined,
-      fileName: evidenceType === 'file in system' ? fileName : undefined,
-      existingFiles: evidenceType === 'external file' ? existingFiles : [],
+      evidenceType,
+      uploadedFiles,
+      existingFiles,
+      links,
       filesToDelete,
       linksToDelete,
-      formDataEntries: Array.from(formData.entries()),
+      fileInSystem,
+      fileName,
+      onSubmit,
     })
 
-    onSubmit(
-      form_id,
-      event,
-      uploadedFiles,
-      evidenceType === 'link' ? nonEmptyLinks : undefined,
-      evidenceType === 'file in system' ? fileInSystem : undefined,
-      evidenceType === 'file in system' ? fileName : undefined,
-      evidenceType === 'external file' ? existingFiles : [],
-      filesToDelete
-    )
+    if (!submitted) return
 
     // Close modal immediately
     const modal = document.getElementById(
@@ -441,96 +305,10 @@ export default function EditFormModal({
               <form onSubmit={handleFormSubmit}>
                 <div className="no-scrollbar max-h-[calc(90vh-150px)] overflow-y-auto">
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <div className="col-span-1 md:col-span-2">
-                      <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
-                        ภาระงาน/กิจกรรม/โครงการ/งาน
-                      </label>
-                      <input
-                        name="form_title"
-                        type="text"
-                        placeholder="ภาระงาน/กิจกรรม/โครงการ/งาน"
-                        defaultValue={formDetail.form_title}
-                        className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
-                        required
-                      />
-                    </div>
-
-                    <div className="col-span-1 md:col-span-2">
-                      <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
-                        คำอธิบาย
-                      </label>
-                      <textarea
-                        name="description"
-                        placeholder="คำอธิบาย"
-                        defaultValue={formDetail.description}
-                        className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
-                      />
-                    </div>
-
-                    <div className="col-span-1">
-                      <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
-                        จำนวน
-                      </label>
-                      <input
-                        name="quality"
-                        type="number"
-                        placeholder="จำนวน"
-                        defaultValue={formDetail.quality}
-                        className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
-                        required
-                      />
-                    </div>
-
-                    <div className="col-span-1">
-                      <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
-                        ภาระงาน
-                      </label>
-                      <input
-                        name="workload"
-                        type="number"
-                        placeholder="ภาระงาน"
-                        defaultValue={formDetail.workload}
-                        className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
-                        required
-                      />
-                    </div>
-
-                    <div className="col-span-1 md:col-span-2">
-                      <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
-                        ประเภทไฟล์หลักฐาน
-                      </label>
-                      <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                        <div
-                          className={`flex items-center justify-center rounded-md border-2 px-4 py-2 text-sm font-light ${
-                            evidenceType === 'link'
-                              ? 'border-blue-500 bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
-                              : 'border-gray-300 bg-gray-100 text-gray-400 dark:border-zinc-600 dark:bg-zinc-700 dark:text-gray-500'
-                          } dark:bg-zinc-800`}
-                        >
-                          <Link
-                            className={`mr-2 h-4 w-4 ${evidenceType !== 'link' ? 'text-gray-400 dark:text-gray-500' : ''}`}
-                          />
-                          ลิ้งก์
-                        </div>
-                        <div
-                          className={`flex items-center justify-center rounded-md border-2 px-4 py-2 text-sm font-light ${
-                            evidenceType === 'external file'
-                              ? 'border-blue-500 bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
-                              : 'border-gray-300 bg-gray-100 text-gray-400 dark:border-zinc-600 dark:bg-zinc-700 dark:text-gray-500'
-                          } dark:bg-zinc-800`}
-                        >
-                          <Upload
-                            className={`mr-2 h-4 w-4 ${evidenceType !== 'external file' ? 'text-gray-400 dark:text-gray-500' : ''}`}
-                          />
-                          อัปโหลดไฟล์จากเครื่อง
-                        </div>
-                      </div>
-                      <input
-                        type="hidden"
-                        name="file_type"
-                        value={evidenceType}
-                      />
-                    </div>
+                    <EditFormFields
+                      formDetail={formDetail}
+                      evidenceType={evidenceType}
+                    />
 
                     <div className="col-span-1 md:col-span-2">
                       <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
@@ -538,213 +316,31 @@ export default function EditFormModal({
                       </label>
                       {/* แสดงส่วนของลิงก์หลายลิงก์ */}
                       {evidenceType === 'link' && (
-                        <div className="space-y-4">
-                          <div className="space-y-4">
-                            {links.map((link, index) => (
-                              <div
-                                key={link.link_id || `new-link-${index}`}
-                                className="flex flex-col space-y-2 rounded-md border border-gray-200 p-3 dark:border-zinc-700"
-                              >
-                                <div className="flex items-center justify-between">
-                                  <span
-                                    className={`text-sm font-medium ${link.link_id ? 'text-gray-600' : 'text-green-500'} dark:text-gray-400`}
-                                  >
-                                    ลิงก์ #{index + 1}{' '}
-                                    {link.link_id ? `` : '(ใหม่)'}
-                                  </span>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRemoveLink(index)}
-                                    className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                                  >
-                                    <X className="h-5 w-5" />
-                                  </button>
-                                </div>
-                                <input
-                                  type="text"
-                                  placeholder="ชื่อที่ต้องการแสดง"
-                                  value={link.link_name}
-                                  onChange={(e) =>
-                                    handleLinkChange(
-                                      index,
-                                      'link_name',
-                                      e.target.value
-                                    )
-                                  }
-                                  className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
-                                />
-                                <input
-                                  type="url"
-                                  placeholder="https://example.com"
-                                  value={link.link_path}
-                                  onChange={(e) =>
-                                    handleLinkChange(
-                                      index,
-                                      'link_path',
-                                      e.target.value
-                                    )
-                                  }
-                                  className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
-                                />
-                                {link.link_id && (
-                                  <input
-                                    type="hidden"
-                                    name={`link_ids[]`}
-                                    value={link.link_id}
-                                  />
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                          <button
-                            type="button"
-                            onClick={handleAddLink}
-                            className="flex w-full cursor-pointer items-center justify-center rounded-lg border border-blue-300 py-2 text-sm font-medium text-blue-600 duration-150 hover:border-blue-400 hover:text-blue-700 dark:border-blue-800 dark:text-blue-400 dark:hover:border-blue-700"
-                          >
-                            <Plus className="mr-2 h-4 w-4" />
-                            เพิ่มลิงก์
-                          </button>
-                        </div>
+                        <EditFormLinkSection
+                          links={links}
+                          handleRemoveLink={handleRemoveLink}
+                          handleLinkChange={handleLinkChange}
+                          handleAddLink={handleAddLink}
+                        />
                       )}
                       {evidenceType === 'external file' && (
-                        <div className="space-y-4">
-                          {/* Existing files section */}
-                          {existingFiles.length > 0 && (
-                            <div className="mt-2">
-                              <p className="mb-2 text-sm text-gray-600 dark:text-gray-400">
-                                ไฟล์ที่มีอยู่:
-                              </p>
-                              <ul className="space-y-2">
-                                {existingFiles.map((file) => (
-                                  <li
-                                    key={
-                                      file.fileinfo_id ||
-                                      `file-${file.form_id}-${file.file_name}`
-                                    }
-                                    className="flex items-center justify-between rounded-md bg-gray-100 p-2 text-sm text-gray-600 dark:bg-zinc-700 dark:text-gray-400"
-                                  >
-                                    <div className="flex items-center">
-                                      {isImageFile(file.file_name) ? (
-                                        <ImageIcon className="mr-2 h-5 w-5 text-blue-500" />
-                                      ) : (
-                                        <FileText className="mr-2 h-5 w-5 text-blue-500" />
-                                      )}
-                                      <span>
-                                        {file.file_name} (
-                                        {(file.size / 1024).toFixed(2)} KB)
-                                      </span>
-                                    </div>
-                                    {/* แสดงปุ่มลบเฉพาะเมื่อมีไฟล์มากกว่า 1 ไฟล์ หรือมีไฟล์ที่อัปโหลดใหม่ */}
-                                    {existingFiles.length +
-                                      uploadedFiles.length >
-                                      1 && (
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          if (file.fileinfo_id) {
-                                            console.log(
-                                              `Attempting to remove file: ${file.file_name} with ID: ${file.fileinfo_id}`
-                                            )
-                                            handleRemoveExistingFile(
-                                              file.fileinfo_id
-                                            )
-                                          }
-                                        }}
-                                        className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                                      >
-                                        <X className="h-5 w-5" />
-                                      </button>
-                                    )}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-
-                          {/* Upload new files section */}
-                          <div
-                            {...getRootProps()}
-                            className={`flex w-full flex-col items-center justify-center rounded-md border-2 border-dashed py-2 transition-all duration-300 ease-in-out ${
-                              isDragActive
-                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
-                                : 'border-gray-300 dark:border-zinc-600 dark:bg-zinc-800'
-                            } cursor-pointer hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30`}
-                          >
-                            <input {...getInputProps()} name="workload_file" />
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                              {isDragActive
-                                ? 'วางไฟล์ที่นี่ ...'
-                                : 'ลากและวางไฟล์ที่นี่ หรือคลิกเพื่อเลือกไฟล์'}
-                            </p>
-                            <p className="text-xs text-gray-400 dark:text-gray-400">
-                              (ขนาดไฟล์ไม่เกิน 10 MB รองรับไฟล์)
-                            </p>
-                          </div>
-
-                          {/* Newly uploaded files section */}
-                          {uploadedFiles.length > 0 && (
-                            <div className="mt-2">
-                              <p className="mb-2 text-sm text-gray-600 dark:text-gray-400">
-                                ไฟล์ที่เพิ่ม:
-                              </p>
-                              <ul className="space-y-2">
-                                {uploadedFiles.map((file, index) => (
-                                  <li
-                                    key={index}
-                                    className="flex items-center justify-between rounded-md bg-gray-100 p-2 text-sm text-gray-600 dark:bg-zinc-700 dark:text-gray-400"
-                                  >
-                                    <div className="flex items-center">
-                                      {isImageFile(file.name) ? (
-                                        <ImageIcon className="mr-2 h-5 w-5 text-blue-500" />
-                                      ) : (
-                                        <FileText className="mr-2 h-5 w-5 text-blue-500" />
-                                      )}
-                                      <span>
-                                        {file.name} (
-                                        {(file.size / 1024).toFixed(2)} KB)
-                                      </span>
-                                    </div>
-                                    {/* แสดงปุ่มลบเฉพาะเมื่อมีไฟล์มากกว่า 1 ไฟล์ */}
-                                    {existingFiles.length +
-                                      uploadedFiles.length >
-                                      1 && (
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          handleRemoveUploadedFile(index)
-                                        }
-                                        className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                                      >
-                                        <X className="h-5 w-5" />
-                                      </button>
-                                    )}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                        </div>
+                        <EditFormExternalFileSection
+                          existingFiles={existingFiles}
+                          uploadedFiles={uploadedFiles}
+                          handleRemoveExistingFile={handleRemoveExistingFile}
+                          handleRemoveUploadedFile={handleRemoveUploadedFile}
+                          getRootProps={getRootProps}
+                          getInputProps={getInputProps}
+                          isDragActive={isDragActive}
+                        />
                       )}
                       {evidenceType === 'file in system' && (
-                        <>
-                          <div className="mb-4">
-                            <input
-                              type="text"
-                              placeholder="ชื่อที่ต้องการแสดง"
-                              value={fileName}
-                              onChange={(e) => setFileName(e.target.value)}
-                              className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
-                            />
-                          </div>
-                          <input
-                            name="workload_file"
-                            type="text"
-                            placeholder="Enter file path or ID"
-                            value={fileInSystem}
-                            onChange={(e) => setFileInSystem(e.target.value)}
-                            className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
-                          />
-                        </>
+                        <EditFormFileInSystemSection
+                          fileName={fileName}
+                          setFileName={setFileName}
+                          fileInSystem={fileInSystem}
+                          setFileInSystem={setFileInSystem}
+                        />
                       )}
                     </div>
                   </div>
