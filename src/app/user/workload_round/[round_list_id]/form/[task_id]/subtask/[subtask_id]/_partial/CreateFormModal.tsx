@@ -3,17 +3,13 @@
 import type React from 'react'
 import { useState, useEffect, useRef } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { X, Link, Upload, CalendarClock, Plus } from 'lucide-react'
+import { CalendarClock } from 'lucide-react'
 
-interface CreateModalProps {
-  onSubmit: (
-    event: React.FormEvent<HTMLFormElement>,
-    uploadedFiles: File[],
-    links?: { link_path: string; link_name: string }[],
-    fileInSystem?: string,
-    fileName?: string
-  ) => void
-}
+import type { CreateModalProps } from './createFormModalTypes'
+import CreateFormFields from './CreateFormFields'
+import CreateFormLinkSection from './CreateFormLinkSection'
+import CreateFormExternalFileSection from './CreateFormExternalFileSection'
+import EditFormFileInSystemSection from './EditFormFileInSystemSection'
 
 export default function CreateFormModal({ onSubmit }: CreateModalProps) {
   const formRef = useRef<HTMLFormElement | null>(null)
@@ -169,202 +165,39 @@ export default function CreateFormModal({ onSubmit }: CreateModalProps) {
             <form ref={formRef} onSubmit={handleFormSubmit}>
               <div className="no-scrollbar max-h-[calc(70vh-150px)] overflow-y-auto pb-2">
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div className="col-span-1 md:col-span-2">
-                    <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
-                      ภาระงาน/กิจกรรม/โครงการ/งาน
-                    </label>
-                    <input
-                      name="form_title"
-                      type="text"
-                      placeholder="ภาระงาน/กิจกรรม/โครงการ/งาน"
-                      className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
-                      required
-                    />
-                  </div>
-
-                  <div className="col-span-1 md:col-span-2">
-                    <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
-                      ประเภทไฟล์หลักฐาน
-                    </label>
-                    <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                      <label
-                        className={`flex cursor-pointer items-center justify-center rounded-md border-2 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out dark:bg-zinc-800 dark:text-gray-400 ${
-                          evidenceType === 'link'
-                            ? 'border-blue-500 bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
-                            : 'border-gray-300 hover:border-blue-500 hover:bg-blue-50 dark:border-zinc-600 dark:hover:bg-blue-900/30'
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          name="file_type"
-                          value="link"
-                          checked={evidenceType === 'link'}
-                          onChange={() => handleEvidenceTypeChange('link')}
-                          className="hidden"
-                        />
-                        <Link className="mr-2 h-4 w-4" />
-                        ลิ้งก์
-                      </label>
-                      <label
-                        className={`flex cursor-pointer items-center justify-center rounded-md border-2 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out dark:bg-zinc-800 dark:text-gray-400 ${
-                          evidenceType === 'external file'
-                            ? 'border-blue-500 bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
-                            : 'border-gray-300 hover:border-blue-500 hover:bg-blue-50 dark:border-zinc-600 dark:hover:bg-blue-900/30'
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          name="file_type"
-                          value="external file"
-                          checked={evidenceType === 'external file'}
-                          onChange={() =>
-                            handleEvidenceTypeChange('external file')
-                          }
-                          className="hidden"
-                        />
-                        <Upload className="mr-2 h-4 w-4" />
-                        อัปโหลดไฟล์จากเครื่อง
-                      </label>
-                    </div>
-                    <input
-                      type="hidden"
-                      name="file_type"
-                      value={evidenceType}
-                    />
-                  </div>
+                  <CreateFormFields
+                    evidenceType={evidenceType}
+                    handleEvidenceTypeChange={handleEvidenceTypeChange}
+                  />
 
                   <div className="col-span-1 md:col-span-2">
                     <label className="font-regular mb-2 block text-sm text-gray-600 dark:text-gray-400">
                       ไฟล์หลักฐาน
                     </label>
                     {evidenceType === 'link' && (
-                      <div className="space-y-4">
-                        <div className="space-y-4">
-                          {links.map((link, index) => (
-                            <div
-                              key={index}
-                              className="flex flex-col space-y-2 rounded-md border border-gray-200 p-3 dark:border-zinc-700"
-                            >
-                              <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                                  ลิงก์ #{index + 1}
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveLink(index)}
-                                  className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                                >
-                                  <X className="h-5 w-5" />
-                                </button>
-                              </div>
-                              <input
-                                type="text"
-                                placeholder="ชื่อที่ต้องการแสดง"
-                                value={link.link_name}
-                                onChange={(e) =>
-                                  handleLinkChange(
-                                    index,
-                                    'link_name',
-                                    e.target.value
-                                  )
-                                }
-                                className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
-                              />
-                              <input
-                                type="url"
-                                placeholder="https://example.com"
-                                value={link.link_path}
-                                onChange={(e) =>
-                                  handleLinkChange(
-                                    index,
-                                    'link_path',
-                                    e.target.value
-                                  )
-                                }
-                                className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
-                              />
-                            </div>
-                          ))}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={handleAddLink}
-                          className="flex w-full cursor-pointer items-center justify-center rounded-lg border border-blue-300 py-2 text-sm font-medium text-blue-600 duration-150 hover:border-blue-400 hover:text-blue-700 dark:border-blue-800 dark:text-blue-400 dark:hover:border-blue-700"
-                        >
-                          <Plus className="mr-2 h-4 w-4" />
-                          เพิ่มลิงก์
-                        </button>
-                      </div>
+                      <CreateFormLinkSection
+                        links={links}
+                        handleRemoveLink={handleRemoveLink}
+                        handleLinkChange={handleLinkChange}
+                        handleAddLink={handleAddLink}
+                      />
                     )}
                     {evidenceType === 'external file' && (
-                      <div className="space-y-4">
-                        <div
-                          {...getRootProps()}
-                          className={`flex w-full flex-col items-center justify-center rounded-md border-2 border-dashed py-2 transition-all duration-300 ease-in-out ${
-                            isDragActive
-                              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
-                              : 'border-gray-300 dark:border-zinc-600 dark:bg-zinc-800'
-                          } cursor-pointer hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30`}
-                        >
-                          <input {...getInputProps()} name="workload_file" />
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {isDragActive
-                              ? 'วางไฟล์ที่นี่ ...'
-                              : 'ลากและวางไฟล์ที่นี่ หรือคลิกเพื่อเลือกไฟล์'}
-                          </p>
-                          <p className="text-xs text-gray-400 dark:text-gray-400">
-                            (ขนาดไฟล์ไม่เกิน 10 MB รองรับไฟล์)
-                          </p>
-                        </div>
-                        {uploadedFiles.length > 0 && (
-                          <div className="mt-2">
-                            <p className="mb-2 text-sm text-gray-600 dark:text-gray-400">
-                              ไฟล์ที่เพิ่ม:
-                            </p>
-                            <ul className="space-y-2">
-                              {uploadedFiles.map((file, index) => (
-                                <li
-                                  key={index}
-                                  className="flex items-center justify-between rounded-md bg-gray-100 p-2 text-sm text-gray-600 dark:bg-zinc-700 dark:text-gray-400"
-                                >
-                                  <span>
-                                    {file.name} ({(file.size / 1024).toFixed(2)}{' '}
-                                    KB)
-                                  </span>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRemoveFile(file)}
-                                    className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                                  >
-                                    <X className="h-5 w-5" />
-                                  </button>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
+                      <CreateFormExternalFileSection
+                        uploadedFiles={uploadedFiles}
+                        handleRemoveFile={handleRemoveFile}
+                        getRootProps={getRootProps}
+                        getInputProps={getInputProps}
+                        isDragActive={isDragActive}
+                      />
                     )}
                     {evidenceType === 'file in system' && (
-                      <>
-                        <div className="mb-4">
-                          <input
-                            type="text"
-                            placeholder="ชื่อที่ต้องการแสดง"
-                            value={fileName}
-                            onChange={(e) => setFileName(e.target.value)}
-                            className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
-                          />
-                        </div>
-                        <input
-                          name="workload_file"
-                          type="text"
-                          placeholder="Enter file path or ID"
-                          value={fileInSystem}
-                          onChange={(e) => setFileInSystem(e.target.value)}
-                          className="w-full rounded-md border-2 border-gray-300 px-4 py-2 text-sm font-light text-gray-600 transition-all duration-300 ease-in-out focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-gray-400"
-                        />
-                      </>
+                      <EditFormFileInSystemSection
+                        fileName={fileName}
+                        setFileName={setFileName}
+                        fileInSystem={fileInSystem}
+                        setFileInSystem={setFileInSystem}
+                      />
                     )}
                   </div>
 
