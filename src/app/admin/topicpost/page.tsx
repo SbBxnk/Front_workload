@@ -1,9 +1,9 @@
 'use client'
 import React, { useState } from 'react'
-import Tabbar from './TopicPostcomponents/Tab'
+import Tabbar from './_partial/Tab'
 
 import TableCard from '../components/TablePostcard'
-import Card from './TopicPostcomponents/Card'
+import Card from './_partial/Card'
 const Page: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState<string>('หลักฐานภาระงาน') // ตั้งค่าเริ่มต้นเป็น 'หลักฐานภาระงาน'
 

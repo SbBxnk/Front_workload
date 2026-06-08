@@ -1,7 +1,7 @@
 'use client'
 
 import StickyFooter from '@/components/StickyFooter'
-import ConfirmSubmitEvaluationModal from '../partial/confirmSubmitEvaluationModal'
+import ConfirmSubmitEvaluationModal from '../_partial/confirmSubmitEvaluationModal'
 import type { Component2ContentProps, Form2ItemDraft as ItemDraft } from './_partial/types'
 import { useForm2 } from './_partial/useForm2'
 import Form2Skeleton from './_partial/Form2Skeleton'
