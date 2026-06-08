@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState, useMemo } from 'react'
 import { useSession } from 'next-auth/react'
-import { jwtDecode } from 'jwt-decode'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
 import PerformanceService from '@/services/performanceService'
 import type {
   PerformanceEvaluationFormData,
@@ -17,25 +17,13 @@ export function usePerformanceForm({
   formlist_id: propFormlistId,
 }: PerformanceFormProps) {
   const { data: session } = useSession()
+  const { data: currentUser } = useCurrentUser()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [formData, setFormData] = useState<PerformanceEvaluationFormData | null>(null)
   const [formlist_id, setFormlistId] = useState<number | null>(propFormlistId || null)
-  const [user, setUser] = useState<any>(null)
   const [demonstratedLevels, setDemonstratedLevels] = useState<Record<number, number | null>>({})
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
-
-  // ดึงข้อมูล user จาก session
-  useEffect(() => {
-    if (session?.accessToken) {
-      try {
-        const decoded = jwtDecode(session.accessToken) as any
-        setUser(decoded)
-      } catch (error) {
-        console.error('Error decoding token:', error)
-      }
-    }
-  }, [session?.accessToken])
 
   // ดึง formlist_id ถ้ายังไม่มี
   useEffect(() => {
@@ -125,7 +113,7 @@ export function usePerformanceForm({
   const isPositionHighlighted = (positionId: number): boolean => {
     // ใช้ position_id จาก token (user.position_id) เป็นหลัก
     // ถ้าไม่มีใช้จาก formData.userPositionId เป็น fallback
-    const userPositionId = user?.position_id || formData?.userPositionId
+    const userPositionId = currentUser?.position_id || formData?.userPositionId
     return userPositionId === positionId
   }
 
@@ -162,7 +150,7 @@ export function usePerformanceForm({
     }
 
     // ใช้ position_id จาก token เป็นหลัก
-    const userPositionId = user?.position_id || formData?.userPositionId
+    const userPositionId = currentUser?.position_id || formData?.userPositionId
 
     if (!userPositionId) {
       setSaveMessage({ type: 'error', text: 'ไม่พบ position_id กรุณาตรวจสอบข้อมูลผู้ใช้' })
@@ -197,7 +185,7 @@ export function usePerformanceForm({
         setSaveMessage({ type: 'success', text: 'บันทึกข้อมูลสำเร็จ' })
         // อัปเดตข้อมูล formData
         const updatedFormData = { ...formData }
-        const userPositionId = user?.position_id || formData?.userPositionId
+        const userPositionId = currentUser?.position_id || formData?.userPositionId
         updatedFormData.evaluations = evaluations.map((evaluation, index) => ({
           ...evaluation,
           evaluation_id: formData.evaluations[index]?.evaluation_id || 0,
@@ -225,7 +213,7 @@ export function usePerformanceForm({
           formlist_id: formlist_id,
           u_id: userId,
           round_list_id: roundId,
-          position_id: user?.position_id || formData?.userPositionId,
+          position_id: currentUser?.position_id || formData?.userPositionId,
           competency_id: competency.competency_id,
           demonstrated_level: demonstratedLevels[competency.competency_id] || null,
         }))

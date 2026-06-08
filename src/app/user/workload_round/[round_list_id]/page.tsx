@@ -2,8 +2,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { jwtDecode } from 'jwt-decode'
 import useUtility from '@/hooks/useUtility'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
 import StickyFooter from '@/components/StickyFooter'
 import ConfirmSubmitFormModal from './_partial/confirmSubmitModal'
 import WorkloadFormServices from '@/services/workloadFormServices'
@@ -17,8 +17,8 @@ export default function ExpositionSelection() {
     const { data: session } = useSession()
     const round_list_id = params.round_list_id as string
     const router = useRouter()
+    const { data: currentUser } = useCurrentUser()
     const [confirmSubmitFormModal, setConfirmSubmitFormModal] = useState<boolean>(false)
-    const [user, setUser] = useState<any>(null)
     const [formStatus, setFormStatus] = useState<number | null>(null)
     const [workloadGroupInfo, setWorkloadGroupInfo] = useState<any>(null)
     const [loading, setLoading] = useState<boolean>(true)
@@ -33,28 +33,17 @@ export default function ExpositionSelection() {
         ])
     }, [setBreadcrumbs, round_list_id])
 
-    useEffect(() => {
-        if (session?.accessToken) {
-            try {
-                const decoded = jwtDecode(session.accessToken) as any
-                setUser(decoded)
-            } catch (error) {
-                console.error('Error decoding token:', error)
-            }
-        }
-    }, [session?.accessToken])
-
-    // ดึงข้อมูลครั้งเดียวเมื่อ user พร้อม
+    // ดึงข้อมูลครั้งเดียวเมื่อ currentUser พร้อม
     useEffect(() => {
         const fetchData = async () => {
-            if (!user || !session?.accessToken) return
+            if (!currentUser || !session?.accessToken) return
 
             try {
                 setLoading(true)
 
                 // ตรวจสอบ workload group ของผู้ใช้ผ่าน service
                 const workloadGroupResponse = await WorkloadFormServices.checkWorkloadGroup(
-                    user.id,
+                    currentUser.u_id,
                     parseInt(round_list_id)
                 )
                 setWorkloadGroupInfo({
@@ -65,7 +54,7 @@ export default function ExpositionSelection() {
                 // ตรวจสอบสถานะฟอร์มผ่าน service
                 try {
                     const formStatusResponse = await WorkloadFormServices.checkWorkloadFormStatus(
-                        user.id,
+                        currentUser.u_id,
                         parseInt(round_list_id)
                     )
 
@@ -88,10 +77,10 @@ export default function ExpositionSelection() {
         }
 
         fetchData()
-    }, [user, session?.accessToken, round_list_id]) // dependencies ที่สำคัญ
+    }, [currentUser, session?.accessToken, round_list_id]) // dependencies ที่สำคัญ
 
     const handleSubmitForm = async () => {
-        if (!user || !round_list_id) {
+        if (!currentUser || !round_list_id) {
             console.error('❌ Missing user data or round_list_id')
             return
         }
@@ -99,7 +88,7 @@ export default function ExpositionSelection() {
         try {
             // ดึง formlist_id จากฐานข้อมูล
             const formlistResponse = await SnapshotService.getFormlistId(
-                user.id,
+                currentUser.u_id,
                 parseInt(round_list_id)
             )
 
@@ -115,7 +104,7 @@ export default function ExpositionSelection() {
             console.log('Formlist payload:', formlistResponse.payload)
             console.log('Formlist ID:', formlist_id)
             console.log('Set Assessor List ID:', set_asses_list_id)
-            console.log('User ID:', user.id)
+            console.log('User ID:', currentUser.u_id)
             console.log('Round ID:', round_list_id)
 
             if (!formlist_id || !set_asses_list_id) {
@@ -125,7 +114,7 @@ export default function ExpositionSelection() {
 
             const submitData = {
                 formlist_id: formlist_id,
-                as_u_id: user.id,
+                as_u_id: currentUser.u_id,
                 round_list_id: parseInt(round_list_id)
             }
 
@@ -206,7 +195,7 @@ export default function ExpositionSelection() {
                 )}
                 <SuccessForm
                     selectedGroupName={workloadGroupInfo?.workload_group_name || undefined}
-                    userId={user?.id || undefined}
+                    userId={currentUser?.u_id || undefined}
                     roundId={parseInt(round_list_id) || undefined}
                 />
             </div>

@@ -260,7 +260,7 @@ export default function UserProfileFields({
                   <input
                     name="u_tel"
                     value={user.u_tel}
-                    onChange={(e) => setUserField({ u_tel: e.target.value })}
+                    onChange={(e) => setUserField({ u_tel: Number(e.target.value) || 0 })}
                     type="number"
                     disabled={!isEditing}
                     className={`w-full rounded-md border-2 ${isEditing ? 'border-amber-500' : 'border-gray-300'} px-4 py-2 text-sm font-light text-gray-600 transition-colors duration-300 ease-in-out focus:border-blue-500 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-100 disabled:opacity-50 dark:${isEditing ? 'border-amber-500' : 'border-zinc-600'} dark:bg-zinc-800 dark:text-gray-400 dark:disabled:bg-zinc-700`}

@@ -1,10 +1,7 @@
 'use client'
 import { useEffect, useState, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { useSession } from 'next-auth/react'
-import { jwtDecode } from 'jwt-decode'
 import useUtility from '@/hooks/useUtility'
-import WorkloadFormServices from '@/services/workloadFormServices'
 import MainTaskServices from '@/services/mainTaskServices'
 
 interface Workload {
@@ -12,32 +9,13 @@ interface Workload {
   task_name: string
 }
 
-interface UserLoginData {
-  id: number
-  u_fname: string
-  u_lname: string
-  u_email: string
-  level_name: string
-  prefix_id: number
-  position_id: number
-  course_id: number
-  ex_position_id: number
-  type_p_id: number
-  u_id_card: string
-  u_img: string
-  u_tel: string
-  work_start: string
-}
-
 export default function WorkLoadForm() {
   const params = useParams()
   const {setBreadcrumbs} = useUtility()
-  const { data: session } = useSession()
   const round_list_id = params.round_list_id as string
   const [workload, setWorkload] = useState<Workload[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
-  const [user, setUser] = useState<UserLoginData | null>(null)
   const router = useRouter()
   const hasFetched = useRef(false)
 
@@ -48,18 +26,6 @@ export default function WorkLoadForm() {
       { text: 'ภาระงานหลัก', path: `/user/workload_round/${round_list_id}/form` },
     ])
   }, [setBreadcrumbs, round_list_id])
-
-  // ดึงข้อมูล user จาก session
-  useEffect(() => {
-    if (session?.accessToken) {
-      try {
-        const decoded: UserLoginData = jwtDecode(session.accessToken)
-        setUser(decoded)
-      } catch (error) {
-        console.error('JWT Decode Error:', error)
-      }
-    }
-  }, [session?.accessToken])
 
   useEffect(() => {
     // ป้องกันการเรียก API ซ้ำใน React Strict Mode

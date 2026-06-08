@@ -2,8 +2,8 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { jwtDecode } from 'jwt-decode'
 import useUtility from '@/hooks/useUtility'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
 import PerformanceForm from './_performanceForm'
 import SnapshotService from '@/services/snapshotService'
 
@@ -11,8 +11,8 @@ export default function PerformancePage() {
   const params = useParams()
   const { setBreadcrumbs } = useUtility()
   const { data: session } = useSession()
+  const { data: currentUser } = useCurrentUser()
   const round_list_id = params.round_list_id as string
-  const [user, setUser] = useState<any>(null)
   const [formlist_id, setFormlistId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -24,27 +24,15 @@ export default function PerformancePage() {
     ])
   }, [setBreadcrumbs, round_list_id])
 
-  // ดึงข้อมูล user จาก session
-  useEffect(() => {
-    if (session?.accessToken) {
-      try {
-        const decoded = jwtDecode(session.accessToken) as any
-        setUser(decoded)
-      } catch (error) {
-        console.error('Error decoding token:', error)
-      }
-    }
-  }, [session?.accessToken])
-
   // ดึง formlist_id
   useEffect(() => {
     const fetchFormlistId = async () => {
-      if (!user?.id || !round_list_id) return
+      if (!currentUser?.u_id || !round_list_id) return
 
       try {
         setLoading(true)
         const response = await SnapshotService.getFormlistId(
-          user.id,
+          currentUser.u_id,
           parseInt(round_list_id)
         )
         if (response.success && response.payload && response.payload.length > 0) {
@@ -58,7 +46,7 @@ export default function PerformancePage() {
     }
 
     fetchFormlistId()
-  }, [user?.id, round_list_id])
+  }, [currentUser?.u_id, round_list_id])
 
   if (loading) {
     return (
@@ -72,7 +60,7 @@ export default function PerformancePage() {
 
   return (
     <PerformanceForm
-      userId={user?.id}
+      userId={currentUser?.u_id}
       roundId={parseInt(round_list_id)}
       formlist_id={formlist_id || undefined}
     />

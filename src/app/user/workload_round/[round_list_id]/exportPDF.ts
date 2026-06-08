@@ -1,11 +1,10 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import { jwtDecode } from 'jwt-decode'
 import SetAssessorServices from '@/services/setAssessorServices'
 import WorkloadGroupServices from '@/services/workloadGroupServices'
 import PerformanceService from '@/services/performanceService'
 import { BASE_URL_FILE } from '@/provider/config'
-import type { Terms } from '@/Types'
+import type { Terms, Personal } from '@/Types'
 import type { PerformanceSnapshot } from '@/Types/performance'
 import type { Task } from './types'
 
@@ -23,6 +22,7 @@ export interface ExportPDFParams {
   performanceSnapshot: PerformanceSnapshot | null
   performanceScoreOutOf70: number
   userId?: number
+  userProfile?: Personal
 }
 
 // ฟังก์ชันสำหรับโหลดฟอนต์ไทย
@@ -505,25 +505,9 @@ export const handleExportPDFWithLinks = async (params: ExportPDFParams) => {
 
 
 
-    // ข้อมูลส่วนตัวของผู้ใช้
+    // ข้อมูลส่วนตัวของผู้ใช้ — ใช้ userProfile ที่ส่งมาจาก caller แทนการ decode token
 
-    let userInfo: any = {}
-
-    try {
-
-      if (params.session?.accessToken) {
-
-        const decoded = jwtDecode<any>(params.session.accessToken)
-
-        userInfo = decoded
-
-      }
-
-    } catch (error) {
-
-      console.warn('Could not decode token:', error)
-
-    }
+    const userInfo: Partial<Personal> = params.userProfile ?? {}
 
 
 
@@ -695,7 +679,7 @@ export const handleExportPDFWithLinks = async (params: ExportPDFParams) => {
 
     let workStartDate = '-'
 
-    const workStartValue = userInfo.work_start || userInfo.start_date || userInfo.workStart || userInfo.startDate
+    const workStartValue = userInfo.work_start
 
 
 
@@ -2405,19 +2389,16 @@ export const handleExportPDFWithLinks = async (params: ExportPDFParams) => {
       let expectedLevels: any[] = []
       let userPositionId: number | null = null
 
-      if (params.session?.accessToken) {
-        try {
-          const expectedLevelsRes = await PerformanceService.getAllExpectedLevels()
-          if (expectedLevelsRes.success && expectedLevelsRes.payload) {
-            expectedLevels = Array.isArray(expectedLevelsRes.payload) ? expectedLevelsRes.payload : [expectedLevelsRes.payload]
-          }
-
-          // หา userPositionId จาก token
-          const decodedUser = jwtDecode<any>(params.session.accessToken)
-          userPositionId = decodedUser?.position_id ?? null
-        } catch (error) {
-          console.error('Error fetching expected levels:', error)
+      try {
+        const expectedLevelsRes = await PerformanceService.getAllExpectedLevels()
+        if (expectedLevelsRes.success && expectedLevelsRes.payload) {
+          expectedLevels = Array.isArray(expectedLevelsRes.payload) ? expectedLevelsRes.payload : [expectedLevelsRes.payload]
         }
+
+        // หา userPositionId จาก userProfile ที่ส่งมา
+        userPositionId = params.userProfile?.position_id ?? null
+      } catch (error) {
+        console.error('Error fetching expected levels:', error)
       }
 
       // ตำแหน่งที่ใช้ในระบบ

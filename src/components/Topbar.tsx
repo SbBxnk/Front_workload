@@ -1,23 +1,15 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams, usePathname } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import Image from 'next/image'
-import { jwtDecode } from 'jwt-decode'
 import { useTheme } from '../provider/themeContext'
-import { Menu, Moon, SunMedium } from 'lucide-react'
+import { Menu } from 'lucide-react'
 import BreadcrumbNav from './BreadcrumbNav'
-import axios from 'axios'
 import { useSession } from 'next-auth/react'
 import UserProfileDialog from './UserProfileDialog'
-
-interface UserLoginData {
-  u_fname: string
-  u_lname: string
-  u_email: string
-  level_name: string
-  u_img: string
-}
+import { useCurrentUser } from '@/hooks/useCurrentUser'
+import http from '@/utils/http'
 
 interface TopbarProps {
   setOpenSidebar: (value: boolean) => void
@@ -35,15 +27,12 @@ export default function Topbar({
 }: TopbarProps) {
   const [currentDateTime, setCurrentDateTime] = useState<Date | null>(null)
   const { isDarkMode, toggleTheme } = useTheme()
-  const [user, setUser] = useState<UserLoginData | null>(null)
+  const { data: currentUser } = useCurrentUser()
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false)
   const { data: session } = useSession()
 
-  const pathname = usePathname()
   const params = useParams()
   const task_id = params.task_id // รับ task_id จาก URL
-  const round_list_id = params.round_list_id // รับ round_list_id จาก URL
-  const ex_u_id = params.ex_u_id // รับ ex_u_id จาก URL
   const [taskName, setTaskName] = useState<MainTaskDetail>({
     task_id: 0,
     task_name: '',
@@ -72,24 +61,18 @@ export default function Topbar({
 
       setIsLoading(true)
       try {
-        const response = await axios.get<{ payload: MainTaskDetail; data?: MainTaskDetail }>(
-          `${process.env.NEXT_PUBLIC_API}/maintask/${task_id}`,
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${session.accessToken}`,
-            },
-          }
+        const response = await http.get<{ payload: MainTaskDetail; data?: MainTaskDetail }>(
+          `/maintask/${task_id}`
         )
 
-        if (response.status === 200 && response.data?.payload?.task_name) {
+        if (response.data?.payload?.task_name) {
           setTaskName(response.data.payload)
-        } else if (response.status === 200 && response.data?.data?.task_name) {
+        } else if (response.data?.data?.task_name) {
           setTaskName(response.data.data)
         } else {
           setTaskName({ task_id: 0, task_name: 'ไม่พบข้อมูล' })
         }
-      } catch (error: any) {
+      } catch {
         setTaskName({ task_id: 0, task_name: 'ไม่สามารถโหลดข้อมูลได้' })
       } finally {
         setIsLoading(false)
@@ -98,19 +81,6 @@ export default function Topbar({
 
     fetchTaskName()
   }, [task_id, session?.accessToken])
-
-  // Fetch user info from JWT token
-  useEffect(() => {
-    if (session?.accessToken) {
-      try {
-        const decoded: UserLoginData = jwtDecode(session.accessToken)
-        setUser(decoded)
-      } catch (error) {
-        console.error('JWT Decode Error:', error)
-      }
-      setIsLoading(false)
-    }
-  }, [session?.accessToken])
 
   // Format the current date
   const formatDate = (dateString: string) => {
@@ -171,8 +141,8 @@ export default function Topbar({
                     >
                       <Image
                         src={
-                          user?.u_img
-                            ? `/profile/${user.u_img}`
+                          currentUser?.u_img
+                            ? `/profile/${currentUser.u_img}`
                             : '/profile/default.png'
                         }
                         fill
@@ -187,10 +157,10 @@ export default function Topbar({
                       isOpen={isProfileDialogOpen}
                       onClose={() => setIsProfileDialogOpen(false)}
                       user={{
-                        name: user ? `${user.u_fname} ${user.u_lname}` : '',
-                        email: user?.u_email || '',
-                        position: user?.level_name || '',
-                        image: user?.u_img ? `/profile/${user.u_img}` : '/profile/default.png'
+                        name: currentUser ? `${currentUser.u_fname} ${currentUser.u_lname}` : '',
+                        email: currentUser?.u_email || '',
+                        position: currentUser?.level_name || '',
+                        image: currentUser?.u_img ? `/profile/${currentUser.u_img}` : '/profile/default.png'
                       }}
                     />
                   </div>

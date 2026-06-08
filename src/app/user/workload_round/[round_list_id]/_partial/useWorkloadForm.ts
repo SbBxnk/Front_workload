@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState, useMemo } from 'react'
-import { jwtDecode } from 'jwt-decode'
 import { useSession } from 'next-auth/react'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
 import SetAssessorServices from '@/services/setAssessorServices'
 import SnapshotService from '@/services/snapshotService'
 import MainTaskServices from '@/services/mainTaskServices'
@@ -28,32 +28,24 @@ export function useWorkloadForm({ selectedGroupName, terms = [], userId, roundId
   const [performanceEvaluations, setPerformanceEvaluations] = useState<any[]>([]) // สำหรับ preview
   const [isCompetencyModalOpen, setIsCompetencyModalOpen] = useState(false)
   const { data: session } = useSession()
+  const { data: currentUser } = useCurrentUser()
 
-  const decodedUser = useMemo(() => {
-    if (!session?.accessToken) return null
-    try {
-      return jwtDecode<any>(session.accessToken)
-    } catch (error) {
-      console.warn('Failed to decode access token:', error)
-      return null
-    }
-  }, [session?.accessToken])
-
+  // ใช้ Personal จาก useCurrentUser แทน jwtDecode
   const userPositionName = useMemo(() => {
-    if (!decodedUser) return '-'
-    if (decodedUser.position_name) return decodedUser.position_name
-    if (decodedUser.position_id) {
+    if (!currentUser) return '-'
+    if (currentUser.position_name) return currentUser.position_name
+    if (currentUser.position_id) {
       const matchedPosition = POSITIONS.find(
-        position => position.position_id === decodedUser.position_id
+        position => position.position_id === currentUser.position_id
       )
       if (matchedPosition) {
         return matchedPosition.position_name
       }
     }
     return '-'
-  }, [decodedUser])
+  }, [currentUser])
 
-  const userPositionId = decodedUser?.position_id ?? null
+  const userPositionId = currentUser?.position_id ?? null
 
   const expectedLevelsByCompetency = useMemo(() => {
     const map = new Map<number, Map<number, number>>()
@@ -702,7 +694,8 @@ export function useWorkloadForm({ selectedGroupName, terms = [], userId, roundId
       terms,
       performanceSnapshot,
       performanceScoreOutOf70,
-      userId
+      userId,
+      userProfile: currentUser ?? undefined,
     })
   }
 
@@ -746,7 +739,8 @@ export function useWorkloadForm({ selectedGroupName, terms = [], userId, roundId
       performanceSnapshot,
       performanceScoreOutOf70: performanceScoreOutOf70Evaluated,
       userId,
-      isFinalized
+      isFinalized,
+      userProfile: currentUser ?? undefined,
     })
   }
 
@@ -760,7 +754,7 @@ export function useWorkloadForm({ selectedGroupName, terms = [], userId, roundId
     performanceEvaluations,
     isCompetencyModalOpen,
     setIsCompetencyModalOpen,
-    decodedUser,
+    currentUser,
     userPositionName,
     userPositionId,
     competencyScoreSummary,

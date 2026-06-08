@@ -50,6 +50,10 @@ const UserServices = {
     return http.get(`/user/${userId}`)
   },
 
+  getMe: (): Promise<ResponsePayload<Personal>> => {
+    return http.get('/me')
+  },
+
   exportUsersToExcel: (params: UserSearchParams): Promise<Blob> => {
     return http.get('/user/export', {
       params: {

@@ -21,11 +21,13 @@ import { handleExportPDFWithLinks } from '../../workload_round/[round_list_id]/e
 import { handleExportPDFEvaluatedWithLinks } from '../../workload_round/[round_list_id]/exportPDFEvaluated'
 import type { CriteriaComparison, EvaluationDashboard, FeedbackItem } from './types'
 import { POSITIONS, calculatePerformanceScoreEvaluated } from './dashboardHelpers'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
 
 export function useWorkloadDashboard() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { data: session } = useSession()
+  const { data: currentUser } = useCurrentUser()
   const [userId, setUserId] = useState<number | null>(null)
   const [rounds, setRounds] = useState<RoundList[]>([])
   const [selectedRoundId, setSelectedRoundId] = useState<number | null>(null)
@@ -342,21 +344,20 @@ export function useWorkloadDashboard() {
 
         let performanceActual: number | null = null
         let performanceAssessed: number | null = null
-        let performanceExpected = 30
+        const performanceExpected = 30
         const performanceComparison: CriteriaComparison[] = []
         let positionName = '-'
 
         try {
-          const decodedToken = jwtDecode<any>(session.accessToken)
-          const userPositionId = decodedToken?.position_id ?? null
+          const userPositionId = currentUser?.position_id ?? null
 
-          if (decodedToken?.position_name) {
-            positionName = decodedToken.position_name
+          if (currentUser?.position_name) {
+            positionName = currentUser.position_name
           } else if (userPositionId) {
             const matched = POSITIONS.find(p => p.position_id === userPositionId)
             if (matched) positionName = matched.position_name
           } else {
-            positionName = decodedToken?.level_name ?? '-'
+            positionName = currentUser?.level_name ?? '-'
           }
 
           if (formlistId) {
@@ -703,7 +704,8 @@ export function useWorkloadDashboard() {
         terms,
         performanceSnapshot,
         performanceScoreOutOf70: evaluated ? calculatePerformanceScoreEvaluated(workloadData) : (dashboardData.workloadScore.actual || 0),
-        userId
+        userId,
+        userProfile: currentUser ?? undefined,
       }
 
       if (evaluated) {

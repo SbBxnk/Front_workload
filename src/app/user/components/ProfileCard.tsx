@@ -1,41 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { jwtDecode } from 'jwt-decode'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useSession } from 'next-auth/react'
-
-interface UserLoginData {
-  prefix: string
-  u_email: string
-  u_fname: string
-  u_lname: string
-  level_name: string
-  position_name: string
-  ex_position_name: string
-  course_name: string
-  branch_name: string
-  type_p_name: string
-  salary: number
-  u_img: string
-  u_id_card: string
-}
+import { useCurrentUser } from '@/hooks/useCurrentUser'
 
 function ProfileCard() {
-  const [user, setUser] = useState<UserLoginData | null>(null)
-  const { data: session } = useSession()
-
-  useEffect(() => {
-    if (session?.accessToken) {
-      try {
-        const decoded: UserLoginData = jwtDecode(session.accessToken)
-        setUser(decoded)
-      } catch (error) {
-        console.error('Error decoding token:', error)
-      }
-    }
-  }, [session?.accessToken])
+  const { data: currentUser } = useCurrentUser()
 
   return (
     <Link
@@ -48,7 +18,7 @@ function ProfileCard() {
         </h2>
         <div className="relative mx-auto h-24 w-24 overflow-hidden rounded-full border-2 border-gray-100">
           <Image
-            src={user?.u_img ? `/profile/${user.u_img}` : '/profile/default.png'}
+            src={currentUser?.u_img ? `/profile/${currentUser.u_img}` : '/profile/default.png'}
             fill
             alt="avatar"
             className="bg-white object-cover"
@@ -57,43 +27,43 @@ function ProfileCard() {
         </div>
         <div className="font-regular bg-gradient-to-r from-cyan-500 to-blue-500 bg-clip-text text-center text-2xl text-transparent">
           <h1>
-            {user?.prefix}
-            {user?.u_fname} {user?.u_lname}
+            {currentUser?.prefix_name}
+            {currentUser?.u_fname} {currentUser?.u_lname}
           </h1>
         </div>
         <p className="text-md text-center font-light text-gray-500">
-          {user?.position_name || '-'}
+          {currentUser?.position_name || '-'}
         </p>
       </div>
       <div className="lg:text-md grid grid-cols-[3fr_4fr] gap-x-4 gap-y-2 text-sm text-gray-600">
         {/* <div className="text-gray-600">ชื่อ-สกุล</div>
         <div className="font-light text-gray-400">
-          {user?.prefix}
-          {user?.u_fname} {user?.u_lname}
+          {currentUser?.prefix_name}
+          {currentUser?.u_fname} {currentUser?.u_lname}
         </div> */}
         <div className="text-gray-600">เลขประจำตำแหน่ง</div>
         <div className="font-light text-gray-400">
-          {user?.u_id_card || '-'}
+          {currentUser?.u_id_card || '-'}
         </div>
         <div className="text-gray-600">สาขา</div>
         <div className="font-light text-gray-400">
-          {user?.branch_name || '-'}
+          {currentUser?.branch_name || '-'}
         </div>
         <div className="text-gray-600">หลักสูตร</div>
         <div className="font-light text-gray-400">
-          {user?.course_name || '-'}
+          {currentUser?.course_name || '-'}
         </div>
         {/* <div className="text-gray-600">ตำแหน่งวิชาการ</div>
         <div className="font-light text-gray-400">
-          {user?.position_name || '-'}
+          {currentUser?.position_name || '-'}
         </div> */}
         <div className="text-gray-600">ตำแหน่งบริหาร</div>
         <div className="font-light text-gray-400">
-          {user?.ex_position_name || '-'}
+          {currentUser?.ex_position_name || '-'}
         </div>
         <div className="text-gray-600">อีเมล</div>
         <div className="font-light text-gray-400">
-          {user?.u_email || '-'}
+          {currentUser?.u_email || '-'}
         </div>
 
       </div>

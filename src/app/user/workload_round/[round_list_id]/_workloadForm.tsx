@@ -21,7 +21,7 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
     performanceEvaluations,
     isCompetencyModalOpen,
     setIsCompetencyModalOpen,
-    decodedUser,
+    currentUser,
     userPositionName,
     userPositionId,
     competencyScoreSummary,
@@ -104,12 +104,12 @@ export default function WorkloadForm({ selectedGroupName, terms = [], userId, ro
             formlistStatus={formlistStatus}
             performanceScoreOutOf70Evaluated={formlistStatus === 2 ? performanceScoreOutOf70Evaluated : null}
             performanceScoreOutOf30Evaluated={formlistStatus === 2 && evaluatedCompetencyScoreSummary ? evaluatedCompetencyScoreSummary.totalScore : null}
-            userName={decodedUser ? `${decodedUser.prefix_name || ''} ${decodedUser.u_fname || ''} ${decodedUser.u_lname || ''}`.trim() || null : null}
+            userName={currentUser ? `${currentUser.prefix_name || ''} ${currentUser.u_fname || ''} ${currentUser.u_lname || ''}`.trim() || null : null}
             evaluatorName={null}
           />
 
           <Section4
-            userName={decodedUser ? `${decodedUser.prefix_name || ''} ${decodedUser.u_fname || ''} ${decodedUser.u_lname || ''}`.trim() || null : null}
+            userName={currentUser ? `${currentUser.prefix_name || ''} ${currentUser.u_fname || ''} ${currentUser.u_lname || ''}`.trim() || null : null}
             evaluatorName={null}
           />
           <Section5/>

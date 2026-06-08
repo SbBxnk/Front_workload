@@ -3,12 +3,12 @@
 import type React from 'react'
 import Image from 'next/image'
 import { Edit } from 'lucide-react'
-import type { UserLoginData } from '@/Types'
+import type { Personal } from '@/Types'
 import { convertToThaiDate } from './useAdminProfile'
 
 interface AdminProfileFieldsProps {
-  user: UserLoginData
-  setUser: React.Dispatch<React.SetStateAction<UserLoginData | null>>
+  user: Personal
+  setUser: React.Dispatch<React.SetStateAction<Personal | null>>
   previewImage: string | null
   isEditing: boolean
   isDragActive: boolean
@@ -278,7 +278,7 @@ function AdminProfileFields({
                     name="u_tel"
                     value={user.u_tel}
                     onChange={(e) =>
-                      setUser({ ...user, u_tel: e.target.value })
+                      setUser({ ...user, u_tel: Number(e.target.value) || 0 })
                     }
                     type="number"
                     disabled={!isEditing}

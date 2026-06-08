@@ -3,13 +3,13 @@
 import type React from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { jwtDecode } from 'jwt-decode'
-import { useSession, signOut } from 'next-auth/react'
+import { signOut } from 'next-auth/react'
 import { useMutation } from '@tanstack/react-query'
 import Swal from 'sweetalert2'
-import type { UserLoginData } from '@/Types'
+import type { Personal } from '@/Types'
 import useUtility from '@/hooks/useUtility'
 import AuthService from '@/services/authService'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
 
 // แปลงวันที่เป็นรูปแบบภาษาไทย (พ.ศ.)
 export const convertToThaiDate = (dateString: string) => {
@@ -34,7 +34,7 @@ export const convertToThaiDate = (dateString: string) => {
 
 // สร้าง FormData สำหรับอัปเดตโปรไฟล์ (ยกเว้น u_pass)
 const buildProfileFormData = (
-  user: UserLoginData,
+  user: Personal,
   form: HTMLFormElement
 ): FormData => {
   const formData = new FormData()
@@ -42,7 +42,7 @@ const buildProfileFormData = (
   formData.set('u_fname', user.u_fname || '')
   formData.set('u_lname', user.u_lname || '')
   formData.set('u_id_card', user.u_id_card || '')
-  formData.set('u_tel', user.u_tel || '')
+  formData.set('u_tel', user.u_tel?.toString() || '')
   formData.set('prefix_id', user.prefix_id?.toString() || '1')
   formData.set('level_id', user.level_id?.toString() || '1')
   formData.set('position_id', user.position_id?.toString() || '1')
@@ -68,29 +68,31 @@ const buildProfileFormData = (
 
 /**
  * รวม logic ของหน้าโปรไฟล์แอดมิน:
- * - โหลดข้อมูลโปรไฟล์ปัจจุบันจาก JWT (session.accessToken)
+ * - โหลดข้อมูลโปรไฟล์ปัจจุบันจาก GET /me (useCurrentUser)
  * - form state + การจัดการ/พรีวิวรูป (react-dropzone)
  * - useMutation อัปเดตโปรไฟล์ผ่าน AuthService.UpdateProfile + Swal
  * - handleSignOut (next-auth signOut) สำหรับปุ่ม logout
  */
 export function useAdminProfile() {
   const { setBreadcrumbs } = useUtility()
-  const { data: session } = useSession()
+  const { data: fetchedUser } = useCurrentUser()
 
-  const [user, setUser] = useState<UserLoginData | null>(null)
+  const [user, setUser] = useState<Personal | null>(null)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
   const [isEditing, setIsEditing] = useState<boolean>(false)
   const formRef = useRef<HTMLFormElement>(null)
 
-  // ---------- breadcrumbs + โหลดโปรไฟล์จาก token ----------
+  // ---------- breadcrumbs ----------
   useEffect(() => {
     setBreadcrumbs([{ text: 'ข้อมูลส่วนตัว', path: '/admin/profile' }])
+  }, [])
 
-    if (session?.accessToken) {
-      const decoded: UserLoginData = jwtDecode(session.accessToken)
-      setUser(decoded)
+  // ---------- ซิงค์ข้อมูลโปรไฟล์จาก API ----------
+  useEffect(() => {
+    if (fetchedUser && !isEditing) {
+      setUser(fetchedUser)
     }
-  }, [session?.accessToken])
+  }, [fetchedUser, isEditing])
 
   // ---------- dropzone (อัปโหลด/พรีวิวรูป) ----------
   const onDrop = (acceptedFiles: File[]) => {
@@ -170,10 +172,9 @@ export function useAdminProfile() {
   const handleEditToggle = () => {
     setIsEditing(!isEditing)
     if (isEditing) {
-      // ยกเลิกการแก้ไข -> รีเซ็ตค่ากลับเป็นค่าจาก token
-      if (session?.accessToken) {
-        const decoded: UserLoginData = jwtDecode(session.accessToken)
-        setUser(decoded)
+      // ยกเลิกการแก้ไข -> รีเซ็ตค่ากลับเป็นข้อมูลจาก API
+      if (fetchedUser) {
+        setUser(fetchedUser)
         setPreviewImage(null)
       }
     }

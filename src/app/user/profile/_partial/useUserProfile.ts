@@ -4,12 +4,12 @@ import type React from 'react'
 import { useEffect, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { useDropzone } from 'react-dropzone'
-import { useSession, signOut } from 'next-auth/react'
-import { jwtDecode } from 'jwt-decode'
+import { signOut } from 'next-auth/react'
 import Swal from 'sweetalert2'
-import type { UserLoginData } from '@/Types'
+import type { Personal } from '@/Types'
 import useUtility from '@/hooks/useUtility'
 import AuthService from '@/services/authService'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
 
 // แปลงวันที่เป็นรูปแบบภาษาไทย (พ.ศ.)
 export const convertToThaiDate = (dateString: string) => {
@@ -34,7 +34,7 @@ export const convertToThaiDate = (dateString: string) => {
 
 // สร้าง FormData สำหรับอัปเดตโปรไฟล์ (ทุก field ยกเว้น u_pass)
 const buildProfileFormData = (
-  user: UserLoginData,
+  user: Personal,
   imageFile: File | null
 ): FormData => {
   const formData = new FormData()
@@ -43,7 +43,7 @@ const buildProfileFormData = (
   formData.set('u_fname', user.u_fname || '')
   formData.set('u_lname', user.u_lname || '')
   formData.set('u_id_card', user.u_id_card || '')
-  formData.set('u_tel', user.u_tel || '')
+  formData.set('u_tel', user.u_tel?.toString() || '')
   formData.set('prefix_id', user.prefix_id?.toString() || '1')
   formData.set('level_id', user.level_id?.toString() || '1')
   formData.set('position_id', user.position_id?.toString() || '1')
@@ -66,29 +66,31 @@ const buildProfileFormData = (
 
 /**
  * รวม logic ของหน้าโปรไฟล์ผู้ใช้:
- * - decode ข้อมูลผู้ใช้จาก session.accessToken
+ * - โหลดข้อมูลผู้ใช้จาก GET /me (useCurrentUser)
  * - form state + edit toggle + การจัดการรูป (dropzone)
  * - useMutation เรียก AuthService.UpdateProfile + Swal + signOut
  * - handleSignOut (logout จาก next-auth)
  */
 export function useUserProfile() {
   const { setBreadcrumbs } = useUtility()
-  const { data: session } = useSession()
+  const { data: fetchedUser } = useCurrentUser()
 
-  const [user, setUser] = useState<UserLoginData | null>(null)
+  const [user, setUser] = useState<Personal | null>(null)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [isEditing, setIsEditing] = useState<boolean>(false)
 
-  // ---------- breadcrumbs + decode user จาก token ----------
+  // ---------- breadcrumbs ----------
   useEffect(() => {
     setBreadcrumbs([{ text: 'ข้อมูลส่วนตัว', path: '/user/profile' }])
+  }, [])
 
-    if (session?.accessToken) {
-      const decoded: UserLoginData = jwtDecode(session.accessToken)
-      setUser(decoded)
+  // ---------- ซิงค์ข้อมูลโปรไฟล์จาก API ----------
+  useEffect(() => {
+    if (fetchedUser && !isEditing) {
+      setUser(fetchedUser)
     }
-  }, [session?.accessToken])
+  }, [fetchedUser, isEditing])
 
   // ---------- cleanup blob url ของ preview ----------
   useEffect(() => {
@@ -116,12 +118,12 @@ export function useUserProfile() {
   })
 
   // ---------- field change ----------
-  const setUserField = (patch: Partial<UserLoginData>) =>
+  const setUserField = (patch: Partial<Personal>) =>
     setUser((prev) => (prev ? { ...prev, ...patch } : null))
 
   // ---------- mutation: update profile ----------
   const updateMutation = useMutation({
-    mutationFn: (payload: UserLoginData) =>
+    mutationFn: (payload: Personal) =>
       AuthService.UpdateProfile(buildProfileFormData(payload, imageFile)),
     onSuccess: (response) => {
       if (response.success) {
@@ -175,10 +177,9 @@ export function useUserProfile() {
   const handleEditToggle = () => {
     setIsEditing((prev) => {
       const next = !prev
-      // ยกเลิกแก้ไข -> reset ค่าเดิมจาก token + ล้าง preview
-      if (prev && session?.accessToken) {
-        const decoded: UserLoginData = jwtDecode(session.accessToken)
-        setUser(decoded)
+      // ยกเลิกแก้ไข -> reset ค่าเดิมจาก API + ล้าง preview
+      if (prev && fetchedUser) {
+        setUser(fetchedUser)
         if (previewImage && previewImage.startsWith('blob:')) {
           URL.revokeObjectURL(previewImage)
         }

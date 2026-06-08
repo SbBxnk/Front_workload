@@ -2,8 +2,8 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { jwtDecode } from 'jwt-decode'
 import useUtility from '@/hooks/useUtility'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
 import WorkloadForm from '../_workloadForm'
 import type { Terms } from '@/Types'
 import WorkloadFormServices from '@/services/workloadFormServices'
@@ -12,8 +12,8 @@ export default function PreviewPage() {
     const params = useParams()
     const { setBreadcrumbs } = useUtility()
     const { data: session } = useSession()
+    const { data: currentUser } = useCurrentUser()
     const round_list_id = params.round_list_id as string
-    const [user, setUser] = useState<any>(null)
     const [workloadGroupInfo, setWorkloadGroupInfo] = useState<any>(null)
     const [terms, setTerms] = useState<Terms[]>([])
     const [loading, setLoading] = useState<boolean>(true)
@@ -27,19 +27,8 @@ export default function PreviewPage() {
     }, [setBreadcrumbs, round_list_id])
 
     useEffect(() => {
-        if (session?.accessToken) {
-            try {
-                const decoded = jwtDecode(session.accessToken) as any
-                setUser(decoded)
-            } catch (error) {
-                console.error('Error decoding token:', error)
-            }
-        }
-    }, [session?.accessToken])
-
-    useEffect(() => {
         const fetchData = async () => {
-            if (!user || !session?.accessToken) return
+            if (!currentUser || !session?.accessToken) return
 
             try {
                 setLoading(true)
@@ -50,7 +39,7 @@ export default function PreviewPage() {
 
                 // ตรวจสอบ workload group ของผู้ใช้
                 const workloadGroupResponse = await WorkloadFormServices.checkWorkloadGroup(
-                    user.id,
+                    currentUser.u_id,
                     parseInt(round_list_id)
                 )
                 setWorkloadGroupInfo({
@@ -66,7 +55,7 @@ export default function PreviewPage() {
         }
 
         fetchData()
-    }, [user, session?.accessToken, round_list_id])
+    }, [currentUser, session?.accessToken, round_list_id])
 
     if (loading) {
         return (
@@ -93,7 +82,7 @@ export default function PreviewPage() {
             <WorkloadForm
                 terms={terms}
                 selectedGroupName={workloadGroupInfo?.workload_group_name || undefined}
-                userId={user?.id || undefined}
+                userId={currentUser?.u_id || undefined}
                 roundId={parseInt(round_list_id) || undefined}
                 isPreview={true}
             />

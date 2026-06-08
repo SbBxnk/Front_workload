@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { jwtDecode } from 'jwt-decode'
 import type { WorkloadGroup } from '@/Types'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
 import WorkloadFormServices from '@/services/workloadFormServices'
 import useUtility from '@/hooks/useUtility'
 import SetAssessorServices from '@/services/setAssessorServices'
@@ -19,6 +19,7 @@ import type {
 export function useRoundLayout(): UseRoundLayoutResult {
   const { setBreadcrumbs } = useUtility()
   const { data: session } = useSession()
+  const { data: currentUser } = useCurrentUser()
 
   // State สำหรับข้อมูล
   const [currentRound, setCurrentRound] = useState<any>(null)
@@ -30,7 +31,6 @@ export function useRoundLayout(): UseRoundLayoutResult {
   const [formStatus, setFormStatus] = useState<number | null>(null) // เพิ่ม state สำหรับเก็บสถานะฟอร์ม
   const [loading, setLoading] = useState(false)
   const [isCheckingAccess, setIsCheckingAccess] = useState(false)
-  const [user, setUser] = useState<any>(null)
 
   const params = useParams()
   const round_list_id = params.round_list_id as string
@@ -52,28 +52,16 @@ export function useRoundLayout(): UseRoundLayoutResult {
     return 'active'
   }
 
-  // ดึงข้อมูล user จาก token
-  useEffect(() => {
-    if (session?.accessToken) {
-      try {
-        const decoded = jwtDecode(session.accessToken) as any
-        setUser(decoded)
-      } catch (error) {
-        console.error('Error decoding token:', error)
-      }
-    }
-  }, [session?.accessToken])
-
-  // ยิง API ทั้งหมดครั้งเดียวเมื่อ user และ session พร้อม
+  // ยิง API ทั้งหมดครั้งเดียวเมื่อ currentUser และ session พร้อม
   useEffect(() => {
     const fetchAllData = async () => {
-      if (!user || !session?.accessToken) return
+      if (!currentUser || !session?.accessToken) return
 
       try {
         setLoading(true)
         setIsCheckingAccess(true)
 
-        const userId = user.id
+        const userId = currentUser.u_id
 
         // ยิง API ทั้งหมดพร้อมกันผ่าน service
         const [
@@ -190,10 +178,10 @@ export function useRoundLayout(): UseRoundLayoutResult {
       }
     }
 
-    if (user && session?.accessToken) {
+    if (currentUser && session?.accessToken) {
       fetchAllData()
     }
-  }, [user, session?.accessToken, round_list_id]) // dependencies ที่สำคัญ
+  }, [currentUser, session?.accessToken, round_list_id]) // dependencies ที่สำคัญ
 
   const targetRoundStatus = getRoundStatus(currentRound)
 
@@ -208,7 +196,7 @@ export function useRoundLayout(): UseRoundLayoutResult {
     hasFormInRound,
     loading,
     isCheckingAccess,
-    user,
+    user: currentUser ?? null,
     targetRoundStatus,
   }
 }
