@@ -125,18 +125,15 @@ const adminMenuItems = [
       // { id: 8, label: 'รอบการประเมิน', icon: Calendar, href: '/admin/round' },
     ],
   },
-  {
-    title: 'ฟอร์มประเมินภาระงาน',
-    items: [
-      { id: 1, label: 'ฟอร์มประเมินภาระงาน', icon: BookCopy, href: '/admin' },
-    ],
-  },
-  {
-    title: 'อันดับ',
-    items: [
-      { id: 1, label: 'อันดับคะแนนภาระงาน', icon: ListOrdered, href: '/admin' },
-    ],
-  },
+  // TODO: เปิดเมื่อมีหน้าจริง
+  // {
+  //   title: 'ฟอร์มประเมินภาระงาน',
+  //   items: [{ id: 1, label: 'ฟอร์มประเมินภาระงาน', icon: BookCopy, href: '/admin/workload-form' }],
+  // },
+  // {
+  //   title: 'อันดับ',
+  //   items: [{ id: 1, label: 'อันดับคะแนนภาระงาน', icon: ListOrdered, href: '/admin/ranking' }],
+  // },
 ]
 
 // Base user menu items without assessor-specific items

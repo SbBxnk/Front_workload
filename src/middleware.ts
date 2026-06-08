@@ -6,15 +6,6 @@ export default withAuth(
     const token = req.nextauth.token
     const { pathname } = req.nextUrl
 
-    console.log(
-      'Middleware: Checking path:',
-      pathname,
-      'token:',
-      !!token,
-      'role:',
-      token?.role
-    )
-
     if (!token && pathname !== '/login') {
       return NextResponse.redirect(new URL('/login', req.url))
     }
@@ -41,10 +32,6 @@ export default withAuth(
     // Check if user is trying to access user routes
     if (pathname.startsWith('/user')) {
       if (token && token.role !== 'ผู้ใช้งานทั่วไป') {
-        console.log(
-          'Middleware: Wrong role for user, redirecting to appropriate page'
-        )
-        // Redirect to appropriate page based on user role
         if (token.role === 'ผู้ดูแลระบบ') {
           return NextResponse.redirect(new URL('/admin', req.url))
         } else if (token.role === 'ผู้ประเมินภาระงาน') {
@@ -60,10 +47,6 @@ export default withAuth(
     // Check if user is trying to access assessor routes
     if (pathname.startsWith('/assessor')) {
       if (token && token.role !== 'ผู้ประเมินภาระงาน') {
-        console.log(
-          'Middleware: Wrong role for assessor, redirecting to appropriate page'
-        )
-        // Redirect to appropriate page based on user role
         if (token.role === 'ผู้ดูแลระบบ') {
           return NextResponse.redirect(new URL('/admin', req.url))
         } else if (token.role === 'ผู้ใช้งานทั่วไป') {
@@ -79,10 +62,6 @@ export default withAuth(
     // Check if user is trying to access secretary routes
     if (pathname.startsWith('/secretary')) {
       if (token && token.role !== 'เลขาณุการ') {
-        console.log(
-          'Middleware: Wrong role for secretary, redirecting to appropriate page'
-        )
-        // Redirect to appropriate page based on user role
         if (token.role === 'ผู้ดูแลระบบ') {
           return NextResponse.redirect(new URL('/admin', req.url))
         } else if (token.role === 'ผู้ใช้งานทั่วไป') {
@@ -95,20 +74,12 @@ export default withAuth(
       }
     }
 
-    console.log('Middleware: Access allowed')
     return NextResponse.next()
   },
   {
     callbacks: {
       authorized: ({ token, req }) => {
         const { pathname } = req.nextUrl
-
-        console.log(
-          'Middleware: authorized callback - path:',
-          pathname,
-          'hasToken:',
-          !!token
-        )
 
         if (pathname === '/login') {
           return true

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import Link from 'next/link'
 import { Plus, FileText } from 'lucide-react'
 import { FiFilter } from 'react-icons/fi'
 import { LuDelete } from 'react-icons/lu'
@@ -110,13 +111,13 @@ export default function PersonalListPage() {
             ส่งออกข้อมูล
             <FileText className="h-4 w-4" />
           </button>
-          <button
-            onClick={() => router.push('/admin/personal-list/create-personal')}
+          <Link
+            href="/admin/personal-list/create-personal"
             className="flex w-full items-center justify-between gap-2 rounded-md bg-success px-4 py-2.5 text-sm font-light text-white transition duration-300 ease-in-out hover:bg-success/80 sm:w-52"
           >
             เพิ่มบุคลากร
             <Plus className="h-4 w-4" />
-          </button>
+          </Link>
         </div>
       </div>
 

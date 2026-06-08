@@ -3960,11 +3960,10 @@ export const handleExportPDFEvaluatedWithLinks = async (params: ExportPDFParams)
       doc.line(section5X, section5RightY, Math.min(section5X + section5DashLength, section5MarginLeft + section5ContentWidth - 2), section5RightY)
       section5X += section5DashLength + section5GapLength
     }
-    // TODO: ยังไม่ต้องใส่ชื่อผู้ใช้ตามบัญชี
-    // if (userInfo.u_fname && userInfo.u_lname) {
-    //   const fullName = `${userInfo.prefix_name || ''} ${userInfo.u_fname || ''} ${userInfo.u_lname || ''}`.trim()
-    //   doc.text(fullName, section5RightColumnX + 20, section5RightY)
-    // }
+    if (userInfo.u_fname && userInfo.u_lname) {
+      const fullName = `${userInfo.prefix_name || ''} ${userInfo.u_fname || ''} ${userInfo.u_lname || ''}`.trim()
+      doc.text(fullName, section5RightColumnX + 20, section5RightY)
+    }
 
     // ตำแหน่ง
     section5RightY += section5LineSpacing
@@ -3975,10 +3974,9 @@ export const handleExportPDFEvaluatedWithLinks = async (params: ExportPDFParams)
       doc.line(section5X, section5RightY, Math.min(section5X + section5DashLength, section5MarginLeft + section5ContentWidth - 2), section5RightY)
       section5X += section5DashLength + section5GapLength
     }
-    // TODO: ยังไม่ต้องใส่ตำแหน่งตามบัญชี
-    // if (userInfo.type_p_name) {
-    //   doc.text(userInfo.type_p_name, section5RightColumnX + 22, section5RightY)
-    // }
+    if (userInfo.type_p_name) {
+      doc.text(userInfo.type_p_name, section5RightColumnX + 22, section5RightY)
+    }
 
     // วันที่
     section5RightY += section5LineSpacing

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
 import Swal from 'sweetalert2'
 import type React from 'react'
@@ -15,7 +15,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthorized, setIsAuthorized] = useState(false)
   const [userRole, setUserRole] = useState<string | null>(null)
   const router = useRouter()
-  const pathname = usePathname()
   const { data: session, status } = useSession()
 
   useEffect(() => {
@@ -64,16 +63,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setUserRole(decodedToken.level_name)
       setIsAuthenticated(true)
-      checkAuthorization(decodedToken.level_name, pathname)
-      
-      // assessor status จะถูกจัดการโดย AssessorProvider แล้ว
+      checkAuthorization(decodedToken.level_name)
     } catch (error) {
       console.error('Invalid token:', error)
       signOut({ callbackUrl: '/login' })
     }
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, status, pathname])
+  }, [session, status])
 
   const handleTokenExpired = () => {
     Swal.fire({
@@ -90,23 +85,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.push(redirectPath)
   }
 
-  const checkAuthorization = (role: string, path: string) => {
-    if (
-      role === 'ผู้ดูแลระบบ' &&
-      (path.startsWith('/user') || path.startsWith('/examiner'))
-    ) {
+  // ตรวจ role vs current path ครั้งเดียวตอน session โหลด — middleware จัดการ subsequent navigations แล้ว
+  const checkAuthorization = (role: string) => {
+    const path = window.location.pathname
+    if (role === 'ผู้ดูแลระบบ' && (path.startsWith('/user') || path.startsWith('/examiner'))) {
       showUnauthorizedAlert('/admin')
       setIsAuthorized(false)
-    } else if (
-      role === 'ผู้ใช้งานทั่วไป' &&
-      (path.startsWith('/admin') || path.startsWith('/examiner'))
-    ) {
+    } else if (role === 'ผู้ใช้งานทั่วไป' && (path.startsWith('/admin') || path.startsWith('/examiner'))) {
       showUnauthorizedAlert('/user')
       setIsAuthorized(false)
-    } else if (
-      role === 'ผู้ประเมิน' &&
-      (path.startsWith('/admin') || path.startsWith('/user'))
-    ) {
+    } else if (role === 'ผู้ประเมิน' && (path.startsWith('/admin') || path.startsWith('/user'))) {
       showUnauthorizedAlert('/examiner')
       setIsAuthorized(false)
     } else {

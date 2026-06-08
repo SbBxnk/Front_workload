@@ -7,6 +7,7 @@ import Topbar from '../../components/Topbar'
 import { ThemeProvider } from '../../provider/themeContext'
 import { useRouter } from 'next/navigation'
 import { AuthProvider } from '../../provider/authProvider'
+import NavigationProgress from '../../components/NavigationProgress'
 
 export default function RootLayout({
   children,
@@ -29,6 +30,7 @@ export default function RootLayout({
   return (
     <ThemeProvider>
       <AuthProvider>
+        <NavigationProgress />
         <div className="no-scrollbar flex h-screen w-full overflow-hidden">
           <div className="flex-none bg-[#EBEFF3] p-0 transition-all duration-300 ease-in-out dark:bg-zinc-900">
             <Sidebar

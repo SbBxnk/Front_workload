@@ -2,9 +2,10 @@
 import React, { useState, useEffect } from 'react'
 import Sidebar from '../../components/Sidebar'
 import Topbar from '../../components/Topbar'
-import { ThemeProvider } from '../../provider/themeContext' //ดึง ThemeContext
+import { ThemeProvider } from '../../provider/themeContext'
 import { AuthProvider } from '../../provider/authProvider'
 import { AssessorProvider } from '../../provider/AssessorProvider'
+import NavigationProgress from '../../components/NavigationProgress'
 
 export default function RootLayout({
   children,
@@ -25,6 +26,7 @@ export default function RootLayout({
     <ThemeProvider>
       <AuthProvider>
         <AssessorProvider>
+          <NavigationProgress />
           <div className="no-scrollbar flex h-screen w-full overflow-hidden">
             <div className="flex-none bg-[#EBEFF3] p-0 dark:bg-zinc-900">
               <Sidebar
